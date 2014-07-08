@@ -38,4 +38,5 @@ stamp-h1
 *.user
 *.sdf
 *.suo
+*.opensdf
 
