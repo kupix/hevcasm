@@ -1,5 +1,7 @@
 /autom4te.cache/
 /config/
+Debug/
+Release/
 Makefile
 Makefile.in
 aclocal.m4
@@ -32,4 +34,8 @@ stamp-h1
 *.gcno
 *.gcda
 *.exe
+*.filters
+*.user
+*.sdf
+*.suo
 
