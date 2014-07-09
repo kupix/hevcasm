@@ -2,6 +2,7 @@
 /config/
 Debug/
 Release/
+src/bin/hevcasm
 Makefile
 Makefile.in
 aclocal.m4
