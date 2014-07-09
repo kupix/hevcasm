@@ -37,4 +37,5 @@ stamp-h1
 *.sdf
 *.suo
 *.opensdf
+.dirstamp
 
