@@ -11,7 +11,7 @@ All rights reserved.
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met :
 
-*Redistributions of source code must retain the above copyright notice,
+* Redistributions of source code must retain the above copyright notice,
 this list of conditions and the following disclaimer.
 * Redistributions in binary form must reproduce the above copyright notice,
 this list of conditions and the following disclaimer in the documentation
@@ -34,44 +34,17 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifndef INCLUDED_hevcasm_base_h
-#define INCLUDED_hevcasm_base_h
+#ifndef INCLUDED_hevcasm_residual_decode_h
+#define INCLUDED_hevcasm_residual_decode_h
 
-#include <stddef.h>
-#include <inttypes.h>
-#include <stdio.h>
+#include "hevcasm.h"
 
 
-typedef void(*hevcasm_transform_function)(int16_t *dst, ptrdiff_t stride_dst, int16_t *src, ptrdiff_t stride_src);
+typedef void hevcasm_inverse_transform_add(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t *coeffs);
 
+void hevcasm_get_inverse_transform_add(hevcasm_inverse_transform_add **table, hevcasm_instruction_set_t mask);
 
-#define HEVCASM_INSTRUCTION_SET_XMACRO \
-	X(1<<1, SSE2) \
-	X(1<<2, SSE3) \
-	X(1<<3, SSSE3) \
-	X(1<<4, SSE41) \
-	X(1<<5, POPCNT) \
-	X(1<<6, SSE42) \
-	X(1<<7, AVX) \
-	X(1<<8, RDRAND) \
-	X(1<<9, PCLMUL_AES) \
-	X(1<<10, AVX2)
-
-typedef enum {
-#define X(value, name) HEVCASM_ ## name = value,
-	HEVCASM_INSTRUCTION_SET_XMACRO
-#undef X
-} hevcasm_instruction_set_t;
-
-hevcasm_instruction_set_t hevcasm_instruction_set_support();
-
-void hevcasm_print_instruction_set_support(FILE *f, hevcasm_instruction_set_t mask);
-
-
-void hevcasm_get_forward_transforms(hevcasm_transform_function *table, hevcasm_instruction_set_t mask);
-void hevcasm_get_inverse_transforms(hevcasm_transform_function *table, hevcasm_instruction_set_t mask);
-
-
-
+int hevcasm_validate_inverse_transform_add(hevcasm_instruction_set_t mask);
+void hevcasm_time_inverse_transform_add(hevcasm_instruction_set_t mask);
 
 #endif

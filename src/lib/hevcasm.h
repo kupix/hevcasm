@@ -33,29 +33,61 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "residual_decode.h"
-#include "hevcasm.h"
 
+#ifndef INCLUDED_hevcasm_h
+#define INCLUDED_hevcasm_h
+
+#include <stddef.h>
+#include <inttypes.h>
 #include <stdio.h>
 
 
+#ifdef WIN32
+
+#define ALIGN(n, T, v) \
+	__declspec(align(n)) T v
+
+#endif
+
+#ifdef __GNUC__
+
+#define ALIGN(n, T, v) \
+	T v __attribute__((aligned(n)))
+
+#endif
 
 
 
-int main()
-{
-	hevcasm_instruction_set_t mask = hevcasm_instruction_set_support();
+#define HEVCASM_INSTRUCTION_SET_XMACRO \
+	X(0, C, "generic C code") \
+	X(1, SSE2, "SSE2") \
+	X(2, SSE3, "SSE3") \
+	X(3, SSSE3, "Supplementary SSE3") \
+	X(4, SSE41, "SSE4.1") \
+	X(5, POPCNT, "POPCNT") \
+	X(6, SSE42, "SSE4.2") \
+	X(7, AVX, "AVX") \
+	X(8, RDRAND, "RDRAND") \
+	X(9, PCLMUL_AES, "PCLMUL and AES") \
+	X(10, AVX2, "AVX2") 
 
-	printf("HEVCasm test program\n");
-	printf("\n");
+#define HEVCASM_INSTRUCTION_SET_COUNT 11
 
-	hevcasm_print_instruction_set_support(stdout, mask);
-	printf("\n");
 
-	int error_count = 0;
 
-	error_count += hevcasm_validate_inverse_transform_add(mask);
-	hevcasm_time_inverse_transform_add(mask);
+typedef enum {
+#define X(value, name, description) HEVCASM_ ## name = 1 << value,
+	HEVCASM_INSTRUCTION_SET_XMACRO
+#undef X
+} hevcasm_instruction_set_t;
 
-	return error_count;
-}
+
+hevcasm_instruction_set_t hevcasm_instruction_set_support();
+
+void hevcasm_print_instruction_set_support(FILE *f, hevcasm_instruction_set_t mask);
+
+
+
+
+
+#endif

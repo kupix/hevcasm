@@ -33,29 +33,29 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "residual_decode.h"
+
 #include "hevcasm.h"
 
-#include <stdio.h>
 
 
+uint16_t hevcasm_instruction_set(void);
 
 
-
-int main()
+hevcasm_instruction_set_t hevcasm_instruction_set_support()
 {
-	hevcasm_instruction_set_t mask = hevcasm_instruction_set_support();
-
-	printf("HEVCasm test program\n");
-	printf("\n");
-
-	hevcasm_print_instruction_set_support(stdout, mask);
-	printf("\n");
-
-	int error_count = 0;
-
-	error_count += hevcasm_validate_inverse_transform_add(mask);
-	hevcasm_time_inverse_transform_add(mask);
-
-	return error_count;
+	long long int set = hevcasm_instruction_set();
+	return (2 << set) - 1;
 }
+
+
+void hevcasm_print_instruction_set_support(FILE *f, hevcasm_instruction_set_t mask)
+{
+	fprintf(f, "Detected instruction set support:");
+#define X(value, name) if (value & mask) fprintf(f, " " #name);
+	HEVCASM_INSTRUCTION_SET_XMACRO
+#undef X
+	fprintf(f, "\n");
+}
+
+
+

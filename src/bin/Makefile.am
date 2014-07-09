@@ -6,3 +6,5 @@ endif
 
 bin_PROGRAMS = hevcasm
 hevcasm_SOURCES = main.c
+
+hevcasm_LDADD = $(top_builddir)/src/lib/libhevcasm.a $(AM_LDFLAGS)

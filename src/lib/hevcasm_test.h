@@ -11,7 +11,7 @@ All rights reserved.
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met :
 
-*Redistributions of source code must retain the above copyright notice,
+* Redistributions of source code must retain the above copyright notice,
 this list of conditions and the following disclaimer.
 * Redistributions in binary form must reproduce the above copyright notice,
 this list of conditions and the following disclaimer in the documentation
@@ -34,35 +34,52 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#include "hevcasm_base.h"
+#ifndef INCLUDED_hevcasm_test_h
+#define INCLUDED_hevcasm_test_h
+
+#include "hevcasm.h"
+
+#include <inttypes.h>
 
 
-
-long long int hevcasm_instruction_set(void);
-
-
-hevcasm_instruction_set_t hevcasm_instruction_set_support()
-{
-	long long int set = hevcasm_instruction_set();
-	return (2 << set) - 1;
-}
-
-
-void hevcasm_print_instruction_set_support(FILE *f, hevcasm_instruction_set_t mask)
-{
-#define X(value, name) if (value & mask) fprintf(f, " " #name);
+typedef enum {
+#define X(value, name, description) name = value,
 	HEVCASM_INSTRUCTION_SET_XMACRO
 #undef X
-}
+} hevcasm_instruction_set_idx_t;
 
-
-
-void hevcasm_get_forward_transforms(hevcasm_transform_function *table, hevcasm_instruction_set_t mask)
+static const char *hevcasm_instruction_set_idx_as_text(hevcasm_instruction_set_idx_t i)
 {
-
+#define X(value, name, description) if (i == value) return #name;
+	HEVCASM_INSTRUCTION_SET_XMACRO
+#undef X
+	return 0;
 }
 
-void hevcasm_get_inverse_transforms(hevcasm_transform_function *table, hevcasm_instruction_set_t mask)
+static const char *hevcasm_tranform_type_as_text(int n)
 {
-
+	return n == 1 ? "DST" : "DCT";
 }
+
+static int hevcasm_tranform_size(int n)
+{
+	static const int lookup[6] = { 0, 4, 4, 8, 16, 32};
+	return lookup[n];
+}
+
+static const char *hevcasm_tranform_size_as_text(int n)
+{
+	static const char *lookup[6] = { 0, " 4x4 ", " 4x4 ", " 8x8 ", "16x16", "32x32" };
+	return lookup[n];
+}
+
+typedef int64_t hevcasm_timestamp_t;
+
+hevcasm_timestamp_t hevcasm_get_timestamp()
+{
+	return __rdtsc();
+}
+
+
+
+#endif

@@ -17,7 +17,6 @@ coverage_report
 depcomp
 install-sh
 libtool
-m4
 missing
 stamp-h1
 *~
@@ -34,7 +33,6 @@ stamp-h1
 *.gcno
 *.gcda
 *.exe
-*.filters
 *.user
 *.sdf
 *.suo
