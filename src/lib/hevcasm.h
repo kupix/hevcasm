@@ -74,6 +74,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define HEVCASM_INSTRUCTION_SET_COUNT 11
 
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 
 typedef enum {
 #define X(value, name, description) HEVCASM_ ## name = 1 << value,
@@ -87,7 +92,9 @@ hevcasm_instruction_set_t hevcasm_instruction_set_support();
 void hevcasm_print_instruction_set_support(FILE *f, hevcasm_instruction_set_t mask);
 
 
-
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif

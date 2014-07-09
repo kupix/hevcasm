@@ -40,11 +40,20 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "hevcasm.h"
 
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 typedef void hevcasm_inverse_transform_add(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t *coeffs);
 
 void hevcasm_get_inverse_transform_add(hevcasm_inverse_transform_add **table, hevcasm_instruction_set_t mask);
 
 int hevcasm_validate_inverse_transform_add(hevcasm_instruction_set_t mask);
 void hevcasm_time_inverse_transform_add(hevcasm_instruction_set_t mask);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

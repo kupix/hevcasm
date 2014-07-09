@@ -40,7 +40,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 
 
-// declaration of functions in residual_decode_a.asm
+/* declaration for assembly functions in residual_decode_a.asm */
 void hevcasm_partial_butterfly_inverse_8v_ssse3(int16_t *dst, const int16_t *src, int shift);
 void hevcasm_partial_butterfly_inverse_8h_ssse3(int16_t *dst, const int16_t *src, int shift);
 
@@ -131,6 +131,11 @@ void hevcasm_idct_8x8_c(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred,
 
 void hevcasm_idct_8x8_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[8 * 8])
 {
+	/* 
+		todo: combine the following into a single assembly function, 
+		removing the need for temp[1]. 64-bit processors can avoid
+		temp[0] too. 
+	*/
 	ALIGN(32, int16_t, temp[2][8 * 8]);
 	hevcasm_partial_butterfly_inverse_8v_ssse3(temp[0], coeffs, 7);
 	hevcasm_partial_butterfly_inverse_8h_ssse3(temp[1], temp[0], 12);
@@ -144,10 +149,12 @@ void hevcasm_get_inverse_transform_add(hevcasm_inverse_transform_add **table, he
 	table[3] = 0;
 	table[4] = 0;
 	table[5] = 0;
+
 	if (mask & HEVCASM_C)
 	{
 		table[3] = hevcasm_idct_8x8_c;
 	}
+
 	if (mask & HEVCASM_SSSE3)
 	{
 		table[3] = hevcasm_idct_8x8_ssse3;
