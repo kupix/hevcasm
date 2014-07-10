@@ -51,6 +51,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 typedef int64_t hevcasm_timestamp;
 
+
 static hevcasm_timestamp hevcasm_get_timestamp()
 {
 	return __rdtsc();

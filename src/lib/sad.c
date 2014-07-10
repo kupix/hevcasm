@@ -216,14 +216,14 @@ typedef struct
 	uint32_t rect;
 	HEVCASM_ALIGN(32, uint8_t, src[128 * 128]);
 	HEVCASM_ALIGN(32, uint8_t, ref[128 * 128]);
-	uint8_t *ref_array[4];
+	const uint8_t *ref_array[4];
 	int sad[4];
 } 
 bound_sad_multiref;
 
 void call_sad_multiref(void *p, int n)
 {
-	bound_sad_multiref *s = p;
+	bound_sad_multiref *s = (bound_sad_multiref *)p;
 	while (n--)
 	{
 		s->f(s->src, 64, s->ref_array, 64, s->sad, s->rect);

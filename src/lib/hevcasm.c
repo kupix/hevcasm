@@ -34,7 +34,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#include "prediction_inter.h"
+#include "pred_inter.h"
 #include "residual_decode.h"
 #include "sad.h"
 #include "hevcasm.h"
@@ -51,8 +51,36 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <intrin.h>
 #endif
 
+
 #ifdef __GNUC__
-#error "todo __cpuidex() and _xgetbv()"
+
+static void __cpuidex(int cpuInfo[4], int function_id, int subfunction_id)
+{
+	__asm__ __volatile__ ( "cpuid" 
+		:
+		"=a" ((cpuInfo)[0]),
+		"=b" ((cpuInfo)[1]),
+		"=c" ((cpuInfo)[2]),
+		"=d" ((cpuInfo)[3]) 
+		: 
+		"0" (function_id),
+		"2" (subfunction_id) );
+}
+
+
+static uint64_t _xgetbv(uint32_t index)
+{
+	uint32_t eax, edx;
+	__asm__ __volatile__("xgetbv"
+		:
+		"=a" (eax),
+		"=d" (edx)
+		:
+		"c" (index) );
+	return ((uint64_t)edx << 32) | eax;
+}
+
+
 #endif
 
 
@@ -77,7 +105,7 @@ hevcasm_instruction_set hevcasm_instruction_set_support()
 	
 	if ((cpuInfo[2] & 0x10000000) && (cpuInfo[2] & 0x08000000))
 	{
-		__int64 xcr0 = _xgetbv(0);
+		uint64_t xcr0 = _xgetbv(0);
 
 		if ((xcr0 & 0x2) && (xcr0 & 0x4))
 		{

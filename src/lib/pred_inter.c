@@ -33,7 +33,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "prediction_inter.h"
+#include "pred_inter.h"
 #include "hevcasm_test.h"
 
 #include <stdlib.h>

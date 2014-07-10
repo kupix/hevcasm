@@ -1,7 +1,7 @@
 if DEBUG
-  AM_CFLAGS =-I$(top_srcdir)/src/lib -I$(top_srcdir)/src/lib/libvpx -I$(top_srcdir)/src/lib/libvpx/config/gcc -Wall -g -O3
+  AM_CFLAGS =-I$(top_srcdir)/src/lib -I$(top_srcdir)/src/lib/libvpx -I$(top_srcdir)/src/lib/libvpx/config/gcc -Wall -Wno-unused-function -g -O3
 else
-  AM_CFLAGS =-I$(top_srcdir)/src/lib -I$(top_srcdir)/src/lib/libvpx -I$(top_srcdir)/src/lib/libvpx/config/gcc -Wall
+  AM_CFLAGS =-I$(top_srcdir)/src/lib -I$(top_srcdir)/src/lib/libvpx -I$(top_srcdir)/src/lib/libvpx/config/gcc -Wall -Wno-unused-function
 endif
 
 SUFFIXES: .asm
@@ -16,10 +16,11 @@ noinst_LIBRARIES = libhevcasm.a
 libhevcasm_a_SOURCES = \
 	$(libhevcasm_a_HEADERS) \
 	hevcasm.c \
-	sad.c \
 	residual_decode.c \
-	instrset.asm \
 	residual_decode_a.asm \
+	pred_inter.c \
+	pred_inter_a.asm \
+	sad.c \
 	libvpx/vp9/encoder/x86/vp9_sad_sse2.asm \
 	libvpx/vp9/encoder/x86/vp9_sad4d_sse2.asm
 
