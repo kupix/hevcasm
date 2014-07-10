@@ -38,6 +38,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdio.h>
 
+#ifdef WIN32
+#include <Windows.h>
+#endif
 
 
 
@@ -49,12 +52,20 @@ int main()
 	printf("HEVCasm test program\n");
 	printf("\n");
 
+#ifdef WIN32
+	if (!SetProcessAffinityMask(GetCurrentProcess(), 1))
+	{
+		printf("** failed to set process affinity **\n\n");
+	}
+#endif
+
 	hevcasm_print_instruction_set_support(stdout, mask);
 	printf("\n");
 
 	int error_count = 0;
 
 	error_count += hevcasm_validate_inverse_transform_add(mask);
+
 	hevcasm_time_inverse_transform_add(mask);
 
 	return error_count;

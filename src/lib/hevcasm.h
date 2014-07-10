@@ -44,15 +44,34 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef WIN32
 
-#define ALIGN(n, T, v) \
+#ifdef HEVCASM_DLL_EXPORTS
+#define HEVCASM_API __declspec( dllexport ) 
+#else
+#ifdef HEVCASM_DLL_IMPORTS
+#define HEVCASM_API __declspec( dllimport ) 
+#else
+#define HEVCASM_API
+#endif
+#endif
+
+typedef int64_t hevcasm_timestamp_t;
+
+static hevcasm_timestamp_t hevcasm_get_timestamp()
+{
+	return __rdtsc();
+}
+
+#define HEVCASM_ALIGN(n, T, v) \
 	__declspec(align(n)) T v
 
 #endif
 
 #ifdef __GNUC__
 
-#define ALIGN(n, T, v) \
+#define HEVCASM_ALIGN(n, T, v) \
 	T v __attribute__((aligned(n)))
+
+#define HEVCASM_API
 
 #endif
 
@@ -74,6 +93,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define HEVCASM_INSTRUCTION_SET_COUNT 11
 
 
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -87,9 +107,9 @@ typedef enum {
 } hevcasm_instruction_set_t;
 
 
-hevcasm_instruction_set_t hevcasm_instruction_set_support();
+hevcasm_instruction_set_t HEVCASM_API hevcasm_instruction_set_support();
 
-void hevcasm_print_instruction_set_support(FILE *f, hevcasm_instruction_set_t mask);
+void HEVCASM_API hevcasm_print_instruction_set_support(FILE *f, hevcasm_instruction_set_t mask);
 
 
 #ifdef __cplusplus

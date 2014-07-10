@@ -136,7 +136,7 @@ void hevcasm_idct_8x8_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *p
 		removing the need for temp[1]. 64-bit processors can avoid
 		temp[0] too. 
 	*/
-	ALIGN(32, int16_t, temp[2][8 * 8]);
+	HEVCASM_ALIGN(32, int16_t, temp[2][8 * 8]);
 	hevcasm_partial_butterfly_inverse_8v_ssse3(temp[0], coeffs, 7);
 	hevcasm_partial_butterfly_inverse_8h_ssse3(temp[1], temp[0], 12);
 	hevcasm_add_residual_8x8(dst, stride_dst, pred, stride_pred, temp[1]);
@@ -164,16 +164,16 @@ void hevcasm_get_inverse_transform_add(hevcasm_inverse_transform_add **table, he
 int hevcasm_validate_inverse_transform_add(hevcasm_instruction_set_t mask)
 {
 	int error_count = 0;
-	printf("inverse_transform_add\n");
+	printf("validate: inverse_transform_add\n");
 	hevcasm_inverse_transform_add *table_inverse_transform_add[HEVCASM_INSTRUCTION_SET_COUNT][6];
 	for (hevcasm_instruction_set_idx_t i = 0; i < HEVCASM_INSTRUCTION_SET_COUNT; ++i)
 	{
 		hevcasm_get_inverse_transform_add(table_inverse_transform_add[i], 1 << i);
 	}
 
-	ALIGN(32, int16_t, coefficients[32 * 32]);
-	ALIGN(32, uint8_t, predicted[32 * 32]);
-	ALIGN(32, uint8_t, dst[2][32 * 32]);
+	HEVCASM_ALIGN(32, int16_t, coefficients[32 * 32]);
+	HEVCASM_ALIGN(32, uint8_t, predicted[32 * 32]);
+	HEVCASM_ALIGN(32, uint8_t, dst[2][32 * 32]);
 
 	for (int x = 0; x < 8 * 8; x++) coefficients[x] = (rand() & 0x1ff) - 0x100;
 	for (int x = 0; x < 8 * 8; x++) predicted[x] = rand() & 0xff;
@@ -207,40 +207,49 @@ int hevcasm_validate_inverse_transform_add(hevcasm_instruction_set_t mask)
 	return error_count;
 }
 
+typedef struct
+{
+	hevcasm_inverse_transform_add *f;
+	int size;
+	HEVCASM_ALIGN(32, int16_t, coefficients[32 * 32]);
+	HEVCASM_ALIGN(32, uint8_t, predicted[32 * 32]);
+	HEVCASM_ALIGN(32, uint8_t, dst[32 * 32]);
+} bind_time_inverse_transform_add;
+
+void call_time_inverse_transform_add(void *p, int n)
+{
+	bind_time_inverse_transform_add *s = p;
+	while (n--)
+	{
+		s->f(s->dst, s->size, s->predicted, s->size, s->coefficients);
+	}
+}
+
 void hevcasm_time_inverse_transform_add(hevcasm_instruction_set_t mask)
 {
-	printf("inverse_transform_add\n");
+	printf("cycle count: inverse_transform_add\n");
 	hevcasm_inverse_transform_add *table_inverse_transform_add[HEVCASM_INSTRUCTION_SET_COUNT][6];
 	for (hevcasm_instruction_set_idx_t i = 0; i < HEVCASM_INSTRUCTION_SET_COUNT; ++i)
 	{
 		hevcasm_get_inverse_transform_add(table_inverse_transform_add[i], 1 << i);
 	}
 
-	ALIGN(32, int16_t, coefficients[32 * 32]);
-	ALIGN(32, uint8_t, predicted[32 * 32]);
-	ALIGN(32, uint8_t, dst[32 * 32]);
-
 	for (int j = 1; j < 6; ++j)
 	{
-		const int size = hevcasm_tranform_size(j);
-		const int iterations = 1000;
+		bind_time_inverse_transform_add bound;
+		bound.size = hevcasm_tranform_size(j);
+
 		double first_result = 0.0;
 
 		printf("%s %s : ", hevcasm_tranform_type_as_text(j), hevcasm_tranform_size_as_text(j));
 
 		for (hevcasm_instruction_set_idx_t i = 0; i < HEVCASM_INSTRUCTION_SET_COUNT; ++i)
 		{
-			hevcasm_inverse_transform_add *f = table_inverse_transform_add[i][j];
-			if (f)
+			bound.f = table_inverse_transform_add[i][j];
+			if (bound.f)
 			{
+				const int average = hevcasm_count_average_cycles(call_time_inverse_transform_add, &bound, 100000);
 				printf(" %s:", hevcasm_instruction_set_idx_as_text(i));
-				const hevcasm_timestamp_t start = hevcasm_get_timestamp();
-				for (int n = 0; n < iterations; ++n)
-				{
-					f(dst, size, predicted, size, coefficients);
-				}
-				const int duration = (int)(hevcasm_get_timestamp() - start);
-				const int average = (duration + iterations / 2) / iterations;
 				printf("%d", average);
 				if (first_result != 0.0)
 				{

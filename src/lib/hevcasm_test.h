@@ -41,6 +41,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <inttypes.h>
 
+#include <Windows.h>
+
 
 typedef enum {
 #define X(value, name, description) name = value,
@@ -73,13 +75,43 @@ static const char *hevcasm_tranform_size_as_text(int n)
 	return lookup[n];
 }
 
-typedef int64_t hevcasm_timestamp_t;
+typedef void hevc_bound_function(void *p, int n);
 
-hevcasm_timestamp_t hevcasm_get_timestamp()
+static int hevcasm_count_average_cycles(hevc_bound_function *f, void *p, int iterations)
 {
-	return __rdtsc();
+	hevcasm_timestamp_t sum = 0;
+	int warmup = 100;
+	int count = 0;
+	while (count < iterations)
+	{
+		const hevcasm_timestamp_t start = hevcasm_get_timestamp();
+		f(p, 4);
+		const hevcasm_timestamp_t duration = hevcasm_get_timestamp() - start;
+
+		if (warmup == 0)
+		{
+			if (8 * duration * count < 7 * 4 * sum)
+			{
+				sum = 0;
+				count = 0;
+				warmup = 100;
+			}
+			else 	if (7 * duration * count <= 8 * 4 * sum)
+			{
+				count += 4;
+				sum += duration;
+			}
+			else
+			{
+				warmup = 100;
+			}
+		}
+		else
+		{
+			--warmup;
+		}
+	}
+	return (int)((sum + count / 2) / count);
 }
-
-
 
 #endif

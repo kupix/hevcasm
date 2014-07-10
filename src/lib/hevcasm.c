@@ -37,8 +37,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "hevcasm.h"
 
 
-
-uint16_t hevcasm_instruction_set(void);
+/* declaration for assembly function in instrset.asm */
+uint16_t hevcasm_instruction_set();
 
 
 hevcasm_instruction_set_t hevcasm_instruction_set_support()
@@ -50,6 +50,7 @@ hevcasm_instruction_set_t hevcasm_instruction_set_support()
 
 void hevcasm_print_instruction_set_support(FILE *f, hevcasm_instruction_set_t mask)
 {
+	f = stdout;
 	fprintf(f, "Detected instruction set support:\n");
 #define X(value, name, description) if (value & mask) fprintf(f, "\t" #name " (" description ")\n");
 	HEVCASM_INSTRUCTION_SET_XMACRO
