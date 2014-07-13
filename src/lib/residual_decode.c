@@ -142,35 +142,25 @@ void hevcasm_idct_8x8_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *p
 	hevcasm_add_residual_8x8(dst, stride_dst, pred, stride_pred, temp[1]);
 }
 
-void hevcasm_get_inverse_transform_add(hevcasm_inverse_transform_add **table, hevcasm_instruction_set_t mask)
+hevcasm_inverse_transform_add* HEVCASM_API hevcasm_get_inverse_transform_add(int log2TrafoSize, int trType, hevcasm_instruction_set mask)
 {
-	table[1] = 0;
-	table[2] = 0;
-	table[3] = 0;
-	table[4] = 0;
-	table[5] = 0;
-
-	if (mask & HEVCASM_C)
+	switch (log2TrafoSize)
 	{
-		table[3] = hevcasm_idct_8x8_c;
+	case 3:
+		if (mask & HEVCASM_C) return hevcasm_idct_8x8_c;
+		if (mask & HEVCASM_SSSE3) return hevcasm_idct_8x8_ssse3;
+		break;
+	default:
+		;
 	}
-
-	if (mask & HEVCASM_SSSE3)
-	{
-		table[3] = hevcasm_idct_8x8_ssse3;
-	}
+	return 0;
 }
 
-int hevcasm_validate_inverse_transform_add(hevcasm_instruction_set_t mask)
+#if 0
+int hevcasm_test_inverse_transform_add(hevcasm_instruction_set mask)
 {
 	int error_count = 0;
 	printf("validate: inverse_transform_add\n");
-	hevcasm_inverse_transform_add *table_inverse_transform_add[HEVCASM_INSTRUCTION_SET_COUNT][6];
-	for (hevcasm_instruction_set_idx_t i = 0; i < HEVCASM_INSTRUCTION_SET_COUNT; ++i)
-	{
-		hevcasm_get_inverse_transform_add(table_inverse_transform_add[i], 1 << i);
-	}
-
 	HEVCASM_ALIGN(32, int16_t, coefficients[32 * 32]);
 	HEVCASM_ALIGN(32, uint8_t, predicted[32 * 32]);
 	HEVCASM_ALIGN(32, uint8_t, dst[2][32 * 32]);
@@ -180,15 +170,17 @@ int hevcasm_validate_inverse_transform_add(hevcasm_instruction_set_t mask)
 
 	for (int j = 1; j < 6; ++j)
 	{
-		const int size = hevcasm_tranform_size(j);
+		const int size = hevcasm_transform_size(j);
 
-		printf("%s %s : ", hevcasm_tranform_type_as_text(j), hevcasm_tranform_size_as_text(j));
-
-		table_inverse_transform_add[C][3](dst[0], size, predicted, size, coefficients);
+		printf("%s %s : ", hevcasm_transform_type_as_text(j), hevcasm_transform_size_as_text(j));
 
 		for (hevcasm_instruction_set_idx_t i = 0; i < HEVCASM_INSTRUCTION_SET_COUNT; ++i)
 		{
-			hevcasm_inverse_transform_add *f = table_inverse_transform_add[i][j];
+			const int trType = (j == 1);
+			hevcasm_inverse_transform_add *f = trType
+				? hevcasm_get_inverse_transform_add(2, 1, mask)
+				: hevcasm_get_inverse_transform_add(j, 0, mask);
+
 			if (f)
 			{
 				printf(" %s", hevcasm_instruction_set_idx_as_text(i));
@@ -206,6 +198,7 @@ int hevcasm_validate_inverse_transform_add(hevcasm_instruction_set_t mask)
 	printf("\n");
 	return error_count;
 }
+#endif
 
 typedef struct
 {
@@ -213,55 +206,67 @@ typedef struct
 	int size;
 	HEVCASM_ALIGN(32, int16_t, coefficients[32 * 32]);
 	HEVCASM_ALIGN(32, uint8_t, predicted[32 * 32]);
-	HEVCASM_ALIGN(32, uint8_t, dst[32 * 32]);
-} bind_time_inverse_transform_add;
+	uint8_t *dst;
+} bind_inverse_transform_add;
 
-void call_time_inverse_transform_add(void *p, int n)
+void call_inverse_transform_add(void *p, int n)
 {
-	bind_time_inverse_transform_add *s = p;
+	bind_inverse_transform_add *s = p;
 	while (n--)
 	{
 		s->f(s->dst, s->size, s->predicted, s->size, s->coefficients);
 	}
 }
 
-void hevcasm_time_inverse_transform_add(hevcasm_instruction_set_t mask)
+int hevcasm_test_inverse_transform_add(hevcasm_instruction_set mask)
 {
-	printf("cycle count: inverse_transform_add\n");
-	hevcasm_inverse_transform_add *table_inverse_transform_add[HEVCASM_INSTRUCTION_SET_COUNT][6];
-	for (hevcasm_instruction_set_idx_t i = 0; i < HEVCASM_INSTRUCTION_SET_COUNT; ++i)
-	{
-		hevcasm_get_inverse_transform_add(table_inverse_transform_add[i], 1 << i);
-	}
+	printf("inverse_transform_add\n");
+
+	int error_count = 0;
+
+	HEVCASM_ALIGN(32, uint8_t, dst[2][32 * 32]);
+
+	bind_inverse_transform_add bound;
+	for (int x = 0; x < 32 * 32; x++) bound.coefficients[x] = (rand() & 0x1ff) - 0x100;
+	for (int x = 0; x < 32 * 32; x++) bound.predicted[x] = rand() & 0xff;
 
 	for (int j = 1; j < 6; ++j)
 	{
-		bind_time_inverse_transform_add bound;
-		bound.size = hevcasm_tranform_size(j);
+		const int trType = (j == 1) ? 1 : 0;
+		bound.size = (j == 1) ? 2 : j;
+		bound.dst = dst[0];
+
+		bound.f = hevcasm_get_inverse_transform_add(bound.size, trType, HEVCASM_C);
+
+		if (!bound.f) continue;
+	
+		call_inverse_transform_add(&bound, 1);
+
+		printf("%s %dx%d : ", trType ? "DST" : "DCT", 1<<bound.size, 1<<bound.size);
 
 		double first_result = 0.0;
 
-		printf("%s %s : ", hevcasm_tranform_type_as_text(j), hevcasm_tranform_size_as_text(j));
-
 		for (hevcasm_instruction_set_idx_t i = 0; i < HEVCASM_INSTRUCTION_SET_COUNT; ++i)
 		{
-			bound.f = table_inverse_transform_add[i][j];
+			if (!((1 << i) & mask)) continue;
+
+			bound.f = hevcasm_get_inverse_transform_add(bound.size, trType, 1 << i);
+			bound.dst = dst[1];
+
 			if (bound.f)
 			{
-				const int average = hevcasm_count_average_cycles(call_time_inverse_transform_add, &bound, 100000);
-				printf(" %s:", hevcasm_instruction_set_idx_as_text(i));
-				printf("%d", average);
-				if (first_result != 0.0)
+				hevcasm_count_average_cycles(call_inverse_transform_add, &bound, &first_result, i, 100000);
+
+				const int mismatch = memcmp(dst[0], dst[1], sizeof(uint8_t)* bound.size * bound.size);
+				if (mismatch)
 				{
-					printf("(x%.2f)", first_result / average);
-				}
-				else
-				{
-					first_result = average;
+					printf("-MISMATCH");
+					++error_count;
 				}
 			}
 		}
 		printf("\n");
 	}
 	printf("\n");
+	return error_count;
 }

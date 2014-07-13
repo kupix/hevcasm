@@ -35,11 +35,11 @@
 
          [BITS 64]                        ; 64 bit segment
 
-        global hevcasm_instruction_set                      ; visibility for ld
+        global hevcasm_get_instruction_set                      ; visibility for ld
 
         section .text                    ; code
 
-; hevcasm_instruction_set
+; hevcasm_get_instruction_set
 
 ; Purpose:         Inspect the available instruction set.
 
@@ -59,7 +59,7 @@
 
 
 
-hevcasm_instruction_set:
+hevcasm_get_instruction_set:
 
         push       rbx                   ; ebx is affected by CPUID
         push       rdi                   ; result holder

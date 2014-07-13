@@ -23,6 +23,9 @@
     <ClInclude Include="hevcasm_test.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="sad.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <YASM Include="instrset.asm">
@@ -40,6 +43,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="hevcasm.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sad.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

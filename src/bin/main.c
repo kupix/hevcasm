@@ -34,6 +34,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "residual_decode.h"
+#include "sad.h"
 #include "hevcasm.h"
 
 #include <stdio.h>
@@ -47,7 +48,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 int main()
 {
-	hevcasm_instruction_set_t mask = hevcasm_instruction_set_support();
+	hevcasm_instruction_set mask = hevcasm_instruction_set_support();
 
 	printf("HEVCasm test program\n");
 	printf("\n");
@@ -64,9 +65,8 @@ int main()
 
 	int error_count = 0;
 
-	error_count += hevcasm_validate_inverse_transform_add(mask);
-
-	hevcasm_time_inverse_transform_add(mask);
+	error_count += hevcasm_test_inverse_transform_add(mask);
+	error_count += hevcasm_test_sad(mask);
 
 	return error_count;
 }

@@ -20,7 +20,7 @@ and / or other materials provided with the distribution.
 be used to endorse or promote products derived from this software without
 specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"	
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 ARE DISCLAIMED.IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
@@ -58,35 +58,18 @@ static const char *hevcasm_instruction_set_idx_as_text(hevcasm_instruction_set_i
 	return 0;
 }
 
-static const char *hevcasm_tranform_type_as_text(int n)
-{
-	return n == 1 ? "DST" : "DCT";
-}
-
-static int hevcasm_tranform_size(int n)
-{
-	static const int lookup[6] = { 0, 4, 4, 8, 16, 32};
-	return lookup[n];
-}
-
-static const char *hevcasm_tranform_size_as_text(int n)
-{
-	static const char *lookup[6] = { 0, " 4x4 ", " 4x4 ", " 8x8 ", "16x16", "32x32" };
-	return lookup[n];
-}
-
 typedef void hevc_bound_function(void *p, int n);
 
-static int hevcasm_count_average_cycles(hevc_bound_function *f, void *p, int iterations)
+static void hevcasm_count_average_cycles(hevc_bound_function *f, void *p, double *first_result, hevcasm_instruction_set i, int iterations)
 {
-	hevcasm_timestamp_t sum = 0;
+	hevcasm_timestamp sum = 0;
 	int warmup = 100;
 	int count = 0;
 	while (count < iterations)
 	{
-		const hevcasm_timestamp_t start = hevcasm_get_timestamp();
+		const hevcasm_timestamp start = hevcasm_get_timestamp();
 		f(p, 4);
-		const hevcasm_timestamp_t duration = hevcasm_get_timestamp() - start;
+		const hevcasm_timestamp duration = hevcasm_get_timestamp() - start;
 
 		if (warmup == 0)
 		{
@@ -111,7 +94,21 @@ static int hevcasm_count_average_cycles(hevc_bound_function *f, void *p, int ite
 			--warmup;
 		}
 	}
-	return (int)((sum + count / 2) / count);
+	
+	{
+		const int average = (int)((sum + count / 2) / count);
+
+		printf(" %s:", hevcasm_instruction_set_idx_as_text(i));
+		printf("%d", average);
+		if (*first_result != 0.0)
+		{
+			printf("(x%.2f)", *first_result / average);
+		}
+		else
+		{
+			*first_result = average;
+		}
+	}
 }
 
 #endif

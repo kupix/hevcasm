@@ -34,29 +34,35 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
+#ifndef INCLUDED_sad_h
+#define INCLUDED_sad_h
+
 #include "hevcasm.h"
 
 
-/* declaration for assembly function in instrset.asm */
-uint16_t hevcasm_get_instruction_set();
-
-
-hevcasm_instruction_set hevcasm_instruction_set_support()
+#ifdef __cplusplus
+extern "C"
 {
-	long long int set = hevcasm_get_instruction_set();
-	return (2 << set) - 1;
+#endif
+
+
+static uint32_t hevcasm_rect(int width, int height) { return (width << 8) | height; }
+
+
+typedef int hevcasm_sad(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref, ptrdiff_t stride_ref, uint32_t rect);
+
+hevcasm_sad* HEVCASM_API hevcasm_get_sad(int width, hevcasm_instruction_set mask);
+
+
+typedef int hevcasm_sad_multiple(int sad[], const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref[], ptrdiff_t stride_ref, uint32_t rect);
+
+
+
+int HEVCASM_API hevcasm_test_sad(hevcasm_instruction_set mask);
+
+#ifdef __cplusplus
 }
+#endif
 
 
-void hevcasm_print_instruction_set_support(FILE *f, hevcasm_instruction_set mask)
-{
-	f = stdout;
-	fprintf(f, "Detected instruction set support:\n");
-#define X(value, name, description) if (value & mask) fprintf(f, "\t" #name " (" description ")\n");
-	HEVCASM_INSTRUCTION_SET_XMACRO
-#undef X
-	fprintf(f, "\n");
-}
-
-
-
+#endif

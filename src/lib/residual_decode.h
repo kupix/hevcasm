@@ -47,10 +47,9 @@ extern "C"
 
 typedef void hevcasm_inverse_transform_add(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t *coeffs);
 
-void HEVCASM_API hevcasm_get_inverse_transform_add(hevcasm_inverse_transform_add **table, hevcasm_instruction_set_t mask);
+hevcasm_inverse_transform_add* HEVCASM_API hevcasm_get_inverse_transform_add(int log2TrafoSize, int trType, hevcasm_instruction_set mask);
 
-int HEVCASM_API hevcasm_validate_inverse_transform_add(hevcasm_instruction_set_t mask);
-void HEVCASM_API hevcasm_time_inverse_transform_add(hevcasm_instruction_set_t mask);
+int HEVCASM_API hevcasm_test_inverse_transform_add(hevcasm_instruction_set mask);
 
 #ifdef __cplusplus
 }

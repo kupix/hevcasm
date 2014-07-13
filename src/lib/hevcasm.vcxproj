@@ -133,11 +133,13 @@
   <ItemGroup>
     <ClCompile Include="hevcasm.c" />
     <ClCompile Include="residual_decode.c" />
+    <ClCompile Include="sad.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hevcasm.h" />
     <ClInclude Include="hevcasm_test.h" />
     <ClInclude Include="residual_decode.h" />
+    <ClInclude Include="sad.h" />
   </ItemGroup>
   <ItemGroup>
     <YASM Include="instrset.asm">

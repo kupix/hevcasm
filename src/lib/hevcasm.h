@@ -54,9 +54,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
-typedef int64_t hevcasm_timestamp_t;
+typedef int64_t hevcasm_timestamp;
 
-static hevcasm_timestamp_t hevcasm_get_timestamp()
+static hevcasm_timestamp hevcasm_get_timestamp()
 {
 	return __rdtsc();
 }
@@ -104,12 +104,12 @@ typedef enum {
 #define X(value, name, description) HEVCASM_ ## name = 1 << value,
 	HEVCASM_INSTRUCTION_SET_XMACRO
 #undef X
-} hevcasm_instruction_set_t;
+} hevcasm_instruction_set;
 
 
-hevcasm_instruction_set_t HEVCASM_API hevcasm_instruction_set_support();
+hevcasm_instruction_set HEVCASM_API hevcasm_instruction_set_support();
 
-void HEVCASM_API hevcasm_print_instruction_set_support(FILE *f, hevcasm_instruction_set_t mask);
+void HEVCASM_API hevcasm_print_instruction_set_support(FILE *f, hevcasm_instruction_set mask);
 
 
 #ifdef __cplusplus
