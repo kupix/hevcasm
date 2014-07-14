@@ -33,40 +33,10 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "residual_decode.h"
-#include "sad.h"
 #include "hevcasm.h"
 
-#include <stdio.h>
 
-#ifdef WIN32
-#include <Windows.h>
-#endif
-
-
-
-
-int main()
+int main(int argc, const char *argv[])
 {
-	hevcasm_instruction_set mask = hevcasm_instruction_set_support();
-
-	printf("HEVCasm test program\n");
-	printf("\n");
-
-#ifdef WIN32
-	if (!SetProcessAffinityMask(GetCurrentProcess(), 1))
-	{
-		printf("** failed to set process affinity **\n\n");
-	}
-#endif
-
-	hevcasm_print_instruction_set_support(stdout, mask);
-	printf("\n");
-
-	int error_count = 0;
-
-	error_count += hevcasm_test_inverse_transform_add(mask);
-	error_count += hevcasm_test_sad(mask);
-
-	return error_count;
+	return hevcasm_main(argc, argv);
 }

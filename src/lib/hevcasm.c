@@ -34,7 +34,14 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
+#include "residual_decode.h"
+#include "sad.h"
 #include "hevcasm.h"
+
+
+#ifdef WIN32
+#include <Windows.h>
+#endif
 
 
 /* declaration for assembly function in instrset.asm */
@@ -51,12 +58,37 @@ hevcasm_instruction_set hevcasm_instruction_set_support()
 void hevcasm_print_instruction_set_support(FILE *f, hevcasm_instruction_set mask)
 {
 	f = stdout;
-	fprintf(f, "Detected instruction set support:\n");
-#define X(value, name, description) if ((1 << value) & mask) fprintf(f, "\t" #name " (" description ")\n");
+	fprintf(f, "HEVCasm processor instruction set support:\n");
+#define X(value, name, description) fprintf(f, "[%c] " #name " (" description ")\n", ((1 << value) & mask) ? 'x' : ' ');
 	HEVCASM_INSTRUCTION_SET_XMACRO
 #undef X
 	fprintf(f, "\n");
 }
 
 
+int hevcasm_main(int argc, const char *argv[])
+{
+	hevcasm_instruction_set mask = hevcasm_instruction_set_support();
+
+	printf("HEVCasm self test\n");
+	printf("\n");
+
+#ifdef WIN32
+	if (!SetProcessAffinityMask(GetCurrentProcess(), 1))
+	{
+		printf("** SetProcessAffinityMask() failed **\n\n");
+	}
+#endif
+
+	hevcasm_print_instruction_set_support(stdout, mask);
+	printf("\n");
+
+	int error_count = 0;
+
+	error_count += hevcasm_test_inverse_transform_add(mask);
+	error_count += hevcasm_test_sad(mask);
+	error_count += hevcasm_test_sad_multiref(mask);
+
+	return error_count;
+}
 

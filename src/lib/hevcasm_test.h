@@ -41,8 +41,17 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <inttypes.h>
 
+#ifdef WIN32
 #include <Windows.h>
 
+
+typedef int64_t hevcasm_timestamp;
+
+static hevcasm_timestamp hevcasm_get_timestamp()
+{
+	return __rdtsc();
+}
+#endif
 
 typedef enum {
 #define X(value, name, description) name = value,

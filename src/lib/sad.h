@@ -46,19 +46,17 @@ extern "C"
 #endif
 
 
-static uint32_t hevcasm_rect(int width, int height) { return (width << 8) | height; }
-
-
+/* Rectangular SAD (Sum of Absolute Differences) with single reference */
 typedef int hevcasm_sad(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref, ptrdiff_t stride_ref, uint32_t rect);
-
-hevcasm_sad* HEVCASM_API hevcasm_get_sad(int width, hevcasm_instruction_set mask);
-
-
-typedef int hevcasm_sad_multiple(int sad[], const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref[], ptrdiff_t stride_ref, uint32_t rect);
-
-
-
+hevcasm_sad* HEVCASM_API hevcasm_get_sad(int width, int height, hevcasm_instruction_set mask);
 int HEVCASM_API hevcasm_test_sad(hevcasm_instruction_set mask);
+
+/* Rectangular SAD (Sum of Absolute Differences) with multiple references */
+typedef void hevcasm_sad_multiref(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref[], ptrdiff_t stride_ref, int sad[], uint32_t rect);
+hevcasm_sad_multiref* HEVCASM_API hevcasm_get_sad_multiref(int ways, int width, int height, hevcasm_instruction_set mask);
+int HEVCASM_API hevcasm_test_sad_multiref(hevcasm_instruction_set mask);
+
+
 
 #ifdef __cplusplus
 }
