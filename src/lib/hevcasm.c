@@ -52,7 +52,7 @@ void hevcasm_print_instruction_set_support(FILE *f, hevcasm_instruction_set mask
 {
 	f = stdout;
 	fprintf(f, "Detected instruction set support:\n");
-#define X(value, name, description) if (value & mask) fprintf(f, "\t" #name " (" description ")\n");
+#define X(value, name, description) if ((1 << value) & mask) fprintf(f, "\t" #name " (" description ")\n");
 	HEVCASM_INSTRUCTION_SET_XMACRO
 #undef X
 	fprintf(f, "\n");
