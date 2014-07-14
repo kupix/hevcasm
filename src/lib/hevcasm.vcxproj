@@ -75,6 +75,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>libvpx;libvpx\config\msvs</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -89,6 +90,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalIncludeDirectories>libvpx;libvpx\config\msvs</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -104,6 +106,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>libvpx;libvpx\config\msvs</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -122,6 +125,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalIncludeDirectories>libvpx;libvpx\config\msvs</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -146,6 +150,42 @@
       <FileType>Document</FileType>
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
       <Defines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
+    </YASM>
+    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad4d_sse2.asm">
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+    </YASM>
+    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_mmx.asm">
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+    </YASM>
+    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_sse2.asm">
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+    </YASM>
+    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_sse3.asm">
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+    </YASM>
+    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_sse4.asm">
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+    </YASM>
+    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_ssse3.asm">
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
     </YASM>
     <YASM Include="residual_decode_a.asm">
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>

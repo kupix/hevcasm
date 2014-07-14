@@ -37,6 +37,24 @@
     <YASM Include="residual_decode_a.asm">
       <Filter>Assembly Files</Filter>
     </YASM>
+    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad4d_sse2.asm">
+      <Filter>Assembly Files</Filter>
+    </YASM>
+    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_mmx.asm">
+      <Filter>Assembly Files</Filter>
+    </YASM>
+    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_sse2.asm">
+      <Filter>Assembly Files</Filter>
+    </YASM>
+    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_sse3.asm">
+      <Filter>Assembly Files</Filter>
+    </YASM>
+    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_sse4.asm">
+      <Filter>Assembly Files</Filter>
+    </YASM>
+    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_ssse3.asm">
+      <Filter>Assembly Files</Filter>
+    </YASM>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="residual_decode.c">

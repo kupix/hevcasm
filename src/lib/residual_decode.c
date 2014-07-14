@@ -242,7 +242,7 @@ int hevcasm_test_inverse_transform_add(hevcasm_instruction_set mask)
 	
 		call_inverse_transform_add(&bound, 1);
 
-		printf("%s %dx%d : ", trType ? "DST" : "DCT", 1<<bound.size, 1<<bound.size);
+		printf("\t%s %dx%d : ", trType ? "DST" : "DCT", 1<<bound.size, 1<<bound.size);
 
 		double first_result = 0.0;
 

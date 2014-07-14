@@ -35,16 +35,18 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "sad.h"
 #include "hevcasm_test.h"
+#include "vp9_rtcd.h"
 
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 
 /* declaration for assembly functions in xxxx.asm */
 
 
 
-int hevcasm_sad_c(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref, ptrdiff_t stride_ref, uint32_t rect)
+static int hevcasm_sad_c(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref, ptrdiff_t stride_ref, uint32_t rect)
 {
 	const int width = rect >> 8;
 	const int height = rect & 0xff;
@@ -59,9 +61,51 @@ int hevcasm_sad_c(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref, 
 	return sad;
 }
 
+static int hevcasm_vp9_sad_16xH_sse2(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref, ptrdiff_t stride_ref, uint32_t rect)
+{
+	const int width = rect >> 8;
+	const int height = rect & 0xff;
+	assert(width == 16);
+	switch (height)
+	{
+	case 8: return vp9_sad16x8_sse2(src, (int)stride_src, ref, (int)stride_ref);
+	case 16: return vp9_sad16x16_sse2(src, (int)stride_src, ref, (int)stride_ref);
+	default:;
+	}
+	return hevcasm_sad_c(src, stride_src, ref, stride_ref, rect);
+}
+
+static int hevcasm_vp9_sad_8xH_sse2(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref, ptrdiff_t stride_ref, uint32_t rect)
+{
+	const int width = rect >> 8;
+	const int height = rect & 0xff;
+	assert(width == 8);
+	switch (height)
+	{
+	case 4: return vp9_sad8x4_sse2(src, (int)stride_src, ref, (int)stride_ref);
+	case 8: return vp9_sad8x8_sse2(src, (int)stride_src, ref, (int)stride_ref);
+	case 16: return vp9_sad8x16_sse2(src, (int)stride_src, ref, (int)stride_ref);
+	default:;
+	}
+	return hevcasm_sad_c(src, stride_src, ref, stride_ref, rect);
+}
+
 hevcasm_sad* hevcasm_get_sad(int width, hevcasm_instruction_set mask)
 {
-	if (mask & HEVCASM_C) return &hevcasm_sad_c;
+	if (mask & HEVCASM_SSE2)
+	{
+		switch (width)
+		{
+		case 16: return &hevcasm_vp9_sad_16xH_sse2;
+		case 8: return &hevcasm_vp9_sad_8xH_sse2;
+		}
+	}
+
+	if (mask & HEVCASM_C)
+	{
+		return &hevcasm_sad_c;
+	}
+
 	return 0;
 }
 
@@ -84,13 +128,16 @@ void call_sad(void *p, int n)
 	}
 }
 
-static const int partitions[][2] = { { 64, 64 }, { 0, 0 } };
+static const int partitions[][2] = { 
+	{ 16, 16 }, { 16, 8 }, { 8, 16 },
+	{ 8, 8 }, { 8, 4 }, { 4, 8 },
+	{ 0, 0 } };
 
 
 int hevcasm_test_sad(hevcasm_instruction_set mask)
 {
 	int error_count = 0;
-	printf("validate: sad\n");
+	printf("sad\n");
 
 	bound_sad bound;
 
@@ -102,7 +149,7 @@ int hevcasm_test_sad(hevcasm_instruction_set mask)
 		const int width = partitions[i][0];
 		const int height = partitions[i][1];
 
-		printf("SAD %dx%d : ", width, height);
+		printf("\t%dx%d : ", width, height);
 
 		bound.rect = hevcasm_rect(width, height);
 		bound.f = hevcasm_get_sad(width, HEVCASM_C);
@@ -121,7 +168,7 @@ int hevcasm_test_sad(hevcasm_instruction_set mask)
 				const int mismatch = bound.sad != sad_c;
 				if (mismatch)
 				{
-					printf("MISMATCH ");
+					printf("-MISMATCH ");
 					++error_count;
 				}
 			}
