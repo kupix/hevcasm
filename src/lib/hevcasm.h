@@ -44,6 +44,16 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef WIN32
 
+#include <intrin.h>
+
+
+typedef int64_t hevcasm_timestamp;
+
+static hevcasm_timestamp hevcasm_get_timestamp()
+{
+	return __rdtsc();
+}
+
 
 #ifdef HEVCASM_DLL_EXPORTS
 #define HEVCASM_API __declspec( dllexport ) 
