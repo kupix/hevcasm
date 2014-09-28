@@ -78,9 +78,9 @@ hevcasm_sad* hevcasm_get_sad(int width, int height, hevcasm_instruction_set mask
 	case HEVCASM_RECT(8, 4): return (hevcasm_sad*)&vp9_sad8x4_sse2;
 	}
 
-	if (mask & HEVCASM_C)
+	if (mask & HEVCASM_C_REF)
 	{
-		return &hevcasm_sad_c;
+		return (hevcasm_sad*)&hevcasm_sad_c;
 	}
 
 	return 0;
@@ -127,7 +127,7 @@ hevcasm_sad_multiref* hevcasm_get_sad_multiref(int ways, int width, int height, 
 	case HEVCASM_RECT(8, 4): return (hevcasm_sad_multiref*)&vp9_sad8x4x4d_sse2;
 	}
 
-	if (mask & HEVCASM_C)
+	if (mask & HEVCASM_C_REF)
 	{
 		return &hevcasm_sad_multiref_4_c;
 	}
@@ -138,10 +138,10 @@ hevcasm_sad_multiref* hevcasm_get_sad_multiref(int ways, int width, int height, 
 
 typedef struct
 {
-	hevcasm_sad *f;
-	uint32_t rect;
 	HEVCASM_ALIGN(32, uint8_t, src[128 * 128]);
 	HEVCASM_ALIGN(32, uint8_t, ref[128 * 128]);
+	hevcasm_sad *f;
+	uint32_t rect;
 	int sad;
 } bound_sad;
 
@@ -169,7 +169,7 @@ int hevcasm_test_sad(hevcasm_instruction_set mask)
 	int error_count = 0;
 	printf("sad\n");
 
-	bound_sad bound;
+	HEVCASM_ALIGN(32, bound_sad, bound);
 
 	for (int x = 0; x < 128 * 128; x++) bound.src[x] = rand();
 	for (int x = 0; x < 128 * 128; x++) bound.ref[x] = rand();
@@ -182,7 +182,7 @@ int hevcasm_test_sad(hevcasm_instruction_set mask)
 		printf("\t%dx%d : ", width, height);
 
 		bound.rect = HEVCASM_RECT(width, height);
-		bound.f = hevcasm_get_sad(width, height, HEVCASM_C);
+		bound.f = hevcasm_get_sad(width, height, HEVCASM_C_REF);
 		call_sad(&bound, 1);
 		const int sad_c = bound.sad;
 		double first_result = 0.0;
@@ -193,7 +193,7 @@ int hevcasm_test_sad(hevcasm_instruction_set mask)
 
 			if (bound.f)
 			{
-				hevcasm_count_average_cycles(call_sad, &bound, &first_result, i, 25600000 / (width * height));
+				hevcasm_count_average_cycles(call_sad, &bound, &first_result, i, 256000 / (width * height));
 
 				const int mismatch = bound.sad != sad_c;
 				if (mismatch)
@@ -206,6 +206,7 @@ int hevcasm_test_sad(hevcasm_instruction_set mask)
 		printf("\n");
 	}
 	printf("\n");
+
 	return error_count;
 }
 
@@ -217,7 +218,8 @@ typedef struct
 	HEVCASM_ALIGN(32, uint8_t, ref[128 * 128]);
 	uint8_t *ref_array[4];
 	int sad[4];
-} bound_sad_multiref;
+} 
+bound_sad_multiref;
 
 void call_sad_multiref(void *p, int n)
 {
@@ -235,7 +237,7 @@ int hevcasm_test_sad_multiref(hevcasm_instruction_set mask)
 	const int ways = 4;
 	printf("%d-way sad\n", ways);
 
-	bound_sad_multiref bound;
+	HEVCASM_ALIGN(32, bound_sad_multiref, bound);
 
 	for (int x = 0; x < 128 * 128; x++) bound.src[x] = rand();
 	for (int x = 0; x < 128 * 128; x++) bound.ref[x] = rand();
@@ -253,7 +255,7 @@ int hevcasm_test_sad_multiref(hevcasm_instruction_set mask)
 		printf("\t%dx%d : ", width, height);
 
 		bound.rect = HEVCASM_RECT(width, height);
-		bound.f = hevcasm_get_sad_multiref(ways, width, height, HEVCASM_C);
+		bound.f = hevcasm_get_sad_multiref(ways, width, height, HEVCASM_C_REF);
 		call_sad_multiref(&bound, 1);
 
 		int sad_c[4];
@@ -267,7 +269,7 @@ int hevcasm_test_sad_multiref(hevcasm_instruction_set mask)
 
 			if (bound.f)
 			{
-				hevcasm_count_average_cycles(call_sad_multiref, &bound, &first_result, i, 25600000 / (width * height));
+				hevcasm_count_average_cycles(call_sad_multiref, &bound, &first_result, i, 256000 / (width * height));
 
 				const int mismatch =
 					bound.sad[0] != sad_c[0] ||
@@ -285,5 +287,6 @@ int hevcasm_test_sad_multiref(hevcasm_instruction_set mask)
 		printf("\n");
 	}
 	printf("\n");
+
 	return error_count;
 }

@@ -34,6 +34,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
+#include "prediction_inter.h"
 #include "residual_decode.h"
 #include "sad.h"
 #include "hevcasm.h"
@@ -43,15 +44,54 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <Windows.h>
 #endif
 
+#include <stdint.h>
 
-/* declaration for assembly function in instrset.asm */
-uint16_t hevcasm_get_instruction_set();
+
+#ifdef _MSC_VER
+#include <intrin.h>
+#endif
+
+#ifdef __GNUC__
+#error "todo __cpuidex() and _xgetbv()"
+#endif
 
 
 hevcasm_instruction_set hevcasm_instruction_set_support()
 {
-	long long int set = hevcasm_get_instruction_set();
-	return (2 << set) - 1;
+	hevcasm_instruction_set mask = HEVCASM_C_REF | HEVCASM_C_OPT;
+
+	int cpuInfo[4]; // eax ... edx
+	__cpuidex(cpuInfo, 0, 0);
+
+	const int max_standard_level = cpuInfo[0];
+
+	if (max_standard_level == 0) return mask;
+
+	__cpuidex(cpuInfo, 1, 0);
+
+	if (cpuInfo[3] & 0x04000000) mask |= HEVCASM_SSE2;
+	if (cpuInfo[2] & 0x00000001) mask |= HEVCASM_SSE3;
+	if (cpuInfo[2] & 0x00000200) mask |= HEVCASM_SSSE3;
+	if (cpuInfo[2] & 0x00080000) mask |= HEVCASM_SSE41;
+	if (cpuInfo[2] & 0x00100000) mask |= HEVCASM_SSE42;
+	
+	if ((cpuInfo[2] & 0x10000000) && (cpuInfo[2] & 0x08000000))
+	{
+		__int64 xcr0 = _xgetbv(0);
+
+		if ((xcr0 & 0x2) && (xcr0 & 0x4))
+		{
+			mask |= HEVCASM_AVX;
+			if (max_standard_level >= 7)
+			{
+				__cpuidex(cpuInfo, 7, 0);
+				
+				if (cpuInfo[1] & 0x00000020) mask |= HEVCASM_AVX2;
+			}
+		}
+	}
+
+	return mask;
 }
 
 
@@ -88,6 +128,8 @@ int hevcasm_main(int argc, const char *argv[])
 	error_count += hevcasm_test_inverse_transform_add(mask);
 	error_count += hevcasm_test_sad(mask);
 	error_count += hevcasm_test_sad_multiref(mask);
+	error_count += hevcasm_test_pred_uni(mask);
+	error_count += hevcasm_test_pred_bi(mask);
 
 	return error_count;
 }

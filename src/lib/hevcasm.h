@@ -41,11 +41,13 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <inttypes.h>
 #include <stdio.h>
 
-
 #ifdef WIN32
 
 #include <intrin.h>
 
+#if _WIN64
+#define HEVCASM_X64
+#endif
 
 typedef int64_t hevcasm_timestamp;
 
@@ -71,6 +73,10 @@ static hevcasm_timestamp hevcasm_get_timestamp()
 #endif
 
 #ifdef __GNUC__
+
+#if __x86_64__
+#define HEVCASM_X64
+#endif
 
 typedef uint64_t hevcasm_timestamp;
 
@@ -104,20 +110,17 @@ static hevcasm_timestamp hevcasm_get_timestamp(void)
 
 
 #define HEVCASM_INSTRUCTION_SET_XMACRO \
-	X(0, C, "generic C code") \
-	X(1, SSE2, "SSE2") \
-	X(2, SSE3, "SSE3") \
-	X(3, SSSE3, "Supplementary SSE3") \
-	X(4, SSE41, "SSE4.1") \
-	X(5, POPCNT, "POPCNT") \
+	X(0, C_REF, "C - reference; may be slow") \
+	X(1, C_OPT, "C - optimised") \
+	X(2, SSE2, "SSE2") \
+	X(3, SSE3, "SSE3") \
+	X(4, SSSE3, "Supplementary SSE3") \
+	X(5, SSE41, "SSE4.1") \
 	X(6, SSE42, "SSE4.2") \
 	X(7, AVX, "AVX") \
-	X(8, RDRAND, "RDRAND") \
-	X(9, PCLMUL_AES, "PCLMUL and AES") \
-	X(10, AVX2, "AVX2") 
+	X(8, AVX2, "AVX2")
 
-#define HEVCASM_INSTRUCTION_SET_COUNT 11
-
+#define HEVCASM_INSTRUCTION_SET_COUNT 9
 
 
 #ifdef __cplusplus

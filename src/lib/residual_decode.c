@@ -129,6 +129,7 @@ void hevcasm_idct_8x8_c(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred,
 	hevcasm_add_residual_8x8(dst, stride_dst, pred, stride_pred, temp[1]);
 }
 
+#ifdef HEVCASM_X64
 void hevcasm_idct_8x8_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[8 * 8])
 {
 	/* 
@@ -141,14 +142,17 @@ void hevcasm_idct_8x8_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *p
 	hevcasm_partial_butterfly_inverse_8h_ssse3(temp[1], temp[0], 12);
 	hevcasm_add_residual_8x8(dst, stride_dst, pred, stride_pred, temp[1]);
 }
+#endif
 
 hevcasm_inverse_transform_add* HEVCASM_API hevcasm_get_inverse_transform_add(int log2TrafoSize, int trType, hevcasm_instruction_set mask)
 {
 	switch (log2TrafoSize)
 	{
 	case 3:
-		if (mask & HEVCASM_C) return hevcasm_idct_8x8_c;
+		if (mask & HEVCASM_C_REF) return hevcasm_idct_8x8_c;
+#ifdef HEVCASM_X64
 		if (mask & HEVCASM_SSSE3) return hevcasm_idct_8x8_ssse3;
+#endif
 		break;
 	default:
 		;
@@ -156,49 +160,6 @@ hevcasm_inverse_transform_add* HEVCASM_API hevcasm_get_inverse_transform_add(int
 	return 0;
 }
 
-#if 0
-int hevcasm_test_inverse_transform_add(hevcasm_instruction_set mask)
-{
-	int error_count = 0;
-	printf("validate: inverse_transform_add\n");
-	HEVCASM_ALIGN(32, int16_t, coefficients[32 * 32]);
-	HEVCASM_ALIGN(32, uint8_t, predicted[32 * 32]);
-	HEVCASM_ALIGN(32, uint8_t, dst[2][32 * 32]);
-
-	for (int x = 0; x < 8 * 8; x++) coefficients[x] = (rand() & 0x1ff) - 0x100;
-	for (int x = 0; x < 8 * 8; x++) predicted[x] = rand() & 0xff;
-
-	for (int j = 1; j < 6; ++j)
-	{
-		const int size = hevcasm_transform_size(j);
-
-		printf("%s %s : ", hevcasm_transform_type_as_text(j), hevcasm_transform_size_as_text(j));
-
-		for (hevcasm_instruction_set_idx_t i = 0; i < HEVCASM_INSTRUCTION_SET_COUNT; ++i)
-		{
-			const int trType = (j == 1);
-			hevcasm_inverse_transform_add *f = trType
-				? hevcasm_get_inverse_transform_add(2, 1, mask)
-				: hevcasm_get_inverse_transform_add(j, 0, mask);
-
-			if (f)
-			{
-				printf(" %s", hevcasm_instruction_set_idx_as_text(i));
-				f(dst[1], size, predicted, size, coefficients);
-				const int mismatch = memcmp(dst[0], dst[1], sizeof(uint8_t)* size * size);
-				if (mismatch)
-				{
-					printf("-MISMATCH ");
-					++error_count;
-				}
-			}
-		}
-		printf("\n");
-	}
-	printf("\n");
-	return error_count;
-}
-#endif
 
 typedef struct
 {
@@ -209,14 +170,16 @@ typedef struct
 	uint8_t *dst;
 } bind_inverse_transform_add;
 
+
 void call_inverse_transform_add(void *p, int n)
 {
 	bind_inverse_transform_add *s = p;
 	while (n--)
 	{
-		s->f(s->dst, s->size, s->predicted, s->size, s->coefficients);
+		s->f(s->dst, 1 << s->size, s->predicted, 1 << s->size, s->coefficients);
 	}
 }
+
 
 int hevcasm_test_inverse_transform_add(hevcasm_instruction_set mask)
 {
@@ -234,13 +197,16 @@ int hevcasm_test_inverse_transform_add(hevcasm_instruction_set mask)
 	{
 		const int trType = (j == 1) ? 1 : 0;
 		bound.size = (j == 1) ? 2 : j;
-		bound.dst = dst[0];
 
-		bound.f = hevcasm_get_inverse_transform_add(bound.size, trType, HEVCASM_C);
+		bound.dst = dst[0];
+		memset(bound.dst, 0, 32 * 32);
+		bound.f = hevcasm_get_inverse_transform_add(bound.size, trType, HEVCASM_C_REF);
 
 		if (!bound.f) continue;
-	
 		call_inverse_transform_add(&bound, 1);
+
+		bound.dst = dst[1];
+		memset(bound.dst, 0, 32 * 32);
 
 		printf("\t%s %dx%d : ", trType ? "DST" : "DCT", 1<<bound.size, 1<<bound.size);
 
@@ -250,19 +216,19 @@ int hevcasm_test_inverse_transform_add(hevcasm_instruction_set mask)
 		{
 			if (!((1 << i) & mask)) continue;
 
+			memset(bound.dst, 0, 32 * 32);
+
 			bound.f = hevcasm_get_inverse_transform_add(bound.size, trType, 1 << i);
-			bound.dst = dst[1];
 
-			if (bound.f)
+			if (!bound.f) continue;
+
+			hevcasm_count_average_cycles(call_inverse_transform_add, &bound, &first_result, i, 100000);
+
+			const int mismatch = memcmp(dst[0], dst[1], sizeof(uint8_t)* bound.size * bound.size);
+			if (mismatch)
 			{
-				hevcasm_count_average_cycles(call_inverse_transform_add, &bound, &first_result, i, 100000);
-
-				const int mismatch = memcmp(dst[0], dst[1], sizeof(uint8_t)* bound.size * bound.size);
-				if (mismatch)
-				{
-					printf("-MISMATCH");
-					++error_count;
-				}
+				printf("-MISMATCH");
+				++error_count;
 			}
 		}
 		printf("\n");

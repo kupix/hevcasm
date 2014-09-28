@@ -34,8 +34,13 @@ THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 
-#ifndef INCLUDED_sad_h
-#define INCLUDED_sad_h
+#ifndef INCLUDED_hevcasm_prediction_inter_h
+#define INCLUDED_hevcasm_prediction_inter_h
+
+// HEVC inter prediction
+
+// Note that these functions may write data to the right of the destination block.
+
 
 #include "hevcasm.h"
 
@@ -46,25 +51,26 @@ extern "C"
 #endif
 
 
-/* Rectangular SAD (Sum of Absolute Differences) with single reference */
-typedef int hevcasm_sad(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref, ptrdiff_t stride_ref, uint32_t rect);
+// HEVC uni prediction
 
-hevcasm_sad* HEVCASM_API hevcasm_get_sad(int width, int height, hevcasm_instruction_set mask);
+typedef void hevcasm_pred_uni_filter_8to8(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
 
-int HEVCASM_API hevcasm_test_sad(hevcasm_instruction_set mask);
+hevcasm_pred_uni_filter_8to8* HEVCASM_API hevcasm_get_pred_uni_filter_8to8(int taps, int w, int h, int xFrac, int yFrac, hevcasm_instruction_set mask);
+
+int HEVCASM_API hevcasm_test_pred_uni(hevcasm_instruction_set mask);
 
 
-/* Rectangular SAD (Sum of Absolute Differences) with multiple references */
-typedef void hevcasm_sad_multiref(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref[], ptrdiff_t stride_ref, int sad[], uint32_t rect);
+// HEVC bi prediction
 
-hevcasm_sad_multiref* HEVCASM_API hevcasm_get_sad_multiref(int ways, int width, int height, hevcasm_instruction_set mask);
+typedef void hevcasm_pred_bi_8to8(uint8_t *dst0, ptrdiff_t stride_dst, const uint8_t *ref0, const uint8_t *ref1, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1);
 
-int HEVCASM_API hevcasm_test_sad_multiref(hevcasm_instruction_set mask);
+hevcasm_pred_bi_8to8* HEVCASM_API hevcasm_get_pred_bi_8to8(int taps, int w, int h, int xFrac, int yFrac, int xFrac1, int yFrac1, hevcasm_instruction_set mask);
+
+int HEVCASM_API hevcasm_test_pred_bi(hevcasm_instruction_set mask);
 
 
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif

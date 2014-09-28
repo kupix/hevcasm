@@ -136,21 +136,18 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="hevcasm.c" />
+    <ClCompile Include="prediction_inter.c" />
     <ClCompile Include="residual_decode.c" />
     <ClCompile Include="sad.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hevcasm.h" />
     <ClInclude Include="hevcasm_test.h" />
+    <ClInclude Include="prediction_inter.h" />
     <ClInclude Include="residual_decode.h" />
     <ClInclude Include="sad.h" />
   </ItemGroup>
   <ItemGroup>
-    <YASM Include="instrset.asm">
-      <FileType>Document</FileType>
-      <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
-      <Defines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
-    </YASM>
     <YASM Include="libvpx\vp9\encoder\x86\vp9_sad4d_sse2.asm">
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
@@ -187,9 +184,17 @@
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
     </YASM>
+    <YASM Include="predict_inter_a.asm">
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">ARCH_X86_64=0;HAVE_ALIGNED_STACK=1;PREFIX</Defines>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ARCH_X86_64=0;HAVE_ALIGNED_STACK=1;PREFIX</Defines>
+    </YASM>
     <YASM Include="residual_decode_a.asm">
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
       <Defines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">ARCH_X86_64=0;HAVE_ALIGNED_STACK=1;PREFIX</Defines>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ARCH_X86_64=0;HAVE_ALIGNED_STACK=1;PREFIX</Defines>
     </YASM>
     <YASM Include="x86inc.asm">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>

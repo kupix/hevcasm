@@ -80,6 +80,8 @@ shuffle_2367abef2367abef:
 SECTION .text
 
 
+%if ARCH_X86_64
+
 ; this function potentially be combined with the horizontal feature with no
 ; need for temporary memory buffer in between.
 
@@ -300,3 +302,5 @@ cglobal partial_butterfly_inverse_8h, 3, 5, 16
 		jg .loop
 
 	RET
+
+%endif
