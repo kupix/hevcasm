@@ -136,14 +136,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="hevcasm.c" />
-    <ClCompile Include="prediction_inter.c" />
+    <ClCompile Include="pred_inter.c" />
     <ClCompile Include="residual_decode.c" />
     <ClCompile Include="sad.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hevcasm.h" />
     <ClInclude Include="hevcasm_test.h" />
-    <ClInclude Include="prediction_inter.h" />
+    <ClInclude Include="pred_inter.h" />
     <ClInclude Include="residual_decode.h" />
     <ClInclude Include="sad.h" />
   </ItemGroup>
@@ -184,7 +184,7 @@
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
     </YASM>
-    <YASM Include="predict_inter_a.asm">
+    <YASM Include="pred_inter_a.asm">
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
       <Defines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">ARCH_X86_64=0;HAVE_ALIGNED_STACK=1;PREFIX</Defines>

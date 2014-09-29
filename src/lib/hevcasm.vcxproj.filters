@@ -26,7 +26,7 @@
     <ClInclude Include="sad.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="prediction_inter.h">
+    <ClInclude Include="pred_inter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -55,7 +55,7 @@
     <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_ssse3.asm">
       <Filter>Assembly Files</Filter>
     </YASM>
-    <YASM Include="predict_inter_a.asm">
+    <YASM Include="pred_inter_a.asm">
       <Filter>Assembly Files</Filter>
     </YASM>
   </ItemGroup>
@@ -66,10 +66,10 @@
     <ClCompile Include="sad.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="prediction_inter.c">
+    <ClCompile Include="residual_decode.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="residual_decode.c">
+    <ClCompile Include="pred_inter.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
