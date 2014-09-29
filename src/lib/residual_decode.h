@@ -33,10 +33,26 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+
+#ifndef INCLUDED_hevcasm_residual_decode_h
+#define INCLUDED_hevcasm_residual_decode_h
+
 #include "hevcasm.h"
 
 
-int main(int argc, const char *argv[])
+#ifdef __cplusplus
+extern "C"
 {
-	return hevcasm_main(argc, argv);
+#endif
+
+typedef void hevcasm_inverse_transform_add(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t *coeffs);
+
+hevcasm_inverse_transform_add* HEVCASM_API hevcasm_get_inverse_transform_add(int log2TrafoSize, int trType, hevcasm_instruction_set mask);
+
+int HEVCASM_API hevcasm_test_inverse_transform_add(hevcasm_instruction_set mask);
+
+#ifdef __cplusplus
 }
+#endif
+
+#endif

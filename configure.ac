@@ -6,6 +6,7 @@ AC_INIT([hevcasm], [0.0], [hevcasm@parabolaresearch.com])
 AC_CONFIG_SRCDIR([src/bin/main.c])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE
+AC_CONFIG_MACRO_DIR([m4])
 
 # Remember externally set CFLAGS
 EXTERNAL_CFLAGS="$CFLAGS"
@@ -14,6 +15,7 @@ EXTERNAL_CFLAGS="$CFLAGS"
 AC_PROG_CPP
 AC_PROG_CC_C99
 AC_PROG_RANLIB
+AX_PROG_YASM
 
 # Reset the externally set CFLAGS after calling AC_PROG*
 CFLAGS="$EXTERNAL_CFLAGS"

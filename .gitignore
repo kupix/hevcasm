@@ -1,5 +1,8 @@
 /autom4te.cache/
 /config/
+Debug/
+Release/
+src/bin/hevcasm
 Makefile
 Makefile.in
 aclocal.m4
@@ -15,7 +18,6 @@ coverage_report
 depcomp
 install-sh
 libtool
-m4
 missing
 stamp-h1
 *~
@@ -32,4 +34,9 @@ stamp-h1
 *.gcno
 *.gcda
 *.exe
+*.user
+*.sdf
+*.suo
+*.opensdf
+.dirstamp
 

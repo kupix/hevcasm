@@ -33,10 +33,44 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+
+#ifndef INCLUDED_hevcasm_prediction_inter_h
+#define INCLUDED_hevcasm_prediction_inter_h
+
+// HEVC inter prediction
+
+// Note that these functions may write data to the right of the destination block.
+
+
 #include "hevcasm.h"
 
 
-int main(int argc, const char *argv[])
+#ifdef __cplusplus
+extern "C"
 {
-	return hevcasm_main(argc, argv);
+#endif
+
+
+// HEVC uni prediction
+
+typedef void hevcasm_pred_uni_filter_8to8(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
+
+hevcasm_pred_uni_filter_8to8* HEVCASM_API hevcasm_get_pred_uni_filter_8to8(int taps, int w, int h, int xFrac, int yFrac, hevcasm_instruction_set mask);
+
+int HEVCASM_API hevcasm_test_pred_uni(hevcasm_instruction_set mask);
+
+
+// HEVC bi prediction
+
+typedef void hevcasm_pred_bi_8to8(uint8_t *dst0, ptrdiff_t stride_dst, const uint8_t *ref0, const uint8_t *ref1, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1);
+
+hevcasm_pred_bi_8to8* HEVCASM_API hevcasm_get_pred_bi_8to8(int taps, int w, int h, int xFrac, int yFrac, int xFrac1, int yFrac1, hevcasm_instruction_set mask);
+
+int HEVCASM_API hevcasm_test_pred_bi(hevcasm_instruction_set mask);
+
+
+#ifdef __cplusplus
 }
+#endif
+
+#endif

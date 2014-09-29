@@ -1,2 +1,0 @@
-
-int hevcasm_version();

@@ -33,10 +33,38 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+
+#ifndef INCLUDED_sad_h
+#define INCLUDED_sad_h
+
 #include "hevcasm.h"
 
 
-int main(int argc, const char *argv[])
+#ifdef __cplusplus
+extern "C"
 {
-	return hevcasm_main(argc, argv);
+#endif
+
+
+/* Rectangular SAD (Sum of Absolute Differences) with single reference */
+typedef int hevcasm_sad(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref, ptrdiff_t stride_ref, uint32_t rect);
+
+hevcasm_sad* HEVCASM_API hevcasm_get_sad(int width, int height, hevcasm_instruction_set mask);
+
+int HEVCASM_API hevcasm_test_sad(hevcasm_instruction_set mask);
+
+
+/* Rectangular SAD (Sum of Absolute Differences) with multiple references */
+typedef void hevcasm_sad_multiref(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref[], ptrdiff_t stride_ref, int sad[], uint32_t rect);
+
+hevcasm_sad_multiref* HEVCASM_API hevcasm_get_sad_multiref(int ways, int width, int height, hevcasm_instruction_set mask);
+
+int HEVCASM_API hevcasm_test_sad_multiref(hevcasm_instruction_set mask);
+
+
+#ifdef __cplusplus
 }
+#endif
+
+
+#endif

@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Assembly Files">
+      <UniqueIdentifier>{1a7ba7e9-376f-4500-a0ac-620bbca30bee}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="residual_decode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hevcasm.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hevcasm_test.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sad.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pred_inter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <YASM Include="x86inc.asm">
+      <Filter>Assembly Files</Filter>
+    </YASM>
+    <YASM Include="residual_decode_a.asm">
+      <Filter>Assembly Files</Filter>
+    </YASM>
+    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad4d_sse2.asm">
+      <Filter>Assembly Files</Filter>
+    </YASM>
+    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_mmx.asm">
+      <Filter>Assembly Files</Filter>
+    </YASM>
+    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_sse2.asm">
+      <Filter>Assembly Files</Filter>
+    </YASM>
+    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_sse3.asm">
+      <Filter>Assembly Files</Filter>
+    </YASM>
+    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_sse4.asm">
+      <Filter>Assembly Files</Filter>
+    </YASM>
+    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_ssse3.asm">
+      <Filter>Assembly Files</Filter>
+    </YASM>
+    <YASM Include="pred_inter_a.asm">
+      <Filter>Assembly Files</Filter>
+    </YASM>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="hevcasm.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sad.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="residual_decode.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pred_inter.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
