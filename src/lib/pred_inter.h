@@ -57,7 +57,7 @@ typedef void hevcasm_pred_uni_filter_8to8(uint8_t *dst, ptrdiff_t stride_dst, co
 
 hevcasm_pred_uni_filter_8to8* HEVCASM_API hevcasm_get_pred_uni_filter_8to8(int taps, int w, int h, int xFrac, int yFrac, hevcasm_instruction_set mask);
 
-int HEVCASM_API hevcasm_test_pred_uni(hevcasm_instruction_set mask);
+hevcasm_test_function hevcasm_test_pred_uni;
 
 
 // HEVC bi prediction
@@ -66,7 +66,7 @@ typedef void hevcasm_pred_bi_8to8(uint8_t *dst0, ptrdiff_t stride_dst, const uin
 
 hevcasm_pred_bi_8to8* HEVCASM_API hevcasm_get_pred_bi_8to8(int taps, int w, int h, int xFrac, int yFrac, int xFrac1, int yFrac1, hevcasm_instruction_set mask);
 
-int HEVCASM_API hevcasm_test_pred_bi(hevcasm_instruction_set mask);
+hevcasm_test_function hevcasm_test_pred_bi;
 
 
 #ifdef __cplusplus

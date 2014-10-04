@@ -51,7 +51,7 @@ typedef int hevcasm_sad(const uint8_t *src, ptrdiff_t stride_src, const uint8_t 
 
 hevcasm_sad* HEVCASM_API hevcasm_get_sad(int width, int height, hevcasm_instruction_set mask);
 
-int HEVCASM_API hevcasm_test_sad(hevcasm_instruction_set mask);
+hevcasm_test_function hevcasm_test_sad;
 
 
 /* Rectangular SAD (Sum of Absolute Differences) with multiple references */
@@ -59,7 +59,7 @@ typedef void hevcasm_sad_multiref(const uint8_t *src, ptrdiff_t stride_src, cons
 
 hevcasm_sad_multiref* HEVCASM_API hevcasm_get_sad_multiref(int ways, int width, int height, hevcasm_instruction_set mask);
 
-int HEVCASM_API hevcasm_test_sad_multiref(hevcasm_instruction_set mask);
+hevcasm_test_function hevcasm_test_sad_multiref;
 
 
 #ifdef __cplusplus

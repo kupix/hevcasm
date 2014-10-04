@@ -33,40 +33,23 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/* Functions for decoding HEVC residual: inverse transform and add the result to predictor */
+/* declaration for assembly functions in residual_decode_a.asm */
+
+#ifndef INCLUDED_hevcasm_residual_decode_a_h
+#define INCLUDED_hevcasm_residual_decode_a_h
+
+#include <stdint.h>
 
 
-#ifndef INCLUDED_hevcasm_residual_decode_h
-#define INCLUDED_hevcasm_residual_decode_h
+void hevcasm_partial_butterfly_inverse_8v_ssse3(int16_t *dst, const int16_t *src, int shift);
+void hevcasm_partial_butterfly_inverse_8h_ssse3(int16_t *dst, const int16_t *src, int shift);
 
-#include "hevcasm.h"
+void hevcasm_partial_butterfly_inverse_16v_ssse3(int16_t *dst, const int16_t *src, int shift);
+void hevcasm_partial_butterfly_inverse_16h_ssse3(int16_t *dst, const int16_t *src, int shift);
 
+// Review: forward transforms do not really belong in "residual_decode".
+void hevcasm_partial_butterfly_16v_ssse3(int16_t *dst, const int16_t *src, int shift);
+void hevcasm_partial_butterfly_16h_ssse3(int16_t *dst, const int16_t *src, ptrdiff_t src_stride, int shift);
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
-
-
-typedef void hevcasm_inverse_transform_add(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t *coeffs);
-
-hevcasm_inverse_transform_add* HEVCASM_API hevcasm_get_inverse_transform_add(int log2TrafoSize, int trType, hevcasm_instruction_set mask);
-
-void HEVCASM_API hevcasm_test_inverse_transform_add(int *error_count, hevcasm_instruction_set mask);
-
-
-
-typedef void hevcasm_transform(int16_t *coeffs, const int16_t *src, ptrdiff_t src_stride);
-
-hevcasm_transform* HEVCASM_API hevcasm_get_transform(int log2TrafoSize, int trType, hevcasm_instruction_set mask);
-
-void HEVCASM_API hevcasm_test_transform(int *error_count, hevcasm_instruction_set mask);
-
-
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

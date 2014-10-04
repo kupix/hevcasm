@@ -33,70 +33,13 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "pred_inter_a.h"
 #include "pred_inter.h"
 #include "hevcasm_test.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-
-
-/* declaration for assembly functions in pred_inter_a.asm */
-// todo: move to pred_inter_a.h
-
-void hevcasm_pred_uni_copy_8to8_16xh_sse2(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_copy_8to8_32xh_sse2(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_copy_8to8_48xh_sse2(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_copy_8to8_64xh_sse2(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-
-void hevcasm_pred_uni_8tap_8to8_h_16xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_8tap_8to8_h_32xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_8tap_8to8_h_48xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_8tap_8to8_h_64xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_4tap_8to8_h_16xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_4tap_8to8_h_32xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-
-void hevcasm_pred_uni_8tap_8to16_h_16xh_sse4(int16_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_8tap_8to16_h_32xh_sse4(int16_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_8tap_8to16_h_48xh_sse4(int16_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_8tap_8to16_h_64xh_sse4(int16_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_4tap_8to16_h_16xh_sse4(int16_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_4tap_8to16_h_32xh_sse4(int16_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-
-void hevcasm_pred_uni_8tap_8to8_v_8xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_8tap_8to8_v_16xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_8tap_8to8_v_24xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_8tap_8to8_v_32xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_8tap_8to8_v_48xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_8tap_8to8_v_64xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-
-void hevcasm_pred_uni_8tap_16to8_v_16xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_8tap_16to8_v_32xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_8tap_16to8_v_48xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_8tap_16to8_v_64xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-
-void hevcasm_pred_bi_v_8tap_16to16_16xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, ptrdiff_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB);
-void hevcasm_pred_bi_v_8tap_16to16_32xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, ptrdiff_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB);
-void hevcasm_pred_bi_v_8tap_16to16_48xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, ptrdiff_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB);
-void hevcasm_pred_bi_v_8tap_16to16_64xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, ptrdiff_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB);
-
-void hevcasm_pred_uni_4tap_8to8_v_8xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_4tap_8to8_v_16xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_4tap_8to8_v_24xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_4tap_8to8_v_32xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-
-void hevcasm_pred_uni_4tap_16to8_v_16xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-void hevcasm_pred_uni_4tap_16to8_v_32xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-
-void hevcasm_pred_bi_v_4tap_16to16_8xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, ptrdiff_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB);
-void hevcasm_pred_bi_v_4tap_16to16_16xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, ptrdiff_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB);
-void hevcasm_pred_bi_v_4tap_16to16_32xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, ptrdiff_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB);
-
-void hevcasm_pred_bi_8to8_copy_16xh_sse2(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref0, const uint8_t *ref1, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1);
-void hevcasm_pred_bi_8to8_copy_32xh_sse2(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref0, const uint8_t *ref1, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1);
-void hevcasm_pred_bi_8to8_copy_48xh_sse2(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref0, const uint8_t *ref1, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1);
-void hevcasm_pred_bi_8to8_copy_64xh_sse2(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref0, const uint8_t *ref1, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1);
-
 
 
 static int Clip3(int min, int max, int value)
@@ -207,6 +150,7 @@ void hevcasm_pred_uni_copy_block(uint8_t *dst, ptrdiff_t stride_dst, const uint8
 	}
 }
 
+
 void hevcasm_pred_uni_8tap_filter_8to8_h(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac)
 {
 	assert(xFrac);
@@ -255,6 +199,7 @@ MAKE_hevcasm_pred_uni_xtap_8to8_hv(8, _64xh_sse4)
 MAKE_hevcasm_pred_uni_xtap_8to8_hv(4, _16xh_sse4)
 MAKE_hevcasm_pred_uni_xtap_8to8_hv(4, _32xh_sse4)
 
+
 void hevcasm_pred_uni_4tap_filter_8to8_h(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac)
 {
 	assert(xFrac);
@@ -286,7 +231,7 @@ void hevcasm_pred_uni_4tap_filter_8to8_hv(uint8_t *dst, ptrdiff_t stride_dst, co
 hevcasm_pred_uni_filter_8to8* HEVCASM_API hevcasm_get_pred_uni_filter_8to8(int taps, int w, int h, int xFrac, int yFrac, hevcasm_instruction_set mask)
 {
 	hevcasm_pred_uni_filter_8to8 *f = 0;
-	if (mask & HEVCASM_C_OPT)
+	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
 		if (taps == 8)
 		{
@@ -402,11 +347,12 @@ hevcasm_pred_uni_filter_8to8* HEVCASM_API hevcasm_get_pred_uni_filter_8to8(int t
 	return f;
 }
 
+#define STRIDE_DST 192
 
 typedef struct 
 {
+	HEVCASM_ALIGN(32, uint8_t, dst[64 * STRIDE_DST]);
 	hevcasm_pred_uni_filter_8to8 *f;
-	uint8_t *dst;
 	ptrdiff_t stride_dst;
 	const uint8_t *ref;
 	ptrdiff_t stride_ref;
@@ -414,13 +360,31 @@ typedef struct
 	int h;
 	int xFrac;
 	int yFrac;
+	int taps;
 }
-bind_pred_inter;
+bound_pred_uni;
 
 
-void call_pred_inter(void *p, int n)
+int get_pred_uni(void *p, hevcasm_instruction_set mask)
 {
-	bind_pred_inter *s = p;
+	bound_pred_uni *s = p;
+
+	s->f = hevcasm_get_pred_uni_filter_8to8(s->taps, s->w, s->h, s->xFrac, s->yFrac, mask);
+
+	if (s->f && mask == HEVCASM_C_REF)
+	{
+		printf("\t%dx%d %d-tap %s%s : ", s->w, s->h, s->taps, s->xFrac ? "H" : "", s->yFrac ? "V" : "");
+	}
+
+	memset(s->dst, 0, 64 * s->stride_dst);
+
+	return !!s->f;
+}
+
+
+void invoke_pred_uni(void *p, int n)
+{
+	bound_pred_uni *s = p;
 	while (n--)
 	{
 		s->f(s->dst, s->stride_dst, s->ref, s->stride_ref, s->w, s->h, s->xFrac, s->yFrac);
@@ -428,10 +392,22 @@ void call_pred_inter(void *p, int n)
 }
 
 
-static int test_partitions(int taps, uint8_t *dst0, uint8_t *dst1, bind_pred_inter *bound, hevcasm_instruction_set mask)
+int mismatch_pred_uni(void *boundRef, void *boundTest)
 {
-	int error_count = 0;
+	bound_pred_uni *ref = boundRef;
+	bound_pred_uni *test = boundTest;
 
+	for (int y = 0; y < ref->h; ++y)
+	{
+		if (memcmp(&ref->dst[y*ref->stride_dst], &test->dst[y*test->stride_dst], ref->w)) return 1;
+	}
+
+	return 0;
+}
+
+
+static void test_partitions(int *error_count, bound_pred_uni b[2], hevcasm_instruction_set mask)
+{
 	const int partitions[24][2] =
 	{
 		{ 8, 4 }, { 8, 8 }, { 4, 8 },
@@ -445,86 +421,46 @@ static int test_partitions(int taps, uint8_t *dst0, uint8_t *dst1, bind_pred_int
 		const int nPbW = partitions[k][0];
 		const int nPbH = partitions[k][1];
 
-		bound->w = nPbW * taps / 8;
-		bound->h = nPbH * taps / 8;
+		b[0].w = nPbW * b[0].taps / 8;
+		b[0].h = nPbH * b[0].taps / 8;
 
-		printf("\t%dx%d %d-tap %s%s : ", bound->w, bound->h, taps, bound->xFrac ? "H" : "", bound->yFrac ? "V" : "");
+		b[1] = b[0];
 
-		bound->f = hevcasm_get_pred_uni_filter_8to8(taps, bound->w, bound->h, bound->xFrac, bound->yFrac, HEVCASM_C_OPT);
-
-		bound->dst = dst0;
-		memset(bound->dst, 0, 64 * bound->stride_dst);
-		call_pred_inter(bound, 1);
-		bound->dst = dst1;
-
-		double first_result = 0.0;
-
-		for (hevcasm_instruction_set_idx_t i = 0; i < HEVCASM_INSTRUCTION_SET_COUNT; ++i)
-		{
-			if (!((1 << i) & mask)) continue;
-
-			bound->f = hevcasm_get_pred_uni_filter_8to8(taps, bound->w, bound->h, bound->xFrac, bound->yFrac, 1 << i);
-
-			if (!bound->f) continue;
-
-			memset(bound->dst, 0, 64 * bound->stride_dst);
-
-			hevcasm_count_average_cycles(call_pred_inter, bound, &first_result, i, 100);
-
-			for (int y = 0; y < bound->h; ++y)
-			{
-				const int mismatch = memcmp(&dst0[y*bound->stride_dst], &dst1[y*bound->stride_dst], bound->w);
-				if (mismatch)
-				{
-					printf("-MISMATCH");
-					++error_count;
-					break;
-				}
-			}
-		}
-
-		printf("\n");
+		*error_count += hevcasm_test(&b[0], &b[1], get_pred_uni, invoke_pred_uni, mismatch_pred_uni, mask, 100000);
 	}
-
-	return error_count;
 }
 
-int hevcasm_test_pred_uni(hevcasm_instruction_set mask)
+
+void HEVCASM_API hevcasm_test_pred_uni(int *error_count, hevcasm_instruction_set mask)
 {
-	printf("pred_inter\n");
+	printf("\nhevcasm_pred_uni - Unireference Inter Prediction (single-reference motion compensation)\n");
 
-	int error_count = 0;
+	bound_pred_uni b[2];
 
-	bind_pred_inter bound;
-
-#define STRIDE_DST 192
 #define STRIDE_REF 192
-	HEVCASM_ALIGN(32, uint8_t, dst[2][64 * STRIDE_DST]);
 	HEVCASM_ALIGN(32, uint8_t, ref[80 * STRIDE_REF]);
-	bound.stride_dst = STRIDE_DST;
-	bound.stride_ref = STRIDE_REF;
+	b[0].stride_dst = STRIDE_DST;
+	b[0].stride_ref = STRIDE_REF;
+	b[0].ref = ref + 8 * b[0].stride_ref;
 #undef STRIDE_DST
 #undef STRIDE_REF
 
-	for (int x = 0; x < 80 * bound.stride_ref; x++) ref[x] = rand() & 0xff;
-	bound.ref = ref + 8 * bound.stride_ref;
+	for (int x = 0; x < 80 * b[0].stride_ref; x++) ref[x] = rand() & 0xff;
 
-	for (int taps = 8; taps >= 4; taps -= 4)
+	for (b[0].taps = 8; b[0].taps >= 4; b[0].taps -= 4)
 	{
-		for (bound.yFrac = 0; bound.yFrac < 2; ++bound.yFrac)
+		for (b[0].yFrac = 0; b[0].yFrac < 2; ++b[0].yFrac)
 		{
-			for (bound.xFrac = 0; bound.xFrac < 2; ++bound.xFrac)
+			for (b[0].xFrac = 0; b[0].xFrac < 2; ++b[0].xFrac)
 			{
-				error_count += test_partitions(taps, dst[0], dst[1], &bound, mask);
+				test_partitions(error_count, b, mask);
 			}
 		}
 	}
-
-	return error_count;
 }
 
 
-void hevcasm_pred_bi_mean_16and16to8_c(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *ref0, const int16_t *ref1, ptrdiff_t stride_ref, int w, int h)
+void hevcasm_pred_bi_mean_16and16to8_c_ref(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *ref0, const int16_t *ref1, ptrdiff_t stride_ref, int w, int h)
 {
 	for (int y = 0; y < h; ++y)
 	{
@@ -540,7 +476,7 @@ void hevcasm_pred_bi_mean_16and16to8_c(uint8_t *dst, ptrdiff_t stride_dst, const
 
 #define MAKE_hevcasm_pred_bi_xtap_8to8(taps) \
  \
-void hevcasm_pred_bi_ ## taps ## tap_8to8_c(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref0, const uint8_t *ref1, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1) \
+void hevcasm_pred_bi_ ## taps ## tap_8to8_c_ref(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref0, const uint8_t *ref1, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1) \
 { \
 	int16_t intermediate[4][(64 + taps - 1) * 64]; \
 	 \
@@ -560,7 +496,7 @@ void hevcasm_pred_bi_ ## taps ## tap_8to8_c(uint8_t *dst, ptrdiff_t stride_dst, 
 	hevcasm_pred_uni_filter_generic(intermediate[1], 2, 64, intermediate[3] + (taps / 2 - 1) * 64, 2, 64, w, h, 64, taps, yFrac1, 6, 0); \
 	 \
 	/* Combine two references for bi pred */ \
-	hevcasm_pred_bi_mean_16and16to8_c(dst, stride_dst, intermediate[0], intermediate[1], 64, nPbW, nPbH); \
+	hevcasm_pred_bi_mean_16and16to8_c_ref(dst, stride_dst, intermediate[0], intermediate[1], 64, nPbW, nPbH); \
 } \
 
 MAKE_hevcasm_pred_bi_xtap_8to8(8)
@@ -596,10 +532,10 @@ hevcasm_pred_bi_8to8* HEVCASM_API hevcasm_get_pred_bi_8to8(int taps, int w, int 
 {
 	hevcasm_pred_bi_8to8 *f = 0;
 	
-	if (mask & HEVCASM_C_REF)
+	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
-		if (taps == 8) f = hevcasm_pred_bi_8tap_8to8_c;
-		if (taps == 4) f = hevcasm_pred_bi_4tap_8to8_c;
+		if (taps == 8) f = hevcasm_pred_bi_8tap_8to8_c_ref;
+		if (taps == 4) f = hevcasm_pred_bi_4tap_8to8_c_ref;
 	}
 
 	if (mask & HEVCASM_SSE2)
@@ -632,11 +568,12 @@ hevcasm_pred_bi_8to8* HEVCASM_API hevcasm_get_pred_bi_8to8(int taps, int w, int 
 	return f;
 }
 
+#define STRIDE_DST 192
 
 typedef struct
 {
 	hevcasm_pred_bi_8to8 *f;
-	uint8_t *dst;
+	HEVCASM_ALIGN(32, uint8_t, dst[64 * STRIDE_DST]);
 	ptrdiff_t stride_dst;
 	const uint8_t *refA;
 	const uint8_t *refB;
@@ -647,25 +584,55 @@ typedef struct
 	int yFracA;
 	int xFracB;
 	int yFracB;
+	int taps;
 }
-bind_pred_bi;
+bound_pred_bi;
 
-// todo ref0 -> refA etc.
-// todo nPbW -> w
 
-void call_pred_bi(void *p, int n)
+int get_pred_bi(void *p, hevcasm_instruction_set mask)
 {
-	bind_pred_bi *s = p;
+	bound_pred_bi *s = p;
+
+	s->f = hevcasm_get_pred_bi_8to8(s->taps, s->w, s->h, s->xFracA, s->yFracA, s->xFracB, s->yFracB, mask);
+
+	if (s->f && mask == HEVCASM_C_REF)
+	{
+		printf("\t%dx%d %d-tap %s%s %s%s : ", s->w, s->h, s->taps, s->xFracA ? "H" : "", s->yFracA ? "V" : "", s->xFracB ? "H" : "", s->yFracB ? "V" : "");
+	}
+
+	memset(s->dst, 0, 64 * s->stride_dst);
+
+	return !!s->f;
+
+}
+
+
+void invoke_pred_bi(void *p, int n)
+{
+	bound_pred_bi *s = p;
 	while (n--)
 	{
 		s->f(s->dst, s->stride_dst, s->refA, s->refB, s->stride_ref, s->w, s->h, s->xFracA, s->yFracA, s->xFracB, s->yFracB);
 	}
 }
 
-static int test_partitions_bi(int taps, uint8_t *dst0, uint8_t *dst1, bind_pred_bi *bound, hevcasm_instruction_set mask)
-{
-	int error_count = 0;
 
+int mismatch_pred_bi(void *boundRef, void *boundTest)
+{
+	bound_pred_bi *ref = boundRef;
+	bound_pred_bi *test = boundTest;
+
+	for (int y = 0; y < ref->h; ++y)
+	{
+		if (memcmp(&ref->dst[y*ref->stride_dst], &test->dst[y*test->stride_dst], ref->w)) return 1;
+	}
+
+	return 0;
+}
+
+
+static void test_partitions_bi(int *error_count, bound_pred_bi b[2], hevcasm_instruction_set mask)
+{
 	const int partitions[24][2] =
 	{
 		{ 8, 8 },
@@ -679,97 +646,44 @@ static int test_partitions_bi(int taps, uint8_t *dst0, uint8_t *dst1, bind_pred_
 		const int nPbW = partitions[k][0];
 		const int nPbH = partitions[k][1];
 
-		bound->w = nPbW * taps / 8;
-		bound->h = nPbH * taps / 8;
+		b[0].w = nPbW * b[0].taps / 8;
+		b[0].h = nPbH * b[0].taps / 8;
 
-		printf("\t%dx%d %d-tap A-%s%s B-%s%s : ", bound->w, bound->h, taps, bound->xFracA ? "H" : "", bound->yFracA ? "V" : "", bound->xFracB ? "H" : "", bound->yFracB ? "V" : "");
+		b[1] = b[0];
 
-		bound->f = hevcasm_get_pred_bi_8to8(taps, bound->w, bound->h, bound->xFracA, bound->yFracA, bound->xFracB, bound->yFracB, HEVCASM_C_REF);
-
-		bound->dst = dst0;
-		memset(bound->dst, 0, 64 * bound->stride_dst);
-		call_pred_bi(bound, 1);
-		bound->dst = dst1;
-
-		double first_result = 0.0;
-
-		for (hevcasm_instruction_set_idx_t i = 0; i < HEVCASM_INSTRUCTION_SET_COUNT; ++i)
-		{
-			if (!((1 << i) & mask)) continue;
-
-			bound->f = hevcasm_get_pred_bi_8to8(taps, bound->w, bound->h, bound->xFracA, bound->yFracA, bound->xFracB, bound->yFracB, 1 << i);
-
-			if (!bound->f) continue;
-
-			memset(bound->dst, 0, 64 * bound->stride_dst);
-
-			hevcasm_count_average_cycles(call_pred_bi, bound, &first_result, i, 100);
-
-			for (int y = 0; y < bound->h; ++y)
-			{
-				const int mismatch = memcmp(&dst0[y*bound->stride_dst], &dst1[y*bound->stride_dst], bound->w);
-				if (mismatch)
-				{
-					printf("-MISMATCH");
-					++error_count;
-					break;
-				}
-			}
-		}
-
-		printf("\n");
+		*error_count += hevcasm_test(&b[0], &b[1], get_pred_bi, invoke_pred_bi, mismatch_pred_bi, mask, 100000);
 	}
-
-	return error_count;
 }
 
-int hevcasm_test_pred_bi(hevcasm_instruction_set mask)
+
+void HEVCASM_API hevcasm_test_pred_bi(int *error_count, hevcasm_instruction_set mask)
 {
-	printf("pred_bi\n");
+	printf("\nhevcasm_pred_bi - Bireference Inter Prediction (two-reference motion compensation)\n");
 
-	int error_count = 0;
+	bound_pred_bi b[2];
 
-	bind_pred_bi bound;
-
-#define STRIDE_DST 192
 #define STRIDE_REF 192
-	HEVCASM_ALIGN(32, uint8_t, dst[2][64 * STRIDE_DST]);
 	HEVCASM_ALIGN(32, uint8_t, ref[2][80 * STRIDE_REF]);
-	bound.stride_dst = STRIDE_DST;
-	bound.stride_ref = STRIDE_REF;
+	b[0].stride_dst = STRIDE_DST;
+	b[0].stride_ref = STRIDE_REF;
 #undef STRIDE_DST
 #undef STRIDE_REF
 
-	for (int x = 0; x < 80 * bound.stride_ref; x++)
+	for (int x = 0; x < 80 * b[0].stride_ref; x++)
 	{
 		ref[0][x] = rand() & 0xff;
 		ref[1][x] = rand() & 0xff;
 	}
 
-	bound.refA = ref[0] + 8 * bound.stride_ref;
-	bound.refB = ref[1] + 8 * bound.stride_ref;
+	b[0].refA = ref[0] + 8 * b[0].stride_ref;
+	b[0].refB = ref[1] + 8 * b[0].stride_ref;
 
-	for (int taps = 8; taps >= 4; taps -= 4)
+	for (b[0].taps = 8; b[0].taps >= 4; b[0].taps -= 4)
 	{
-		bound.xFracA = bound.yFracA = bound.xFracB = bound.yFracB = 0;
-		error_count += test_partitions_bi(taps, dst[0], dst[1], &bound, mask);
-		bound.xFracA = bound.yFracA = bound.xFracB = bound.yFracB = 1;
-		error_count += test_partitions_bi(taps, dst[0], dst[1], &bound, mask);
+		b[0].xFracA = b[0].yFracA = b[0].xFracB = b[0].yFracB = 0;
+		test_partitions_bi(&error_count, b, mask);
 
-		//for (bound.yFracA = 0; bound.yFracA < 2; ++bound.yFracA)
-		//{
-		//	for (bound.xFracA = 0; bound.xFracA < 2; ++bound.xFracA)
-		//	{
-		//		for (bound.yFracB = 0; bound.yFracB < 2; ++bound.yFracB)
-		//		{
-		//			for (bound.xFracB = 0; bound.xFracB < 2; ++bound.xFracB)
-		//			{
-		//				error_count += test_partitions_bi(taps, dst[0], dst[1], &bound, mask);
-		//			}
-		//		}
-		//	}
-		//}
+		b[0].xFracA = b[0].yFracA = b[0].xFracB = b[0].yFracB = 1;
+		test_partitions_bi(&error_count, b, mask);
 	}
-
-	return error_count;
 }

@@ -37,6 +37,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "pred_inter.h"
 #include "residual_decode.h"
 #include "sad.h"
+#include "diff.h"
+#include "quantize.h"
 #include "hevcasm.h"
 
 
@@ -77,11 +79,18 @@ static uint64_t _xgetbv(uint32_t index)
 		"=d" (edx)
 		:
 		"c" (index) );
+
 	return ((uint64_t)edx << 32) | eax;
 }
 
 
 #endif
+
+
+static int bit_is_set(int value, int n)
+{
+	return value & (1 << n);
+}
 
 
 hevcasm_instruction_set hevcasm_instruction_set_support()
@@ -97,13 +106,13 @@ hevcasm_instruction_set hevcasm_instruction_set_support()
 
 	__cpuidex(cpuInfo, 1, 0);
 
-	if (cpuInfo[3] & 0x04000000) mask |= HEVCASM_SSE2;
-	if (cpuInfo[2] & 0x00000001) mask |= HEVCASM_SSE3;
-	if (cpuInfo[2] & 0x00000200) mask |= HEVCASM_SSSE3;
-	if (cpuInfo[2] & 0x00080000) mask |= HEVCASM_SSE41;
-	if (cpuInfo[2] & 0x00100000) mask |= HEVCASM_SSE42;
+	if (bit_is_set(cpuInfo[3], 26)) mask |= HEVCASM_SSE2;
+	if (bit_is_set(cpuInfo[2], 1)) mask |= HEVCASM_SSE3;
+	if (bit_is_set(cpuInfo[2], 9)) mask |= HEVCASM_SSSE3;
+	if (bit_is_set(cpuInfo[2], 19)) mask |= HEVCASM_SSE41;
+	if (bit_is_set(cpuInfo[2], 20)) mask |= HEVCASM_SSE42;
 	
-	if ((cpuInfo[2] & 0x10000000) && (cpuInfo[2] & 0x08000000))
+	if (bit_is_set(cpuInfo[2], 28) && bit_is_set(cpuInfo[2], 27))
 	{
 		uint64_t xcr0 = _xgetbv(0);
 
@@ -114,7 +123,7 @@ hevcasm_instruction_set hevcasm_instruction_set_support()
 			{
 				__cpuidex(cpuInfo, 7, 0);
 				
-				if (cpuInfo[1] & 0x00000020) mask |= HEVCASM_AVX2;
+				if (bit_is_set(cpuInfo[1], 5)) mask |= HEVCASM_AVX2;
 			}
 		}
 	}
@@ -138,8 +147,7 @@ int hevcasm_main(int argc, const char *argv[])
 {
 	hevcasm_instruction_set mask = hevcasm_instruction_set_support();
 
-	printf("HEVCasm self test\n");
-	printf("\n");
+	printf("HEVCasm self test\n\n");
 
 #ifdef WIN32
 	if (!SetProcessAffinityMask(GetCurrentProcess(), 1))
@@ -149,15 +157,22 @@ int hevcasm_main(int argc, const char *argv[])
 #endif
 
 	hevcasm_print_instruction_set_support(stdout, mask);
-	printf("\n");
 
 	int error_count = 0;
 
-	error_count += hevcasm_test_inverse_transform_add(mask);
-	error_count += hevcasm_test_sad(mask);
-	error_count += hevcasm_test_sad_multiref(mask);
-	error_count += hevcasm_test_pred_uni(mask);
-	error_count += hevcasm_test_pred_bi(mask);
+	hevcasm_test_quantize_inverse(&error_count, mask);
+	hevcasm_test_quantize(&error_count, mask);
+	hevcasm_test_quantize_reconstruct(&error_count, mask);
+	hevcasm_test_ssd(&error_count, mask);
+	hevcasm_test_sad(&error_count, mask);
+	hevcasm_test_sad_multiref(&error_count, mask);
+	hevcasm_test_pred_uni(&error_count, mask);
+	hevcasm_test_pred_bi(&error_count, mask);
+	hevcasm_test_inverse_transform_add(&error_count, mask);
+	hevcasm_test_transform(&error_count, mask);
+
+	printf("\n");
+	printf("HEVCasm self test: %d errors\n", error_count);
 
 	return error_count;
 }

@@ -134,7 +134,8 @@ typedef enum {
 #define X(value, name, description) HEVCASM_ ## name = 1 << value,
 	HEVCASM_INSTRUCTION_SET_XMACRO
 #undef X
-} hevcasm_instruction_set;
+} 
+hevcasm_instruction_set;
 
 
 hevcasm_instruction_set HEVCASM_API hevcasm_instruction_set_support();
@@ -145,6 +146,8 @@ int HEVCASM_API hevcasm_main(int argc, const char *argv[]);
 
 #define HEVCASM_RECT(width, height) (((width) << 8) | (height))
 
+
+typedef void HEVCASM_API hevcasm_test_function(int *error_count, hevcasm_instruction_set mask);
 
 
 

@@ -33,40 +33,97 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/* Functions for decoding HEVC residual: inverse transform and add the result to predictor */
+#include "diff_a.h"
+#include "diff.h"
+#include "hevcasm_test.h"
+
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 
 
-#ifndef INCLUDED_hevcasm_residual_decode_h
-#define INCLUDED_hevcasm_residual_decode_h
-
-#include "hevcasm.h"
-
-
-#ifdef __cplusplus
-extern "C"
+static int hevcasm_ssd_c_ref(const uint8_t *p1, const uint8_t *p2, int n)
 {
-#endif
-
-
-
-typedef void hevcasm_inverse_transform_add(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t *coeffs);
-
-hevcasm_inverse_transform_add* HEVCASM_API hevcasm_get_inverse_transform_add(int log2TrafoSize, int trType, hevcasm_instruction_set mask);
-
-void HEVCASM_API hevcasm_test_inverse_transform_add(int *error_count, hevcasm_instruction_set mask);
-
-
-
-typedef void hevcasm_transform(int16_t *coeffs, const int16_t *src, ptrdiff_t src_stride);
-
-hevcasm_transform* HEVCASM_API hevcasm_get_transform(int log2TrafoSize, int trType, hevcasm_instruction_set mask);
-
-void HEVCASM_API hevcasm_test_transform(int *error_count, hevcasm_instruction_set mask);
-
-
-
-#ifdef __cplusplus
+	int sum = 0;
+	for (int i = 0; i<n; ++i)
+	{
+		const int diff = p1[i] - p2[i];
+		sum += diff * diff;
+	}
+	return sum;
 }
-#endif
 
-#endif
+
+hevcasm_ssd * HEVCASM_API hevcasm_get_ssd(int size, hevcasm_instruction_set mask)
+{
+	hevcasm_ssd *f = 0;
+	
+	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT)) f = hevcasm_ssd_c_ref;
+
+	if (mask & HEVCASM_AVX) f = hevcasm_ssd_avx;
+
+	return f;
+}
+
+
+#define BLOCK_SIZE 0x200
+
+
+typedef struct
+{
+	HEVCASM_ALIGN(32, uint8_t, data[2][BLOCK_SIZE]);
+	hevcasm_ssd *f;
+	int ssd;
+}
+bound_ssd;
+
+
+int get_ssd(void *p, hevcasm_instruction_set mask)
+{
+	bound_ssd *s = p;
+
+	s->f = hevcasm_get_ssd(BLOCK_SIZE, mask);
+
+	if (mask == HEVCASM_C_REF) printf("\t%d:", BLOCK_SIZE);
+
+	return !!s->f;
+}
+
+
+void invoke_ssd(void *p, int n)
+{
+	bound_ssd *s = p;
+	while (n--)
+	{
+		s->ssd = s->f(s->data[0], s->data[1], BLOCK_SIZE);
+	}
+}
+
+
+int mismatch_ssd(void *boundRef, void *boundTest)
+{
+	bound_ssd *ref = boundRef;
+	bound_ssd *test = boundTest;
+
+	return  ref->ssd != test->ssd;
+}
+
+
+void HEVCASM_API hevcasm_test_ssd(int *error_count, hevcasm_instruction_set mask)
+{
+	printf("\nhevcasm_ssd - Sum of Square Differences\n");
+
+	bound_ssd b[2];
+
+	for (int n = 0; n < 2; ++n)
+	{
+		for (int x = 0; x < BLOCK_SIZE; ++x)
+		{
+			b[0].data[n][x] = rand();
+		}
+	}
+
+	b[1] = b[0];
+
+	*error_count += hevcasm_test(&b[0], &b[1], get_ssd, invoke_ssd, mismatch_ssd, mask, 100000);
+}

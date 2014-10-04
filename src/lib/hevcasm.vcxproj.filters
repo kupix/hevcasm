@@ -29,6 +29,18 @@
     <ClInclude Include="pred_inter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="diff.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="diff_a.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="quantize.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="quantize_a.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <YASM Include="x86inc.asm">
@@ -58,6 +70,12 @@
     <YASM Include="pred_inter_a.asm">
       <Filter>Assembly Files</Filter>
     </YASM>
+    <YASM Include="diff_a.asm">
+      <Filter>Assembly Files</Filter>
+    </YASM>
+    <YASM Include="quantize_a.asm">
+      <Filter>Assembly Files</Filter>
+    </YASM>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="hevcasm.c">
@@ -70,6 +88,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="pred_inter.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="diff.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="quantize.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="hevcasm_test.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

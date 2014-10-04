@@ -135,19 +135,32 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="diff.c" />
     <ClCompile Include="hevcasm.c" />
+    <ClCompile Include="hevcasm_test.c" />
     <ClCompile Include="pred_inter.c" />
+    <ClCompile Include="quantize.c" />
     <ClCompile Include="residual_decode.c" />
     <ClCompile Include="sad.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="diff.h" />
+    <ClInclude Include="diff_a.h" />
     <ClInclude Include="hevcasm.h" />
     <ClInclude Include="hevcasm_test.h" />
     <ClInclude Include="pred_inter.h" />
+    <ClInclude Include="quantize.h" />
+    <ClInclude Include="quantize_a.h" />
     <ClInclude Include="residual_decode.h" />
     <ClInclude Include="sad.h" />
   </ItemGroup>
   <ItemGroup>
+    <YASM Include="diff_a.asm">
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">ARCH_X86_64=0;HAVE_ALIGNED_STACK=1;PREFIX</Defines>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ARCH_X86_64=0;HAVE_ALIGNED_STACK=1;PREFIX</Defines>
+    </YASM>
     <YASM Include="libvpx\vp9\encoder\x86\vp9_sad4d_sse2.asm">
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
@@ -185,6 +198,12 @@
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|x64'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
     </YASM>
     <YASM Include="pred_inter_a.asm">
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">ARCH_X86_64=0;HAVE_ALIGNED_STACK=1;PREFIX</Defines>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ARCH_X86_64=0;HAVE_ALIGNED_STACK=1;PREFIX</Defines>
+    </YASM>
+    <YASM Include="quantize_a.asm">
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
       <Defines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">ARCH_X86_64=0;HAVE_ALIGNED_STACK=1;PREFIX</Defines>

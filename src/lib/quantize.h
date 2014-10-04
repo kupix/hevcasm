@@ -33,13 +33,17 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-/* Functions for decoding HEVC residual: inverse transform and add the result to predictor */
+
+/* Quantization and reconstruction functions */
 
 
-#ifndef INCLUDED_hevcasm_residual_decode_h
-#define INCLUDED_hevcasm_residual_decode_h
+#ifndef INCLUDED_quantize_h
+#define INCLUDED_quantize_h
 
 #include "hevcasm.h"
+
+#include <stdint.h>
+#include <stddef.h>
 
 
 #ifdef __cplusplus
@@ -48,21 +52,33 @@ extern "C"
 #endif
 
 
+// HEVC inverse quantization ("scaling")
 
-typedef void hevcasm_inverse_transform_add(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t *coeffs);
+typedef void hevcasm_quantize_inverse(int16_t *dst, const int16_t *src, int scale, int shift, int n);
 
-hevcasm_inverse_transform_add* HEVCASM_API hevcasm_get_inverse_transform_add(int log2TrafoSize, int trType, hevcasm_instruction_set mask);
+hevcasm_quantize_inverse* HEVCASM_API hevcasm_get_quantize_inverse(hevcasm_instruction_set mask);
 
-void HEVCASM_API hevcasm_test_inverse_transform_add(int *error_count, hevcasm_instruction_set mask);
+void HEVCASM_API hevcasm_test_quantize_inverse(int *error_count, hevcasm_instruction_set mask);
 
 
 
-typedef void hevcasm_transform(int16_t *coeffs, const int16_t *src, ptrdiff_t src_stride);
+// HEVC simple quantization (similar to that in HM)
 
-hevcasm_transform* HEVCASM_API hevcasm_get_transform(int log2TrafoSize, int trType, hevcasm_instruction_set mask);
+typedef int hevcasm_quantize(int16_t *dst, const int16_t *src, int scale, int shift, int offset, int n);
 
-void HEVCASM_API hevcasm_test_transform(int *error_count, hevcasm_instruction_set mask);
+hevcasm_quantize* HEVCASM_API hevcasm_get_quantize(hevcasm_instruction_set mask);
 
+void HEVCASM_API hevcasm_test_quantize(int *error_count, hevcasm_instruction_set mask);
+
+
+
+// Reconstruction function: adds a CU's predicted and residual values
+
+typedef void hevcasm_quantize_reconstruct(uint8_t *rec, ptrdiff_t stride_rec, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t *res, int n);
+
+hevcasm_quantize_reconstruct* HEVCASM_API hevcasm_get_quantize_reconstruct(int log2TrafoSize, hevcasm_instruction_set mask);
+
+void HEVCASM_API hevcasm_test_quantize_reconstruct(int *error_count, hevcasm_instruction_set mask);
 
 
 #ifdef __cplusplus
