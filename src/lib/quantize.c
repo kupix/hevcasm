@@ -62,7 +62,7 @@ static void hevcasm_quantize_inverse_c_ref(int16_t *dst, const int16_t *src, int
 }
 
 
-hevcasm_quantize_inverse * HEVCASM_API hevcasm_get_quantize_inverse(hevcasm_instruction_set mask)
+static hevcasm_quantize_inverse * get_quantize_inverse(hevcasm_instruction_set mask)
 {
 	hevcasm_quantize_inverse *f = 0;
 	
@@ -71,6 +71,11 @@ hevcasm_quantize_inverse * HEVCASM_API hevcasm_get_quantize_inverse(hevcasm_inst
 	if (mask & HEVCASM_SSE41) f = hevcasm_quantize_inverse_sse4;
 
 	return f;
+}
+
+void hevcasm_populate_quantize_inverse(hevcasm_table_quantize_inverse *table, hevcasm_instruction_set mask)
+{
+	table->p = get_quantize_inverse(mask);
 }
 
 
@@ -87,11 +92,17 @@ typedef struct
 hevcasm_bound_quantize_inverse;
 
 
-int get_quantize_inverse(void *p, hevcasm_instruction_set mask)
+int init_quantize_inverse(void *p, hevcasm_instruction_set mask)
 {
 	hevcasm_bound_quantize_inverse *s = p;
 
-	s->f = hevcasm_get_quantize_inverse(mask);
+	hevcasm_table_quantize_inverse table;
+
+	hevcasm_populate_quantize_inverse(&table, mask);
+
+	s->f = *hevcasm_get_quantize_inverse(&table);
+	
+	assert(s->f == get_quantize_inverse(mask));
 
 	if (s->f && mask == HEVCASM_C_REF)
 	{
@@ -141,7 +152,7 @@ void HEVCASM_API hevcasm_test_quantize_inverse(int *error_count, hevcasm_instruc
 	for (b[0].log2TrafoSize = 2; b[0].log2TrafoSize <= 5; ++b[0].log2TrafoSize)
 	{
 		b[1] = b[0];
-		*error_count += hevcasm_test(&b[0], &b[1], get_quantize_inverse, invoke_quantize_inverse, mismatch_quantize_inverse, mask, 100000);
+		*error_count += hevcasm_test(&b[0], &b[1], init_quantize_inverse, invoke_quantize_inverse, mismatch_quantize_inverse, mask, 100000);
 	}
 }
 
@@ -175,7 +186,7 @@ static int hevcasm_quantize_c_ref(int16_t *dst, const int16_t *src, int scale, i
 }
 
 
-hevcasm_quantize * HEVCASM_API hevcasm_get_quantize(hevcasm_instruction_set mask)
+static hevcasm_quantize * get_quantize(hevcasm_instruction_set mask)
 {
 	hevcasm_quantize *f = 0;
 
@@ -185,6 +196,13 @@ hevcasm_quantize * HEVCASM_API hevcasm_get_quantize(hevcasm_instruction_set mask
 
 	return f;
 }
+
+
+void hevcasm_populate_quantize(hevcasm_table_quantize *table, hevcasm_instruction_set mask)
+{
+	table->p = get_quantize(mask);
+}
+
 
 
 
@@ -202,10 +220,13 @@ typedef struct
 hevcasm_bound_quantize;
 
 
-int get_quantize(void *p, hevcasm_instruction_set mask)
+int init_quantize(void *p, hevcasm_instruction_set mask)
 {
 	hevcasm_bound_quantize *s = p;
-	s->f = hevcasm_get_quantize(mask);
+	hevcasm_table_quantize table;
+	hevcasm_populate_quantize(&table, hevcasm_instruction_set_support());
+	s->f = *hevcasm_get_quantize(&table);
+	assert(s->f = get_quantize(mask));
 	if (mask == HEVCASM_C_REF)
 	{
 		const int nCbS = 1 << s->log2TrafoSize;
@@ -260,7 +281,7 @@ void HEVCASM_API hevcasm_test_quantize(int *error_count, hevcasm_instruction_set
 	for (b[0].log2TrafoSize = 2; b[0].log2TrafoSize <= 5; ++b[0].log2TrafoSize)
 	{
 		b[1] = b[0];
-		*error_count += hevcasm_test(&b[0], &b[1], get_quantize, invoke_quantize, mismatch_quantize, mask, 100000);
+		*error_count += hevcasm_test(&b[0], &b[1], init_quantize, invoke_quantize, mismatch_quantize, mask, 100000);
 	}
 }
 
@@ -281,7 +302,7 @@ static void hevcasm_quantize_reconstruct_c_ref(uint8_t *rec, ptrdiff_t stride_re
 }
 
 
-hevcasm_quantize_reconstruct * HEVCASM_API hevcasm_get_quantize_reconstruct(int log2TrafoSize, hevcasm_instruction_set mask)
+hevcasm_quantize_reconstruct * HEVCASM_API get_quantize_reconstruct(int log2TrafoSize, hevcasm_instruction_set mask)
 {
 	hevcasm_quantize_reconstruct *f = 0;
 		
@@ -300,6 +321,14 @@ hevcasm_quantize_reconstruct * HEVCASM_API hevcasm_get_quantize_reconstruct(int 
 }
 
 
+void HEVCASM_API hevcasm_populate_quantize_reconstruct(hevcasm_table_quantize_reconstruct *table, hevcasm_instruction_set mask)
+{
+	for (int log2TrafoSize = 2; log2TrafoSize < 6; ++log2TrafoSize)
+	{
+		*hevcasm_get_quantize_reconstruct(table, log2TrafoSize) = get_quantize_reconstruct(log2TrafoSize, mask);
+	}
+}
+
 
 typedef struct
 {
@@ -314,11 +343,17 @@ typedef struct
 bound_quantize_reconstruct;
 
 
-int get_quantize_reconstruct(void *p, hevcasm_instruction_set mask)
+int init_quantize_reconstruct(void *p, hevcasm_instruction_set mask)
 {
 	bound_quantize_reconstruct *s = p;
 
-	s->f = hevcasm_get_quantize_reconstruct(s->log2TrafoSize, mask);
+	hevcasm_table_quantize_reconstruct table;
+
+	hevcasm_populate_quantize_reconstruct(&table, mask);
+
+	s->f = *hevcasm_get_quantize_reconstruct(&table, s->log2TrafoSize);
+
+	assert(s->f == get_quantize_reconstruct(s->log2TrafoSize, mask));
 
 	if (mask == HEVCASM_C_REF)
 	{
@@ -384,7 +419,7 @@ void HEVCASM_API hevcasm_test_quantize_reconstruct(int *error_count, hevcasm_ins
 	for (b[0].log2TrafoSize = 2; b[0].log2TrafoSize <= 5; ++b[0].log2TrafoSize)
 	{
 		b[1] = b[0];
-		*error_count += hevcasm_test(&b[0], &b[1], get_quantize_reconstruct, invoke_quantize_reconstruct, mismatch_quantize_reconstruct, mask, 100000);
+		*error_count += hevcasm_test(&b[0], &b[1], init_quantize_reconstruct, invoke_quantize_reconstruct, mismatch_quantize_reconstruct, mask, 100000);
 	}
 
 }

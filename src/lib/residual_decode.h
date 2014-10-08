@@ -41,6 +41,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "hevcasm.h"
 
+#include "assert.h"
+
 
 #ifdef __cplusplus
 extern "C"
@@ -51,7 +53,27 @@ extern "C"
 
 typedef void hevcasm_inverse_transform_add(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t *coeffs);
 
-hevcasm_inverse_transform_add* HEVCASM_API hevcasm_get_inverse_transform_add(int log2TrafoSize, int trType, hevcasm_instruction_set mask);
+typedef struct
+{
+	hevcasm_inverse_transform_add *dst;
+	hevcasm_inverse_transform_add *dct[4];
+}
+hevcasm_table_inverse_transform_add;
+
+static hevcasm_inverse_transform_add** hevcasm_get_inverse_transform_add(hevcasm_table_inverse_transform_add *table, int trType, int log2TrafoSize)
+{
+	if (trType)
+	{
+		assert(log2TrafoSize == 2);
+		return &table->dst;
+	}
+	else
+	{
+		return &table->dct[log2TrafoSize - 2];
+	}
+}
+
+void HEVCASM_API hevcasm_populate_inverse_transform_add(hevcasm_table_inverse_transform_add *table, hevcasm_instruction_set mask);
 
 void HEVCASM_API hevcasm_test_inverse_transform_add(int *error_count, hevcasm_instruction_set mask);
 

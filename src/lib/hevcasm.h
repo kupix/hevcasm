@@ -138,11 +138,20 @@ typedef enum {
 hevcasm_instruction_set;
 
 
+/*
+Queries processor via cpuid instruction and returns a bitmask representing supported instruction sets.
+*/
 hevcasm_instruction_set HEVCASM_API hevcasm_instruction_set_support();
+
 
 void HEVCASM_API hevcasm_print_instruction_set_support(FILE *f, hevcasm_instruction_set mask);
 
+
+/*
+Library self-test entry point.
+*/
 int HEVCASM_API hevcasm_main(int argc, const char *argv[]);
+
 
 #define HEVCASM_RECT(width, height) (((width) << 8) | (height))
 

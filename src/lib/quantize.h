@@ -56,7 +56,18 @@ extern "C"
 
 typedef void hevcasm_quantize_inverse(int16_t *dst, const int16_t *src, int scale, int shift, int n);
 
-hevcasm_quantize_inverse* HEVCASM_API hevcasm_get_quantize_inverse(hevcasm_instruction_set mask);
+typedef struct
+{
+	hevcasm_quantize_inverse *p;
+}
+hevcasm_table_quantize_inverse;
+
+static hevcasm_quantize_inverse** hevcasm_get_quantize_inverse(hevcasm_table_quantize_inverse *table)
+{
+	return &table->p;
+}
+
+void HEVCASM_API hevcasm_populate_quantize_inverse(hevcasm_table_quantize_inverse *table, hevcasm_instruction_set mask);
 
 void HEVCASM_API hevcasm_test_quantize_inverse(int *error_count, hevcasm_instruction_set mask);
 
@@ -66,7 +77,18 @@ void HEVCASM_API hevcasm_test_quantize_inverse(int *error_count, hevcasm_instruc
 
 typedef int hevcasm_quantize(int16_t *dst, const int16_t *src, int scale, int shift, int offset, int n);
 
-hevcasm_quantize* HEVCASM_API hevcasm_get_quantize(hevcasm_instruction_set mask);
+typedef struct
+{
+	hevcasm_quantize *p;
+}
+hevcasm_table_quantize;
+
+static hevcasm_quantize** hevcasm_get_quantize(hevcasm_table_quantize *table)
+{
+	return &table->p;
+}
+
+void HEVCASM_API hevcasm_populate_quantize(hevcasm_table_quantize *table, hevcasm_instruction_set mask);
 
 void HEVCASM_API hevcasm_test_quantize(int *error_count, hevcasm_instruction_set mask);
 
@@ -76,7 +98,18 @@ void HEVCASM_API hevcasm_test_quantize(int *error_count, hevcasm_instruction_set
 
 typedef void hevcasm_quantize_reconstruct(uint8_t *rec, ptrdiff_t stride_rec, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t *res, int n);
 
-hevcasm_quantize_reconstruct* HEVCASM_API hevcasm_get_quantize_reconstruct(int log2TrafoSize, hevcasm_instruction_set mask);
+typedef struct
+{
+	hevcasm_quantize_reconstruct *p[4];
+}
+hevcasm_table_quantize_reconstruct;
+
+static hevcasm_quantize_reconstruct** hevcasm_get_quantize_reconstruct(hevcasm_table_quantize_reconstruct *table, int log2TrafoSize)
+{
+	return &table->p[log2TrafoSize - 2];
+}
+
+void HEVCASM_API hevcasm_populate_quantize_reconstruct(hevcasm_table_quantize_reconstruct *table, hevcasm_instruction_set mask);
 
 void HEVCASM_API hevcasm_test_quantize_reconstruct(int *error_count, hevcasm_instruction_set mask);
 

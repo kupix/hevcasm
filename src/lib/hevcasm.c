@@ -97,7 +97,13 @@ hevcasm_instruction_set hevcasm_instruction_set_support()
 {
 	hevcasm_instruction_set mask = HEVCASM_C_REF | HEVCASM_C_OPT;
 
+	const int eax = 0;
+	const int ebx = 1;
+	const int ecx = 2;
+	const int edx = 3;
+
 	int cpuInfo[4]; // eax ... edx
+
 	__cpuidex(cpuInfo, 0, 0);
 
 	const int max_standard_level = cpuInfo[0];
@@ -106,13 +112,13 @@ hevcasm_instruction_set hevcasm_instruction_set_support()
 
 	__cpuidex(cpuInfo, 1, 0);
 
-	if (bit_is_set(cpuInfo[3], 26)) mask |= HEVCASM_SSE2;
-	if (bit_is_set(cpuInfo[2], 1)) mask |= HEVCASM_SSE3;
-	if (bit_is_set(cpuInfo[2], 9)) mask |= HEVCASM_SSSE3;
-	if (bit_is_set(cpuInfo[2], 19)) mask |= HEVCASM_SSE41;
-	if (bit_is_set(cpuInfo[2], 20)) mask |= HEVCASM_SSE42;
+	if (bit_is_set(cpuInfo[edx], 26)) mask |= HEVCASM_SSE2;
+	if (bit_is_set(cpuInfo[ecx], 1)) mask |= HEVCASM_SSE3;
+	if (bit_is_set(cpuInfo[ecx], 9)) mask |= HEVCASM_SSSE3;
+	if (bit_is_set(cpuInfo[ecx], 19)) mask |= HEVCASM_SSE41;
+	if (bit_is_set(cpuInfo[ecx], 20)) mask |= HEVCASM_SSE42;
 	
-	if (bit_is_set(cpuInfo[2], 28) && bit_is_set(cpuInfo[2], 27))
+	if (bit_is_set(cpuInfo[ecx], 28) && bit_is_set(cpuInfo[ecx], 27))
 	{
 		uint64_t xcr0 = _xgetbv(0);
 
@@ -123,7 +129,7 @@ hevcasm_instruction_set hevcasm_instruction_set_support()
 			{
 				__cpuidex(cpuInfo, 7, 0);
 				
-				if (bit_is_set(cpuInfo[1], 5)) mask |= HEVCASM_AVX2;
+				if (bit_is_set(cpuInfo[ebx], 5)) mask |= HEVCASM_AVX2;
 			}
 		}
 	}

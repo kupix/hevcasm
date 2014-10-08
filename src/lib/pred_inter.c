@@ -87,7 +87,7 @@ int hevcasm_pred_coefficient(int n, int fractionalPosition, int k)
 Generic function to handle all luma, chroma, 8 and 16-bit interpolation. 
 Consider this a reference implementation: it will not run fast.
 */
-static void hevcasm_pred_uni_filter_generic(
+static void hevcasm_pred_uni_generic(
 	void *dst, int sizeof_dst, ptrdiff_t stride_dst, 
 	const void *src, int sizeof_src, ptrdiff_t stride_src, 
 	int w, int h, 
@@ -151,31 +151,31 @@ void hevcasm_pred_uni_copy_block(uint8_t *dst, ptrdiff_t stride_dst, const uint8
 }
 
 
-void hevcasm_pred_uni_8tap_filter_8to8_h(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac)
+void hevcasm_pred_uni_8tap_8to8_h(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac)
 {
 	assert(xFrac);
 	assert(!yFrac);
-	hevcasm_pred_uni_filter_generic(dst, 1, stride_dst, ref, 1, stride_ref, w, h, 1, 8, xFrac, 6, 1);
+	hevcasm_pred_uni_generic(dst, 1, stride_dst, ref, 1, stride_ref, w, h, 1, 8, xFrac, 6, 1);
 }
 
 
-void hevcasm_pred_uni_8tap_filter_8to8_v(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac)
+void hevcasm_pred_uni_8tap_8to8_v(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac)
 {
 	assert(!xFrac);
 	assert(yFrac);
-	hevcasm_pred_uni_filter_generic(dst, 1, stride_dst, ref, 1, stride_ref, w, h, stride_ref, 8, yFrac, 6, 1);
+	hevcasm_pred_uni_generic(dst, 1, stride_dst, ref, 1, stride_ref, w, h, stride_ref, 8, yFrac, 6, 1);
 }
 
 
-void hevcasm_pred_uni_8tap_filter_8to8_hv(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac)
+void hevcasm_pred_uni_8tap_8to8_hv(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac)
 {
 	int16_t intermediate[(64 + 7) * 64];
 
 	/* Horizontal filter */
-	hevcasm_pred_uni_filter_generic(intermediate, 2, 64, ref - 3 * stride_ref, 1, stride_ref, w, h + 7, 1, 8, xFrac, 0, 0);
+	hevcasm_pred_uni_generic(intermediate, 2, 64, ref - 3 * stride_ref, 1, stride_ref, w, h + 7, 1, 8, xFrac, 0, 0);
 
 	/* Vertical filter */
-	hevcasm_pred_uni_filter_generic(dst, 1, stride_dst, intermediate + 3 * 64, 2, 64, w, h, 64, 8, yFrac, 12, 1);
+	hevcasm_pred_uni_generic(dst, 1, stride_dst, intermediate + 3 * 64, 2, 64, w, h, 64, 8, yFrac, 12, 1);
 }
 
 
@@ -200,37 +200,37 @@ MAKE_hevcasm_pred_uni_xtap_8to8_hv(4, _16xh_sse4)
 MAKE_hevcasm_pred_uni_xtap_8to8_hv(4, _32xh_sse4)
 
 
-void hevcasm_pred_uni_4tap_filter_8to8_h(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac)
+void hevcasm_pred_uni_4tap_8to8_h(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac)
 {
 	assert(xFrac);
 	assert(!yFrac);
-	hevcasm_pred_uni_filter_generic(dst, 1, stride_dst, ref, 1, stride_ref, w, h, 1, 4, xFrac, 6, 1);
+	hevcasm_pred_uni_generic(dst, 1, stride_dst, ref, 1, stride_ref, w, h, 1, 4, xFrac, 6, 1);
 }
 
 
-void hevcasm_pred_uni_4tap_filter_8to8_v(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac)
+void hevcasm_pred_uni_4tap_8to8_v(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac)
 {
 	assert(!xFrac);
 	assert(yFrac);
-	hevcasm_pred_uni_filter_generic(dst, 1, stride_dst, ref, 1, stride_ref, w, h, stride_ref, 4, yFrac, 6, 1);
+	hevcasm_pred_uni_generic(dst, 1, stride_dst, ref, 1, stride_ref, w, h, stride_ref, 4, yFrac, 6, 1);
 }
 
 
-void hevcasm_pred_uni_4tap_filter_8to8_hv(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac)
+void hevcasm_pred_uni_4tap_8to8_hv(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac)
 {
 	int16_t intermediate[(32 + 3) * 32];
 
 	/* Horizontal filter */
-	hevcasm_pred_uni_filter_generic(intermediate, 2, 32, ref - stride_ref, 1, stride_ref, w, h + 3, 1, 4, xFrac, 0, 0);
+	hevcasm_pred_uni_generic(intermediate, 2, 32, ref - stride_ref, 1, stride_ref, w, h + 3, 1, 4, xFrac, 0, 0);
 
 	/* Vertical filter */
-	hevcasm_pred_uni_filter_generic(dst, 1, stride_dst, intermediate + 32, 2, 32, w, h, 32, 4, yFrac, 12, 1);
+	hevcasm_pred_uni_generic(dst, 1, stride_dst, intermediate + 32, 2, 32, w, h, 32, 4, yFrac, 12, 1);
 }
 
 
-hevcasm_pred_uni_filter_8to8* HEVCASM_API hevcasm_get_pred_uni_filter_8to8(int taps, int w, int h, int xFrac, int yFrac, hevcasm_instruction_set mask)
+static hevcasm_pred_uni_8to8* get_pred_uni_8to8(int taps, int w, int h, int xFrac, int yFrac, hevcasm_instruction_set mask)
 {
-	hevcasm_pred_uni_filter_8to8 *f = 0;
+	hevcasm_pred_uni_8to8 *f = 0;
 	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
 		if (taps == 8)
@@ -241,18 +241,18 @@ hevcasm_pred_uni_filter_8to8* HEVCASM_API hevcasm_get_pred_uni_filter_8to8(int t
 			{
 				if (yFrac)
 				{
-					f = hevcasm_pred_uni_8tap_filter_8to8_hv;
+					f = hevcasm_pred_uni_8tap_8to8_hv;
 				}
 				else
 				{
-					f = hevcasm_pred_uni_8tap_filter_8to8_h;
+					f = hevcasm_pred_uni_8tap_8to8_h;
 				}
 			}
 			else
 			{
 				if (yFrac)
 				{
-					f = hevcasm_pred_uni_8tap_filter_8to8_v;
+					f = hevcasm_pred_uni_8tap_8to8_v;
 				}
 				else
 				{
@@ -269,18 +269,18 @@ hevcasm_pred_uni_filter_8to8* HEVCASM_API hevcasm_get_pred_uni_filter_8to8(int t
 			{
 				if (yFrac)
 				{
-					f = hevcasm_pred_uni_4tap_filter_8to8_hv;
+					f = hevcasm_pred_uni_4tap_8to8_hv;
 				}
 				else
 				{
-					f = hevcasm_pred_uni_4tap_filter_8to8_h;
+					f = hevcasm_pred_uni_4tap_8to8_h;
 				}
 			}
 			else
 			{
 				if (yFrac)
 				{
-					f = hevcasm_pred_uni_4tap_filter_8to8_v;
+					f = hevcasm_pred_uni_4tap_8to8_v;
 				}
 				else
 				{
@@ -347,12 +347,33 @@ hevcasm_pred_uni_filter_8to8* HEVCASM_API hevcasm_get_pred_uni_filter_8to8(int t
 	return f;
 }
 
+
+void hevcasm_populate_pred_uni_8to8(hevcasm_table_pred_uni_8to8 *table, hevcasm_instruction_set mask)
+{
+	for (int taps = 4; taps <= 8; taps += 4)
+	{
+		for (int w = 0; w <= 8 * taps; w += taps)
+		{
+			for (int xFrac = 0; xFrac < 2; ++xFrac)
+			{
+				for (int yFrac = 0; yFrac < 2; ++yFrac)
+				{
+					*hevcasm_get_pred_uni_8to8(table, taps, w, 0, xFrac, yFrac)
+						= get_pred_uni_8to8(taps, w, 0, xFrac, yFrac, mask);
+				}
+			}
+		}
+	}
+}
+
+
+
 #define STRIDE_DST 192
 
 typedef struct 
 {
 	HEVCASM_ALIGN(32, uint8_t, dst[64 * STRIDE_DST]);
-	hevcasm_pred_uni_filter_8to8 *f;
+	hevcasm_pred_uni_8to8 *f;
 	ptrdiff_t stride_dst;
 	const uint8_t *ref;
 	ptrdiff_t stride_ref;
@@ -365,11 +386,17 @@ typedef struct
 bound_pred_uni;
 
 
-int get_pred_uni(void *p, hevcasm_instruction_set mask)
+static int get_pred_uni(void *p, hevcasm_instruction_set mask)
 {
 	bound_pred_uni *s = p;
 
-	s->f = hevcasm_get_pred_uni_filter_8to8(s->taps, s->w, s->h, s->xFrac, s->yFrac, mask);
+	hevcasm_table_pred_uni_8to8 table;
+
+	hevcasm_populate_pred_uni_8to8(&table, mask);
+
+	s->f = *hevcasm_get_pred_uni_8to8(&table, s->taps, s->w, s->h, s->xFrac, s->yFrac);
+
+	assert(s->f == get_pred_uni_8to8(s->taps, s->w, s->h, s->xFrac, s->yFrac, mask));
 
 	if (s->f && mask == HEVCASM_C_REF)
 	{
@@ -426,7 +453,7 @@ static void test_partitions(int *error_count, bound_pred_uni b[2], hevcasm_instr
 
 		b[1] = b[0];
 
-		*error_count += hevcasm_test(&b[0], &b[1], get_pred_uni, invoke_pred_uni, mismatch_pred_uni, mask, 100000);
+		*error_count += hevcasm_test(&b[0], &b[1], get_pred_uni, invoke_pred_uni, mismatch_pred_uni, mask, 1000);
 	}
 }
 
@@ -484,16 +511,16 @@ void hevcasm_pred_bi_ ## taps ## tap_8to8_c_ref(uint8_t *dst, ptrdiff_t stride_d
 	const int h = nPbH; \
 	 \
 	/* Horizontal filter */ \
-	hevcasm_pred_uni_filter_generic(intermediate[2], 2, 64, ref0 - (taps/2-1) * stride_ref, 1, stride_ref, w, h + taps - 1, 1, taps, xFrac0, 0, 0); \
+	hevcasm_pred_uni_generic(intermediate[2], 2, 64, ref0 - (taps/2-1) * stride_ref, 1, stride_ref, w, h + taps - 1, 1, taps, xFrac0, 0, 0); \
 	 \
 	/* Vertical filter */ \
-	hevcasm_pred_uni_filter_generic(intermediate[0], 2, 64, intermediate[2] + (taps / 2 - 1) * 64, 2, 64, w, h, 64, taps, yFrac0, 6, 0); \
+	hevcasm_pred_uni_generic(intermediate[0], 2, 64, intermediate[2] + (taps / 2 - 1) * 64, 2, 64, w, h, 64, taps, yFrac0, 6, 0); \
 	 \
 	/* Horizontal filter */ \
-	hevcasm_pred_uni_filter_generic(intermediate[3], 2, 64, ref1 - (taps / 2 - 1) * stride_ref, 1, stride_ref, w, h + taps - 1, 1, taps, xFrac1, 0, 0); \
+	hevcasm_pred_uni_generic(intermediate[3], 2, 64, ref1 - (taps / 2 - 1) * stride_ref, 1, stride_ref, w, h + taps - 1, 1, taps, xFrac1, 0, 0); \
 	 \
 	/* Vertical filter */ \
-	hevcasm_pred_uni_filter_generic(intermediate[1], 2, 64, intermediate[3] + (taps / 2 - 1) * 64, 2, 64, w, h, 64, taps, yFrac1, 6, 0); \
+	hevcasm_pred_uni_generic(intermediate[1], 2, 64, intermediate[3] + (taps / 2 - 1) * 64, 2, 64, w, h, 64, taps, yFrac1, 6, 0); \
 	 \
 	/* Combine two references for bi pred */ \
 	hevcasm_pred_bi_mean_16and16to8_c_ref(dst, stride_dst, intermediate[0], intermediate[1], 64, nPbW, nPbH); \
@@ -528,7 +555,7 @@ MAKE_hevcasm_pred_bi_xtap_8to8_sse4(4, 16)
 MAKE_hevcasm_pred_bi_xtap_8to8_sse4(4, 32)
 
 
-hevcasm_pred_bi_8to8* HEVCASM_API hevcasm_get_pred_bi_8to8(int taps, int w, int h, int xFracA, int yFracA, int xFracB, int yFracB, hevcasm_instruction_set mask)
+hevcasm_pred_bi_8to8* get_pred_bi_8to8(int taps, int w, int h, int xFracA, int yFracA, int xFracB, int yFracB, hevcasm_instruction_set mask)
 {
 	hevcasm_pred_bi_8to8 *f = 0;
 	
@@ -568,6 +595,24 @@ hevcasm_pred_bi_8to8* HEVCASM_API hevcasm_get_pred_bi_8to8(int taps, int w, int 
 	return f;
 }
 
+
+void hevcasm_populate_pred_bi_8to8(hevcasm_table_pred_bi_8to8 *table, hevcasm_instruction_set mask)
+{
+	for (int taps = 4; taps <= 8; taps += 4)
+	{
+		for (int w = 0; w <= 8 * taps; w += 2 * taps)
+		{
+			for (int frac = 0; frac < 2; ++frac)
+			{
+				*hevcasm_get_pred_bi_8to8(table, taps, w, 0, frac, frac, frac, frac)
+					= get_pred_bi_8to8(taps, w, 0, frac, frac, frac, frac, mask);
+			}
+		}
+	}
+}
+
+
+
 #define STRIDE_DST 192
 
 typedef struct
@@ -589,11 +634,17 @@ typedef struct
 bound_pred_bi;
 
 
-int get_pred_bi(void *p, hevcasm_instruction_set mask)
+int init_pred_bi_8to8(void *p, hevcasm_instruction_set mask)
 {
 	bound_pred_bi *s = p;
 
-	s->f = hevcasm_get_pred_bi_8to8(s->taps, s->w, s->h, s->xFracA, s->yFracA, s->xFracB, s->yFracB, mask);
+	hevcasm_table_pred_bi_8to8 table;
+
+	hevcasm_populate_pred_bi_8to8(&table, mask);
+
+	s->f = *hevcasm_get_pred_bi_8to8(&table, s->taps, s->w, s->h, s->xFracA, s->yFracA, s->xFracB, s->yFracB);
+
+	assert(s->f == get_pred_bi_8to8(s->taps, s->w, s->h, s->xFracA, s->yFracA, s->xFracB, s->yFracB, mask));
 
 	if (s->f && mask == HEVCASM_C_REF)
 	{
@@ -607,7 +658,7 @@ int get_pred_bi(void *p, hevcasm_instruction_set mask)
 }
 
 
-void invoke_pred_bi(void *p, int n)
+void invoke_pred_bi_8to8(void *p, int n)
 {
 	bound_pred_bi *s = p;
 	while (n--)
@@ -617,7 +668,7 @@ void invoke_pred_bi(void *p, int n)
 }
 
 
-int mismatch_pred_bi(void *boundRef, void *boundTest)
+int mismatch_pred_bi_8to8(void *boundRef, void *boundTest)
 {
 	bound_pred_bi *ref = boundRef;
 	bound_pred_bi *test = boundTest;
@@ -651,7 +702,7 @@ static void test_partitions_bi(int *error_count, bound_pred_bi b[2], hevcasm_ins
 
 		b[1] = b[0];
 
-		*error_count += hevcasm_test(&b[0], &b[1], get_pred_bi, invoke_pred_bi, mismatch_pred_bi, mask, 100000);
+		*error_count += hevcasm_test(&b[0], &b[1], init_pred_bi_8to8, invoke_pred_bi_8to8, mismatch_pred_bi_8to8, mask, 1000);
 	}
 }
 
@@ -681,9 +732,9 @@ void HEVCASM_API hevcasm_test_pred_bi(int *error_count, hevcasm_instruction_set 
 	for (b[0].taps = 8; b[0].taps >= 4; b[0].taps -= 4)
 	{
 		b[0].xFracA = b[0].yFracA = b[0].xFracB = b[0].yFracB = 0;
-		test_partitions_bi(&error_count, b, mask);
+		test_partitions_bi(error_count, b, mask);
 
 		b[0].xFracA = b[0].yFracA = b[0].xFracB = b[0].yFracB = 1;
-		test_partitions_bi(&error_count, b, mask);
+		test_partitions_bi(error_count, b, mask);
 	}
 }

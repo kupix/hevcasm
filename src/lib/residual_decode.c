@@ -245,7 +245,7 @@ void hevcasm_idct_16x16_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t 
 }
 
 
-hevcasm_inverse_transform_add* HEVCASM_API hevcasm_get_inverse_transform_add(int log2TrafoSize, int trType, hevcasm_instruction_set mask)
+static hevcasm_inverse_transform_add* get_inverse_transform_add(int trType, int log2TrafoSize, hevcasm_instruction_set mask)
 {
 	const int nCbS = 1 << log2TrafoSize;
 
@@ -267,6 +267,16 @@ hevcasm_inverse_transform_add* HEVCASM_API hevcasm_get_inverse_transform_add(int
 }
 
 
+void HEVCASM_API hevcasm_populate_inverse_transform_add(hevcasm_table_inverse_transform_add *table, hevcasm_instruction_set mask)
+{
+	*hevcasm_get_inverse_transform_add(table, 1, 2) = get_inverse_transform_add(1, 2, mask);
+	for (int log2TrafoSize = 2; log2TrafoSize <= 5; ++log2TrafoSize)
+	{
+		*hevcasm_get_inverse_transform_add(table, 0, log2TrafoSize) = get_inverse_transform_add(0, log2TrafoSize, mask);
+	}
+}
+
+
 typedef struct
 {
 	const int16_t *coefficients;
@@ -279,11 +289,11 @@ typedef struct
 bind_inverse_transform_add;
 
 
-int get_inverse_transform_add(void *p, hevcasm_instruction_set mask)
+int init_inverse_transform_add(void *p, hevcasm_instruction_set mask)
 {
 	bind_inverse_transform_add *s = p;
 
-	s->f = hevcasm_get_inverse_transform_add(s->log2TrafoSize, s->trType, mask);
+	s->f = hevcasm_get_inverse_transform_add(s->trType, s->log2TrafoSize, mask);
 
 	if (s->f && mask == HEVCASM_C_REF)
 	{
@@ -337,7 +347,7 @@ void hevcasm_test_inverse_transform_add(int *error_count, hevcasm_instruction_se
 		b[0].log2TrafoSize = (j == 1) ? 2 : j;
 		b[1] = b[0];
 
-		*error_count += hevcasm_test(&b[0], &b[1], get_inverse_transform_add, invoke_inverse_transform_add, mismatch_transform_add, mask, 100000);
+		*error_count += hevcasm_test(&b[0], &b[1], init_inverse_transform_add, invoke_inverse_transform_add, mismatch_transform_add, mask, 100000);
 	}
 }
 
