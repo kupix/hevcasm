@@ -41,6 +41,9 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 
 
+void __fastcall f265_lbd_idct_16_avx2(uint8_t *dst, int dst_stride, const uint8_t *pred, int pred_stride, const int16_t coeffs[16*16], uint8_t *spill);
+
+
 static int Clip3(int min, int max, int x)
 {
 	if (x > max) return max;
@@ -192,7 +195,7 @@ void hevcasm_add_residual_8x8(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t 
 }
 
 
-void hevcasm_add_residual_16x16(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, int16_t residual[8 * 8])
+void hevcasm_add_residual_16x16(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, int16_t residual[16 * 16])
 {
 	for (int y = 0; y < 16; ++y)
 	{
@@ -236,7 +239,7 @@ hevcasm_inverse_transform_add *hevcasm_idct_8x8_ssse3 = 0;
 #endif
 
 
-void hevcasm_idct_16x16_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[8 * 8])
+void hevcasm_idct_16x16_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[16 * 16])
 {
 	HEVCASM_ALIGN(32, int16_t, temp[2][16 * 16]);
 	hevcasm_partial_butterfly_inverse_16v_ssse3(temp[0], coeffs, 7);
@@ -244,6 +247,14 @@ void hevcasm_idct_16x16_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t 
 	hevcasm_add_residual_16x16(dst, stride_dst, pred, stride_pred, temp[1]);
 }
 
+
+
+void hevcasm_idct_16x16_avx2(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[16 * 16])
+{
+	HEVCASM_ALIGN(32, uint8_t, spill[4096]);
+
+	f265_lbd_idct_16_avx2(dst, stride_dst, pred, stride_pred, coeffs, &spill[2048]);
+}
 
 static hevcasm_inverse_transform_add* get_inverse_transform_add(int trType, int log2TrafoSize, hevcasm_instruction_set mask)
 {
@@ -263,6 +274,10 @@ static hevcasm_inverse_transform_add* get_inverse_transform_add(int trType, int 
 		if (nCbS == 16) f = hevcasm_idct_16x16_ssse3;
 	}
 
+	if (mask & HEVCASM_AVX2)
+	{
+		if (nCbS == 16) f = hevcasm_idct_16x16_avx2;
+	}
 	return f;
 }
 
@@ -293,7 +308,11 @@ int init_inverse_transform_add(void *p, hevcasm_instruction_set mask)
 {
 	bind_inverse_transform_add *s = p;
 
-	s->f = hevcasm_get_inverse_transform_add(s->trType, s->log2TrafoSize, mask);
+	hevcasm_table_inverse_transform_add table;
+
+	hevcasm_populate_inverse_transform_add(&table, mask);
+
+	s->f = *hevcasm_get_inverse_transform_add(&table, s->trType, s->log2TrafoSize);
 
 	if (s->f && mask == HEVCASM_C_REF)
 	{

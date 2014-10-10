@@ -224,9 +224,9 @@ int init_quantize(void *p, hevcasm_instruction_set mask)
 {
 	hevcasm_bound_quantize *s = p;
 	hevcasm_table_quantize table;
-	hevcasm_populate_quantize(&table, hevcasm_instruction_set_support());
+	hevcasm_populate_quantize(&table, mask);
 	s->f = *hevcasm_get_quantize(&table);
-	assert(s->f = get_quantize(mask));
+	assert(s->f == get_quantize(mask));
 	if (mask == HEVCASM_C_REF)
 	{
 		const int nCbS = 1 << s->log2TrafoSize;
