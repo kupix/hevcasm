@@ -253,7 +253,7 @@ void hevcasm_idct_16x16_avx2(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *
 {
 	HEVCASM_ALIGN(32, uint8_t, spill[4096]);
 
-	f265_lbd_idct_16_avx2(dst, stride_dst, pred, stride_pred, coeffs, &spill[2048]);
+	f265_lbd_idct_16_avx2(dst, (int)stride_dst, pred, (int)stride_pred, coeffs, &spill[2048]);
 }
 
 static hevcasm_inverse_transform_add* get_inverse_transform_add(int trType, int log2TrafoSize, hevcasm_instruction_set mask)
