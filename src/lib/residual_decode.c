@@ -414,6 +414,7 @@ hevcasm_inverse_transform_add *hevcasm_idct_8x8_ssse3 = 0;
 #endif
 
 
+#ifdef HEVCASM_X64
 void hevcasm_idct_16x16_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[16 * 16])
 {
 	HEVCASM_ALIGN(32, int16_t, temp[2][16 * 16]);
@@ -421,14 +422,23 @@ void hevcasm_idct_16x16_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t 
 	hevcasm_partial_butterfly_inverse_16h_ssse3(temp[1], temp[0], 12);
 	hevcasm_add_residual(16, dst, stride_dst, pred, stride_pred, temp[1]);
 }
+#else
+/* hevcasm_idct_16x16_ssse3 uses too many xmm registers for a 32-bit build */
+hevcasm_inverse_transform_add *hevcasm_idct_16x16_ssse3 = 0;
+#endif
 
 
+#ifdef HEVCASM_X64
 void hevcasm_idct_16x16_avx2(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[16 * 16])
 {
 	HEVCASM_ALIGN(32, uint8_t, spill[4096]);
 
 	f265_lbd_idct_16_avx2(dst, (int)stride_dst, pred, (int)stride_pred, coeffs, &spill[2048]);
 }
+#else
+/* f265_lbd_idct_16_avx2 only builds on 64-bit */
+hevcasm_inverse_transform_add *hevcasm_idct_16x16_avx2 = 0;
+#endif
 
 
 static hevcasm_inverse_transform_add* get_inverse_transform_add(int trType, int log2TrafoSize, hevcasm_instruction_set mask)
@@ -447,13 +457,13 @@ static hevcasm_inverse_transform_add* get_inverse_transform_add(int trType, int 
 
 	if (mask & HEVCASM_SSSE3)
 	{
-		if (nCbS == 8) f = hevcasm_idct_8x8_ssse3;
-		if (nCbS == 16) f = hevcasm_idct_16x16_ssse3;
+		if (nCbS == 8 && hevcasm_idct_8x8_ssse3) f = hevcasm_idct_8x8_ssse3;
+		if (nCbS == 16 && hevcasm_idct_16x16_ssse3) f = hevcasm_idct_16x16_ssse3;
 	}
 
 	if (mask & HEVCASM_AVX2)
 	{
-		if (nCbS == 16) f = hevcasm_idct_16x16_avx2;
+		if (nCbS == 16 && hevcasm_idct_16x16_avx2) f = hevcasm_idct_16x16_avx2;
 	}
 	return f;
 }
@@ -851,12 +861,18 @@ void hevcasm_dct_32x32_c_opt(int16_t coeffs[32 * 32], const int16_t *src, ptrdif
 }
 
 
+
+#ifdef HEVCASM_X64
 void hevcasm_dct_16x16_ssse3(int16_t *coeffs, const int16_t *src, ptrdiff_t src_stride)
 {
 	HEVCASM_ALIGN(32, int16_t, temp[16 * 16]);
 	hevcasm_partial_butterfly_16h_ssse3(temp, src, src_stride, 3);
 	hevcasm_partial_butterfly_16v_ssse3(coeffs, temp, 10);
 }
+#else
+/* hevcasm_dct_16x16_ssse3 uses too many xmm registers for a 32-bit build */
+hevcasm_transform *hevcasm_dct_16x16_ssse3 = 0;
+#endif
 
 
 hevcasm_transform* HEVCASM_API get_transform(int trType, int log2TrafoSize, hevcasm_instruction_set mask)
@@ -875,7 +891,7 @@ hevcasm_transform* HEVCASM_API get_transform(int trType, int log2TrafoSize, hevc
 
 	if (mask & HEVCASM_SSSE3)
 	{
-		if (nCbS == 16) f = hevcasm_dct_16x16_ssse3;
+		if (nCbS == 16 && hevcasm_dct_16x16_ssse3) f = hevcasm_dct_16x16_ssse3;
 	}
 
 	return f;

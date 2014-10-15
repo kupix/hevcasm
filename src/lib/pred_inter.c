@@ -433,7 +433,7 @@ int mismatch_pred_uni(void *boundRef, void *boundTest)
 }
 
 
-static void test_partitions(int *error_count, bound_pred_uni b[2], hevcasm_instruction_set mask)
+static void test_partitions(int *error_count, bound_pred_uni *b, hevcasm_instruction_set mask)
 {
 	const int partitions[24][2] =
 	{
@@ -682,7 +682,7 @@ int mismatch_pred_bi_8to8(void *boundRef, void *boundTest)
 }
 
 
-static void test_partitions_bi(int *error_count, bound_pred_bi b[2], hevcasm_instruction_set mask)
+static void test_partitions_bi(int *error_count, bound_pred_bi *b, hevcasm_instruction_set mask)
 {
 	const int partitions[24][2] =
 	{

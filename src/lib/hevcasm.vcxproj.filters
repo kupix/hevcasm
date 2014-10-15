@@ -44,6 +44,9 @@
     <ClInclude Include="quantize_a.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="residual_decode_a.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <YASM Include="residual_decode_a.asm">
@@ -76,18 +79,6 @@
     <YASM Include="quantize_a.asm">
       <Filter>Yasm Files</Filter>
     </YASM>
-    <YASM Include="f265\dct.asm">
-      <Filter>NASM Files</Filter>
-    </YASM>
-    <YASM Include="f265\encode.asm">
-      <Filter>NASM Files</Filter>
-    </YASM>
-    <YASM Include="f265\intra.asm">
-      <Filter>NASM Files</Filter>
-    </YASM>
-    <YASM Include="f265\pixel.asm">
-      <Filter>NASM Files</Filter>
-    </YASM>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="hevcasm.c">
@@ -111,5 +102,19 @@
     <ClCompile Include="hevcasm_test.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="f265\dct.asm">
+      <Filter>NASM Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="f265\encode.asm">
+      <Filter>NASM Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="f265\intra.asm">
+      <Filter>NASM Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="f265\pixel.asm">
+      <Filter>NASM Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

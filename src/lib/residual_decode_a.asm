@@ -35,6 +35,9 @@
 %define private_prefix hevcasm
 %include "x86inc.asm"
 
+
+%if ARCH_X86_64 == 1
+
 %define ORDER(a, b, c, d) ((a << 6) | (b << 4) | (c << 2) | d)
 
 
@@ -1097,3 +1100,6 @@ cglobal partial_butterfly_inverse_16h, 3, 5, 16
 		jg .loop
 
 	RET
+
+
+%endif

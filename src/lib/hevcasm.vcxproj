@@ -76,6 +76,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>libvpx;libvpx\config\msvs</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -107,6 +108,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>libvpx;libvpx\config\msvs</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -152,6 +154,7 @@
     <ClInclude Include="quantize.h" />
     <ClInclude Include="quantize_a.h" />
     <ClInclude Include="residual_decode.h" />
+    <ClInclude Include="residual_decode_a.h" />
     <ClInclude Include="sad.h" />
   </ItemGroup>
   <ItemGroup>
@@ -162,6 +165,8 @@
       <Defines Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ARCH_X86_64=0;HAVE_ALIGNED_STACK=1;PREFIX</Defines>
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">x264</IncludePaths>
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|x64'">x264</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">x264</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">x264</IncludePaths>
     </YASM>
     <CustomBuild Include="f265\dct.asm">
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ARCH_AMD64</Defines>
@@ -250,6 +255,8 @@
       <Defines Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ARCH_X86_64=0;HAVE_ALIGNED_STACK=1;PREFIX</Defines>
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">x264</IncludePaths>
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|x64'">x264</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">x264</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">x264</IncludePaths>
     </YASM>
     <YASM Include="quantize_a.asm">
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
@@ -258,6 +265,8 @@
       <Defines Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ARCH_X86_64=0;HAVE_ALIGNED_STACK=1;PREFIX</Defines>
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">x264</IncludePaths>
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|x64'">x264</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">x264</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">x264</IncludePaths>
     </YASM>
     <YASM Include="residual_decode_a.asm">
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
@@ -266,6 +275,8 @@
       <Defines Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ARCH_X86_64=0;HAVE_ALIGNED_STACK=1;PREFIX</Defines>
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">x264</IncludePaths>
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|x64'">x264</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">x264</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">x264</IncludePaths>
     </YASM>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

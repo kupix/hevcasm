@@ -332,7 +332,7 @@ void HEVCASM_API hevcasm_populate_quantize_reconstruct(hevcasm_table_quantize_re
 
 typedef struct
 {
-	uint8_t rec[32 * 32];
+	HEVCASM_ALIGN(32, uint8_t, rec[32 * 32]);
 	ptrdiff_t stride_rec;
 	const uint8_t *pred;
 	ptrdiff_t stride_pred;
