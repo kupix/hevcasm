@@ -59,7 +59,7 @@ static int hevcasm_sad_c_ref(const uint8_t *src, ptrdiff_t stride_src, const uin
 }
 
 
-hevcasm_sad* hevcasm_get_sad(int width, int height, hevcasm_instruction_set mask)
+hevcasm_sad* get_sad(int width, int height, hevcasm_instruction_set mask)
 {
 	if (mask & HEVCASM_SSE2) switch (HEVCASM_RECT(width, height))
 	{
@@ -82,6 +82,18 @@ hevcasm_sad* hevcasm_get_sad(int width, int height, hevcasm_instruction_set mask
 	}
 
 	return 0;
+}
+
+
+void HEVCASM_API hevcasm_populate_sad(hevcasm_table_sad *table, hevcasm_instruction_set mask)
+{
+	for (int height = 4; height <= 64; height += 4)
+	{
+		for (int width = 4; width <= 64; width += 4)
+		{
+			*hevcasm_get_sad(table, width, height) = get_sad(width, height, mask);
+		}
+	}
 }
 
 
@@ -108,7 +120,7 @@ static void hevcasm_sad_multiref_4_c_ref(const uint8_t *src, ptrdiff_t stride_sr
 }
 
 
-hevcasm_sad_multiref* hevcasm_get_sad_multiref(int ways, int width, int height, hevcasm_instruction_set mask)
+hevcasm_sad_multiref* get_sad_multiref(int ways, int width, int height, hevcasm_instruction_set mask)
 {
 	if (ways != 4) return 0;
 
@@ -136,6 +148,20 @@ hevcasm_sad_multiref* hevcasm_get_sad_multiref(int ways, int width, int height, 
 }
 
 
+void HEVCASM_API hevcasm_populate_sad_multiref(hevcasm_table_sad_multiref *table, hevcasm_instruction_set mask)
+{
+	for (int height = 4; height <= 64; height += 4)
+	{
+		for (int width = 4; width <= 64; width += 4)
+		{
+			*hevcasm_get_sad_multiref(table, 4, width, height) = get_sad_multiref(4, width, height, mask);
+		}
+	}
+
+}
+
+
+
 typedef struct
 {
 	HEVCASM_ALIGN(32, uint8_t, src[128 * 128]);
@@ -148,11 +174,14 @@ typedef struct
 bound_sad;
 
 
-int get_sad(void *p, hevcasm_instruction_set mask)
+int init_sad(void *p, hevcasm_instruction_set mask)
 {
 	bound_sad *s = p;
 
-	s->f = hevcasm_get_sad(s->width, s->height, mask);
+	hevcasm_table_sad table;
+	hevcasm_populate_sad(&table, mask);
+
+	s->f = *hevcasm_get_sad(&table, s->width, s->height);
 
 	if (mask == HEVCASM_C_REF) printf("\t%dx%d:", s->width, s->height);
 
@@ -203,7 +232,7 @@ void HEVCASM_API hevcasm_test_sad(int *error_count, hevcasm_instruction_set mask
 		b[0].width = partitions[i][0];
 		b[0].height = partitions[i][1];
 		b[1] = b[0];
-		*error_count += hevcasm_test(&b[0], &b[1], get_sad, invoke_sad, mismatch_sad, mask, 100000);
+		*error_count += hevcasm_test(&b[0], &b[1], init_sad, invoke_sad, mismatch_sad, mask, 100000);
 	}
 }
 
@@ -222,11 +251,13 @@ typedef struct
 bound_sad_multiref;
 
 
-int get_sad_multiref(void *p, hevcasm_instruction_set mask)
+int init_sad_multiref(void *p, hevcasm_instruction_set mask)
 {
 	bound_sad_multiref *s = p;
 
-	s->f = hevcasm_get_sad_multiref(s->ways, s->width, s->height, mask);
+	hevcasm_table_sad_multiref table;
+	hevcasm_populate_sad_multiref(&table, mask);
+	s->f = *hevcasm_get_sad_multiref(&table, s->ways, s->width, s->height);
 
 	if (s->f && mask == HEVCASM_C_REF)
 	{
@@ -282,6 +313,6 @@ void HEVCASM_API hevcasm_test_sad_multiref(int *error_count, hevcasm_instruction
 		b[0].width = partitions[i][0];
 		b[0].height = partitions[i][1];
 		b[1] = b[0];
-		*error_count += hevcasm_test(&b[0], &b[1], get_sad_multiref, invoke_sad_multiref, mismatch_sad_multiref, mask, 100000);
+		*error_count += hevcasm_test(&b[0], &b[1], init_sad_multiref, invoke_sad_multiref, mismatch_sad_multiref, mask, 100000);
 	}
 }

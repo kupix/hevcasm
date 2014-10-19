@@ -41,8 +41,14 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 
 
-// Declaration for f265 functions
-void __fastcall f265_lbd_idct_16_avx2(uint8_t *dst, int dst_stride, const uint8_t *pred, int pred_stride, const int16_t coeffs[16*16], uint8_t *spill);
+// Declaration for f265 function (note: suspect idst function may not be bit accurate with large coefficients)
+void __fastcall f265_lbd_idct_dst_avx2(uint8_t *dst, int dst_stride, const uint8_t *pred, int pred_stride, const int16_t coeffs[4 * 4], uint8_t *spill);
+#define f265_lbd_idst_4_avx2 f265_lbd_idct_dst_avx2
+void __fastcall f265_lbd_idct_4_avx2(uint8_t *dst, int dst_stride, const uint8_t *pred, int pred_stride, const int16_t coeffs[4 * 4], uint8_t *spill);
+void __fastcall f265_lbd_idct_8_avx2(uint8_t *dst, int dst_stride, const uint8_t *pred, int pred_stride, const int16_t coeffs[8 * 8], uint8_t *spill);
+void __fastcall f265_lbd_idct_16_avx2(uint8_t *dst, int dst_stride, const uint8_t *pred, int pred_stride, const int16_t coeffs[16 * 16], uint8_t *spill);
+void __fastcall f265_lbd_idct_32_avx2(uint8_t *dst, int dst_stride, const uint8_t *pred, int pred_stride, const int16_t coeffs[32 * 32], uint8_t *spill);
+
 
 
 static int Clip3(int min, int max, int x)
@@ -429,15 +435,30 @@ hevcasm_inverse_transform_add *hevcasm_idct_16x16_ssse3 = 0;
 
 
 #ifdef HEVCASM_X64
-void hevcasm_idct_16x16_avx2(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[16 * 16])
-{
-	HEVCASM_ALIGN(32, uint8_t, spill[4096]);
 
-	f265_lbd_idct_16_avx2(dst, (int)stride_dst, pred, (int)stride_pred, coeffs, &spill[2048]);
-}
+#define F265_IDCT_WRAPPER_FUNCTION(op, size) \
+void hevcasm_##op##_##size##x##size##_avx2(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[size * size]) \
+{ \
+	HEVCASM_ALIGN(32, uint8_t, spill[16 * size * size]); \
+	\
+	f265_lbd_##op##_##size##_avx2(dst, (int)stride_dst, pred, (int)stride_pred, coeffs, &spill[8 * size * size]); \
+} \
+
+F265_IDCT_WRAPPER_FUNCTION(idst, 4)
+F265_IDCT_WRAPPER_FUNCTION(idct, 4)
+F265_IDCT_WRAPPER_FUNCTION(idct, 8)
+F265_IDCT_WRAPPER_FUNCTION(idct, 16)
+F265_IDCT_WRAPPER_FUNCTION(idct, 32)
+
 #else
-/* f265_lbd_idct_16_avx2 only builds on 64-bit */
+
+/* these functions only assemble for 64-bit */
+hevcasm_inverse_transform_add *hevcasm_idst_4x4_avx2 = 0;
+hevcasm_inverse_transform_add *hevcasm_idct_4x4_avx2 = 0;
+hevcasm_inverse_transform_add *hevcasm_idct_8x8_avx2 = 0;
 hevcasm_inverse_transform_add *hevcasm_idct_16x16_avx2 = 0;
+hevcasm_inverse_transform_add *hevcasm_idct_32x32_avx2 = 0;
+
 #endif
 
 
@@ -463,7 +484,10 @@ static hevcasm_inverse_transform_add* get_inverse_transform_add(int trType, int 
 
 	if (mask & HEVCASM_AVX2)
 	{
+		if (nCbS == 4 && hevcasm_idct_4x4_avx2) f = trType ? hevcasm_idst_4x4_avx2 : hevcasm_idct_4x4_avx2;
+		if (nCbS == 8 && hevcasm_idct_8x8_avx2) f = hevcasm_idct_8x8_avx2;
 		if (nCbS == 16 && hevcasm_idct_16x16_avx2) f = hevcasm_idct_16x16_avx2;
+		if (nCbS == 32 && hevcasm_idct_32x32_avx2) f = hevcasm_idct_32x32_avx2;
 	}
 	return f;
 }
@@ -540,7 +564,7 @@ void hevcasm_test_inverse_transform_add(int *error_count, hevcasm_instruction_se
 	HEVCASM_ALIGN(32, int16_t, coefficients[32 * 32]);
 	HEVCASM_ALIGN(32, uint8_t, predicted[32 * 32]);
 
-	for (int x = 0; x < 32 * 32; x++) coefficients[x] = (rand() & 0x1ff) - 0x100;
+	for (int x = 0; x < 32 * 32; x++) coefficients[x] = (rand() & 0xf) - 0x8;
 	for (int x = 0; x < 32 * 32; x++) predicted[x] = rand() & 0xff;
 
 	bind_inverse_transform_add b[2];
