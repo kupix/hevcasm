@@ -406,7 +406,7 @@ void HEVCASM_API hevcasm_test_quantize_reconstruct(int *error_count, hevcasm_ins
 	for (int x = 0; x < 32 * 32; ++x)
 	{
 		pred[x] = rand() & 0xff;
-		res[x] = rand() - rand();
+		res[x] = (rand() & 0x1ff) - 0x100;
 	}
 
 	bound_quantize_reconstruct b[2];

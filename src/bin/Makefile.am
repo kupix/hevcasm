@@ -1,7 +1,7 @@
 if DEBUG
-  AM_CFLAGS =-I$(top_srcdir)/src/bin -I$(top_srcdir)/src/lib -Wall -Wno-unused-functions -g
+  AM_CFLAGS =-I$(top_srcdir)/src/bin -I$(top_srcdir)/src/lib -Wall -Wno-unused-function -g
 else
-  AM_CFLAGS =-I$(top_srcdir)/src/bin -I$(top_srcdir)/src/lib -Wall -Wno-unused-functions -O3
+  AM_CFLAGS =-I$(top_srcdir)/src/bin -I$(top_srcdir)/src/lib -Wall -Wno-unused-function -O3
 endif
 
 bin_PROGRAMS = hevcasm

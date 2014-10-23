@@ -52,6 +52,7 @@ AM_COND_IF(DEBUG,
 
 AC_CONFIG_FILES([Makefile
                  src/lib/Makefile
+                 src/lib/f265/Makefile
                  src/bin/Makefile])
 AC_OUTPUT
 

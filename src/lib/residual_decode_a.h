@@ -39,6 +39,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define INCLUDED_hevcasm_residual_decode_a_h
 
 #include <stdint.h>
+#include <stddef.h>
 
 
 void hevcasm_partial_butterfly_inverse_8v_ssse3(int16_t *dst, const int16_t *src, int shift);

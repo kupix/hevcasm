@@ -97,10 +97,7 @@ hevcasm_instruction_set hevcasm_instruction_set_support()
 {
 	hevcasm_instruction_set mask = HEVCASM_C_REF | HEVCASM_C_OPT;
 
-	const int eax = 0;
-	const int ebx = 1;
-	const int ecx = 2;
-	const int edx = 3;
+	enum { eax = 0, ebx = 1, ecx = 2, edx = 3 };
 
 	int cpuInfo[4]; // eax ... edx
 
