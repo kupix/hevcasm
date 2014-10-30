@@ -1,3 +1,5 @@
+*.am
+~*
 /autom4te.cache/
 /config/
 Debug/
