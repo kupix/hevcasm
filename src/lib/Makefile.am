@@ -28,11 +28,9 @@ libhevcasm_a_SOURCES = \
 	pred_inter_a.asm \
 	quantize_a.asm \
 	residual_decode_a.asm \
-	f265/dct.asm \
-	f265/encode.asm \
-	f265/intra.asm \
-	f265/pixel.asm \
 	libvpx/vp9/encoder/x86/vp9_sad_sse2.asm \
 	libvpx/vp9/encoder/x86/vp9_sad4d_sse2.asm
 
+libhevcasm_a_LIBADD = \
+	f265/dct.o
 
