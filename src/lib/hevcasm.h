@@ -85,18 +85,18 @@ typedef uint64_t hevcasm_timestamp;
 
 static hevcasm_timestamp hevcasm_get_timestamp(void)
 {
-    uint64_t timestamp;
-    __asm__ volatile (".byte 0x0f, 0x31" : "=A" (timestamp));
-    return timestamp;
+	uint64_t timestamp;
+	__asm__ volatile (".byte 0x0f, 0x31" : "=A" (timestamp));
+	return timestamp;
 }
 
 #elif defined(__x86_64__)
 
 static hevcasm_timestamp hevcasm_get_timestamp(void)
 {
-    unsigned h, l;
-    __asm__ __volatile__ ("rdtsc" : "=a"(l), "=d"(h));
-    return (hevcasm_timestamp)l | ((hevcasm_timestamp)h << 32);
+	unsigned h, l;
+	__asm__ __volatile__ ("rdtsc" : "=a"(l), "=d"(h));
+	return (hevcasm_timestamp)l | ((hevcasm_timestamp)h << 32);
 }
 
 #endif
