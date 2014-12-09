@@ -172,9 +172,9 @@
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ARCH_AMD64</Defines>
       <Defines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">ARCH_AMD64</Defines>
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\John\AppData\Local\nasm\nasm.exe -DARCH_X86_64 -DARCH_X64 -f win64 -Xvc -i%(RootDir)%(Directory) -o "$(IntDir)%(Filename).obj" %(FullPath)</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(USERPROFILE)\AppData\Local\nasm\nasm.exe -DARCH_X86_64 -DARCH_X64 -f win64 -Xvc -i%(RootDir)%(Directory) -o "$(IntDir)%(Filename).obj" %(FullPath)</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NASM assembling %(Filename).asm</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\John\AppData\Local\nasm\nasm.exe -DARCH_X86_64 -DARCH_X64 -f win64 -Xvc -i%(RootDir)%(Directory) -o "$(IntDir)%(Filename).obj" %(FullPath)</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(USERPROFILE)\AppData\Local\nasm\nasm.exe -DARCH_X86_64 -DARCH_X64 -f win64 -Xvc -i%(RootDir)%(Directory) -o "$(IntDir)%(Filename).obj" %(FullPath)</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NASM assembling %(Filename).asm</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)\%(Filename).obj</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)\%(Filename).obj</Outputs>
@@ -183,9 +183,9 @@
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ARCH_AMD64</Defines>
       <Defines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">ARCH_AMD64</Defines>
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\John\AppData\Local\nasm\nasm.exe -DARCH_X86_64 -DARCH_X64 -f win64 -Xvc -i%(RootDir)%(Directory) -o "$(IntDir)%(Filename).obj" %(FullPath)</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(USERPROFILE)\AppData\Local\nasm\nasm.exe -DARCH_X86_64 -DARCH_X64 -f win64 -Xvc -i%(RootDir)%(Directory) -o "$(IntDir)%(Filename).obj" %(FullPath)</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NASM assembling %(Filename).asm</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\John\AppData\Local\nasm\nasm.exe -DARCH_X86_64 -DARCH_X64 -f win64 -Xvc -i%(RootDir)%(Directory) -o "$(IntDir)%(Filename).obj" %(FullPath)</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(USERPROFILE)\AppData\Local\nasm\nasm.exe -DARCH_X86_64 -DARCH_X64 -f win64 -Xvc -i%(RootDir)%(Directory) -o "$(IntDir)%(Filename).obj" %(FullPath)</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NASM assembling %(Filename).asm</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)\%(Filename).obj</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)\%(Filename).obj</Outputs>
@@ -194,9 +194,9 @@
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ARCH_AMD64</Defines>
       <Defines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">ARCH_AMD64</Defines>
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\John\AppData\Local\nasm\nasm.exe -DARCH_X86_64 -DARCH_X64 -f win64 -Xvc -i%(RootDir)%(Directory) -o "$(IntDir)%(Filename).obj" %(FullPath)</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(USERPROFILE)\AppData\Local\nasm\nasm.exe -DARCH_X86_64 -DARCH_X64 -f win64 -Xvc -i%(RootDir)%(Directory) -o "$(IntDir)%(Filename).obj" %(FullPath)</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NASM assembling %(Filename).asm</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\John\AppData\Local\nasm\nasm.exe -DARCH_X86_64 -DARCH_X64 -f win64 -Xvc -i%(RootDir)%(Directory) -o "$(IntDir)%(Filename).obj" %(FullPath)</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(USERPROFILE)\AppData\Local\nasm\nasm.exe -DARCH_X86_64 -DARCH_X64 -f win64 -Xvc -i%(RootDir)%(Directory) -o "$(IntDir)%(Filename).obj" %(FullPath)</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NASM assembling %(Filename).asm</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)\%(Filename).obj</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)\%(Filename).obj</Outputs>
@@ -205,9 +205,9 @@
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ARCH_AMD64</Defines>
       <Defines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">ARCH_AMD64</Defines>
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\John\AppData\Local\nasm\nasm.exe -DARCH_X86_64 -DARCH_X64 -f win64 -Xvc -i%(RootDir)%(Directory) -o "$(IntDir)%(Filename).obj" %(FullPath)</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(USERPROFILE)\AppData\Local\nasm\nasm.exe -DARCH_X86_64 -DARCH_X64 -f win64 -Xvc -i%(RootDir)%(Directory) -o "$(IntDir)%(Filename).obj" %(FullPath)</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NASM assembling %(Filename).asm</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Users\John\AppData\Local\nasm\nasm.exe -DARCH_X86_64 -DARCH_X64 -f win64 -Xvc -i%(RootDir)%(Directory) -o "$(IntDir)%(Filename).obj" %(FullPath)</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(USERPROFILE)\AppData\Local\nasm\nasm.exe -DARCH_X86_64 -DARCH_X64 -f win64 -Xvc -i%(RootDir)%(Directory) -o "$(IntDir)%(Filename).obj" %(FullPath)</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NASM assembling %(Filename).asm</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)\%(Filename).obj</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)\%(Filename).obj</Outputs>
