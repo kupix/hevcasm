@@ -421,5 +421,4 @@ void HEVCASM_API hevcasm_test_quantize_reconstruct(int *error_count, hevcasm_ins
 		b[1] = b[0];
 		*error_count += hevcasm_test(&b[0], &b[1], init_quantize_reconstruct, invoke_quantize_reconstruct, mismatch_quantize_reconstruct, mask, 100000);
 	}
-
 }

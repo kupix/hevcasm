@@ -138,6 +138,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="diff.c" />
+    <ClCompile Include="hadamard.c" />
     <ClCompile Include="hevcasm.c" />
     <ClCompile Include="hevcasm_test.c" />
     <ClCompile Include="pred_inter.c" />
@@ -148,6 +149,7 @@
   <ItemGroup>
     <ClInclude Include="diff.h" />
     <ClInclude Include="diff_a.h" />
+    <ClInclude Include="hadamard.h" />
     <ClInclude Include="hevcasm.h" />
     <ClInclude Include="hevcasm_test.h" />
     <ClInclude Include="pred_inter.h" />
@@ -212,6 +214,14 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)\%(Filename).obj</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)\%(Filename).obj</Outputs>
     </CustomBuild>
+    <YASM Include="hadamard_a.asm">
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">x264</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">x264</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">x264</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|x64'">x264</IncludePaths>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
+    </YASM>
     <YASM Include="libvpx\vp9\encoder\x86\vp9_sad4d_sse2.asm">
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>

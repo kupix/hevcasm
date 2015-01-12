@@ -39,6 +39,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "sad.h"
 #include "diff.h"
 #include "quantize.h"
+#include "hadamard.h"
 #include "hevcasm.h"
 
 
@@ -163,6 +164,7 @@ int hevcasm_main(int argc, const char *argv[])
 
 	int error_count = 0;
 
+	hevcasm_test_hadamard_satd(&error_count, mask);
 	hevcasm_test_quantize_inverse(&error_count, mask);
 	hevcasm_test_quantize(&error_count, mask);
 	hevcasm_test_quantize_reconstruct(&error_count, mask);
