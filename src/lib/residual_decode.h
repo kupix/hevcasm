@@ -73,7 +73,7 @@ static hevcasm_inverse_transform_add** hevcasm_get_inverse_transform_add(hevcasm
 	}
 }
 
-void HEVCASM_API hevcasm_populate_inverse_transform_add(hevcasm_table_inverse_transform_add *table, hevcasm_instruction_set mask);
+void HEVCASM_API hevcasm_populate_inverse_transform_add(hevcasm_table_inverse_transform_add *table, hevcasm_instruction_set mask, int encoder);
 
 void HEVCASM_API hevcasm_test_inverse_transform_add(int *error_count, hevcasm_instruction_set mask);
 

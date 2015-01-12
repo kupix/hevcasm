@@ -458,7 +458,7 @@ F265_IDCT_WRAPPER_FUNCTION(idct, 32)
 #endif
 
 
-static hevcasm_inverse_transform_add* get_inverse_transform_add(int trType, int log2TrafoSize, hevcasm_instruction_set mask)
+static hevcasm_inverse_transform_add* get_inverse_transform_add(int trType, int log2TrafoSize, hevcasm_instruction_set mask, int encoder)
 {
 	const int nCbS = 1 << log2TrafoSize;
 
@@ -486,9 +486,13 @@ static hevcasm_inverse_transform_add* get_inverse_transform_add(int trType, int 
 		if (nCbS == 8) f = hevcasm_idct_8x8_avx2;
 		if (nCbS == 16) f = hevcasm_idct_16x16_avx2;
 
-		// The 32x32 idct from f265 seems to mismatch that in HM. Suspect arithmetic overflow.
-		//This probem becomes apparent when decoding the DELTAQP_A conformance stream.
-		//if (nCbS == 32) f = hevcasm_idct_32x32_avx2;
+		// The 32x32 idct from f265 is non-conforming. Suspect arithmetic overflow.
+		// This probem becomes apparent when decoding the DELTAQP_A conformance stream which has artificial, extreme coefficient values.
+		if (encoder)
+		{
+			// If we are using this function inside an encoder with naturally occuring quantised input coefficients, it will not cause a problem.
+			if (nCbS == 32) f = hevcasm_idct_32x32_avx2;
+		}
 	}
 #endif
 
@@ -496,12 +500,12 @@ static hevcasm_inverse_transform_add* get_inverse_transform_add(int trType, int 
 }
 
 
-void HEVCASM_API hevcasm_populate_inverse_transform_add(hevcasm_table_inverse_transform_add *table, hevcasm_instruction_set mask)
+void HEVCASM_API hevcasm_populate_inverse_transform_add(hevcasm_table_inverse_transform_add *table, hevcasm_instruction_set mask, int encoder)
 {
-	*hevcasm_get_inverse_transform_add(table, 1, 2) = get_inverse_transform_add(1, 2, mask);
+	*hevcasm_get_inverse_transform_add(table, 1, 2) = get_inverse_transform_add(1, 2, mask, encoder);
 	for (int log2TrafoSize = 2; log2TrafoSize <= 5; ++log2TrafoSize)
 	{
-		*hevcasm_get_inverse_transform_add(table, 0, log2TrafoSize) = get_inverse_transform_add(0, log2TrafoSize, mask);
+		*hevcasm_get_inverse_transform_add(table, 0, log2TrafoSize) = get_inverse_transform_add(0, log2TrafoSize, mask, encoder);
 	}
 }
 
@@ -524,7 +528,7 @@ int init_inverse_transform_add(void *p, hevcasm_instruction_set mask)
 
 	hevcasm_table_inverse_transform_add table;
 
-	hevcasm_populate_inverse_transform_add(&table, mask);
+	hevcasm_populate_inverse_transform_add(&table, mask, 1);
 
 	s->f = *hevcasm_get_inverse_transform_add(&table, s->trType, s->log2TrafoSize);
 
