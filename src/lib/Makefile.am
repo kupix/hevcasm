@@ -18,6 +18,7 @@ noinst_LIBRARIES = libhevcasm.a
 libhevcasm_a_SOURCES = \
 	$(libhevcasm_a_HEADERS) \
 	diff.c \
+	hadamard.c \
 	hevcasm.c \
 	hevcasm_test.c \
 	pred_inter.c \
@@ -25,6 +26,7 @@ libhevcasm_a_SOURCES = \
 	residual_decode.c \
 	sad.c \
 	diff_a.asm \
+	hadamard_a.asm \
 	pred_inter_a.asm \
 	quantize_a.asm \
 	residual_decode_a.asm \
