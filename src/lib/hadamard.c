@@ -92,7 +92,7 @@ static int compute_satd(int n, const uint8_t *pA, ptrdiff_t strideA, const uint8
 		pA += strideA;
 		pB += strideB;
 	}
-
+	
 	// vertical transform and sum of absolutes
 	const int roundingOffset = n / 4;
 	int sad = roundingOffset;
@@ -129,12 +129,8 @@ static int compute_satd_8x8(const uint8_t *pA, ptrdiff_t strideA, const uint8_t 
 }
 
 
+hevcasm_hadamard_satd hevcasm_hadamard_satd_4x4_sse2;
 hevcasm_hadamard_satd hevcasm_hadamard_satd_8x8_avx2;
-
-static int wrap(const uint8_t *pA, ptrdiff_t strideA, const uint8_t *pB, ptrdiff_t strideB)
-{
-	return hevcasm_hadamard_satd_8x8_avx2(pA, strideA, pB, strideB);
-}
 
 void HEVCASM_API hevcasm_populate_hadamard_satd(hevcasm_table_hadamard_satd *table, hevcasm_instruction_set mask)
 {
@@ -149,9 +145,14 @@ void HEVCASM_API hevcasm_populate_hadamard_satd(hevcasm_table_hadamard_satd *tab
 		*hevcasm_get_hadamard_satd(table, 3) = compute_satd_8x8;
 	}
 
+	if (mask & HEVCASM_SSE2)
+	{
+		*hevcasm_get_hadamard_satd(table, 2) = hevcasm_hadamard_satd_4x4_sse2;
+	}
+
 	if (mask & HEVCASM_AVX2)
 	{
-		*hevcasm_get_hadamard_satd(table, 3) = wrap;
+		*hevcasm_get_hadamard_satd(table, 3) = hevcasm_hadamard_satd_8x8_avx2;
 	}
 }
 
@@ -215,8 +216,8 @@ void HEVCASM_API hevcasm_test_hadamard_satd(int *error_count, hevcasm_instructio
 
 	for (int i = 0; i < 16 * 8; ++i)
 	{
-		srcA[i] = (i & 8) ? 0 : (rand() & 0xff);
-		srcB[i] = (i & 8) ? 0 : (rand() & 0xff);
+		srcA[i] = rand() & 0xff;
+		srcB[i] = rand() & 0xff;
 	}
 
 	bound_hadamard_satd b[2];

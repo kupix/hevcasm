@@ -114,10 +114,10 @@ int init_quantize_inverse(void *p, hevcasm_instruction_set mask)
 }
 
 
-void invoke_quantize_inverse(void *p, int n)
+void invoke_quantize_inverse(void *p, int count)
 {
 	hevcasm_bound_quantize_inverse *s = (hevcasm_bound_quantize_inverse *)p;
-	while (n--)
+	while (count--)
 	{
 		const int n = 1 << (2 * s->log2TrafoSize);
 		s->f(s->dst, s->src, s->scale, s->shift, n);
@@ -236,10 +236,10 @@ int init_quantize(void *p, hevcasm_instruction_set mask)
 }
 
 
-void invoke_quantize(void *p, int n)
+void invoke_quantize(void *p, int iterations)
 {
 	hevcasm_bound_quantize *s = (hevcasm_bound_quantize *)p;
-	while (n--)
+	while (iterations--)
 	{
 		const int n = 1 << (2 * s->log2TrafoSize);
 		s->cbf = s->f(s->dst, s->src, s->scale, s->shift, s->offset, n);

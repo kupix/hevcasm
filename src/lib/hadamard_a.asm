@@ -35,6 +35,8 @@
 %define private_prefix hevcasm
 %include "x86inc.asm"
 
+%define ORDER(a, b, c, d) ((a << 6) | (b << 4) | (c << 2) | d)
+
 %if ARCH_X86_64 == 1
 
 SECTION_RODATA 32
@@ -52,6 +54,11 @@ constant_010101010101010101ff01ff01ff01ff010101010101010101ff01ff01ff01ff:
 	times 4 db 1, 1
 	times 4 db 1, -1
 
+constant_ffffffff00000000ffffffff00000000:
+	times 2 dd -1, 0
+
+constant_ffffffffffffffff0000000000000000:
+	dq -1, 0
 
 SECTION .text
 
@@ -180,5 +187,97 @@ cglobal hadamard_satd_8x8, 4, 4, 16
 
 	RET
 
+; %1 - destination 
+; %2 and %3 - sources
+; uses m5 and m7
+%macro DIFF_BW 3
+	movu %1,%2
+	movu m5, %3
+	punpcklbw %1, m7
+	punpcklbw m5, m7
+	psubw %1, m5
+%endmacro
+
+
+%macro BUTTERFLY_HORIZONTAL_4 2
+	pshufd %2, %1, ORDER(1, 0, 3, 2)
+	pxor %1, m6
+	psubw %1, m6
+	paddw %1, %2
+%endmacro
+
+%macro BUTTERFLY_HORIZONTAL_2 2
+	pshufd %2, %1, ORDER(2, 3, 0, 1)
+	pxor %1, m6
+	psubw %1, m6
+	paddw %1, %2
+%endmacro
+
+%macro BUTTERFLY_HORIZONTAL_1 2
+	mova %2, %1 
+	phaddw %2, %1
+	phsubw %1, %1
+	punpcklwd %1, %2
+%endmacro
+
+
+	
+	
+
+; int hevcasm_hadamard_satd_4x4_sse2(const uint8_t *srcA, ptrdiff_t stride_srcA, const uint8_t *srcB, ptrdiff_t stride_srcB);
+INIT_XMM sse2
+cglobal hadamard_satd_4x4, 4, 4, 8
+	pxor m7, m7
+
+	DIFF_BW m0, [r0], [r2]
+	DIFF_BW m1, [r0+r1], [r2+r3]
+	lea r0, [r0 + 2 * r1]
+	lea r2, [r2 + 2 * r3]
+	DIFF_BW m2, [r0], [r2]
+	DIFF_BW m3, [r0+r1], [r2+r3]
+
+	punpcklqdq m0, m2
+	punpcklqdq m1, m3
+
+	; diff in m0, m1, m2, m3
+
+	mova m6, [constant_ffffffff00000000ffffffff00000000]
+	BUTTERFLY_HORIZONTAL_2 m0, m4
+	BUTTERFLY_HORIZONTAL_2 m1, m4
+
+	BUTTERFLY_HORIZONTAL_1 m0, m4
+	BUTTERFLY_HORIZONTAL_1 m1, m4
+
+	; rows in m0, m1, m2, m3
+
+	; vertical butterfly 2
+	;mova m6, [constant_ffffffffffffffff0000000000000000]
+	pshufd m6, m6, ORDER(3, 1, 2, 0)
+
+	BUTTERFLY_HORIZONTAL_4 m0, m4
+	BUTTERFLY_HORIZONTAL_4 m1, m4
+
+	; rows in m0, m1
+
+	; vertical butterfly 1
+	psubw m2, m0, m1
+	paddw m0, m1
+
+	; rows in m0, m2
+
+	pabsw m0, m0
+	pabsw m2, m2
+
+	paddw m0, m2
+	phaddw m0, m0
+	phaddw m0, m0
+	phaddw m0, m0
+
+	movd  eax, m0
+	and eax, 0xffff
+	add eax, 1
+	shr eax, 1
+
+	RET
 
 %endif
