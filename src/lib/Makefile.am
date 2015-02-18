@@ -21,6 +21,7 @@ libhevcasm_a_SOURCES = \
 	hadamard.c \
 	hevcasm.c \
 	hevcasm_test.c \
+	pred_intra.c \
 	pred_inter.c \
 	quantize.c \
 	residual_decode.c \

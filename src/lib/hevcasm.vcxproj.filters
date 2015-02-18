@@ -50,6 +50,9 @@
     <ClInclude Include="hadamard.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="pred_intra.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <YASM Include="residual_decode_a.asm">
@@ -109,6 +112,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="hadamard.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pred_intra.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
