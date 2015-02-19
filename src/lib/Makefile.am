@@ -35,5 +35,6 @@ libhevcasm_a_SOURCES = \
 	libvpx/vp9/encoder/x86/vp9_sad4d_sse2.asm
 
 libhevcasm_a_LIBADD = \
-	f265/dct.o
+	f265/dct.o \
+	f265/intra.o
 
