@@ -23,6 +23,8 @@ libhevcasm_a_SOURCES = \
 	hevcasm_test.c \
 	pred_intra.c \
 	pred_inter.c \
+	ssd.c \
+	ssd_a.asm \
 	quantize.c \
 	residual_decode.c \
 	sad.c \
