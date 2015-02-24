@@ -5,7 +5,7 @@ and contributor rights, including patent rights, and no such rights are
 granted under this license.
 
 
-Copyright(c) 2011 - 2014, Parabola Research Limited
+Copyright(c) 2011 - 2015, Parabola Research Limited
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,17 +33,43 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-
-/* Declaration of functions in diff_a.asm */
-
-
-#ifndef INCLUDED_diff_a_h
-#define INCLUDED_diff_a_h
-
-#include "diff.h"
+/* Sum of square differences */
 
 
-hevcasm_ssd_linear hevcasm_ssd_linear_avx;
+#ifndef INCLUDED_ssd_h
+#define INCLUDED_ssd_h
 
+#include "hevcasm.h"
+
+
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+
+
+typedef int hevcasm_ssd(const uint8_t *srcA, ptrdiff_t stride_srcA, const uint8_t *srcB, ptrdiff_t stride_srcB, int w, int h);
+
+typedef struct
+{
+	hevcasm_ssd *satd[5];
+}
+hevcasm_table_ssd;
+
+static hevcasm_ssd** hevcasm_get_ssd(hevcasm_table_ssd *table, int log2TrafoSize)
+{
+	return &table->satd[log2TrafoSize - 2];
+}
+
+void HEVCASM_API hevcasm_populate_ssd(hevcasm_table_ssd *table, hevcasm_instruction_set mask);
+
+void HEVCASM_API hevcasm_test_ssd(int *error_count, hevcasm_instruction_set mask);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

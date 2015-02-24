@@ -42,7 +42,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 
 
-static int hevcasm_ssd_c_ref(const uint8_t *p1, const uint8_t *p2, int n)
+static int hevcasm_ssd_linear_c_ref(const uint8_t *p1, const uint8_t *p2, int n)
 {
 	int sum = 0;
 	for (int i = 0; i<n; ++i)
@@ -54,13 +54,13 @@ static int hevcasm_ssd_c_ref(const uint8_t *p1, const uint8_t *p2, int n)
 }
 
 
-hevcasm_ssd * HEVCASM_API hevcasm_get_ssd(int size, hevcasm_instruction_set mask)
+hevcasm_ssd_linear * HEVCASM_API hevcasm_get_ssd_linear(int size, hevcasm_instruction_set mask)
 {
-	hevcasm_ssd *f = 0;
+	hevcasm_ssd_linear *f = 0;
 	
-	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT)) f = hevcasm_ssd_c_ref;
+	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT)) f = hevcasm_ssd_linear_c_ref;
 
-	if (mask & HEVCASM_AVX) f = hevcasm_ssd_avx;
+	if (mask & HEVCASM_AVX) f = hevcasm_ssd_linear_avx;
 
 	return f;
 }
@@ -72,17 +72,17 @@ hevcasm_ssd * HEVCASM_API hevcasm_get_ssd(int size, hevcasm_instruction_set mask
 typedef struct
 {
 	HEVCASM_ALIGN(32, uint8_t, data[2][BLOCK_SIZE]);
-	hevcasm_ssd *f;
+	hevcasm_ssd_linear *f;
 	int ssd;
 }
-bound_ssd;
+bound_ssd_linear;
 
 
-int get_ssd(void *p, hevcasm_instruction_set mask)
+int get_ssd_linear(void *p, hevcasm_instruction_set mask)
 {
-	bound_ssd *s = p;
+	bound_ssd_linear *s = p;
 
-	s->f = hevcasm_get_ssd(BLOCK_SIZE, mask);
+	s->f = hevcasm_get_ssd_linear(BLOCK_SIZE, mask);
 
 	if (mask == HEVCASM_C_REF) printf("\t%d:", BLOCK_SIZE);
 
@@ -90,9 +90,9 @@ int get_ssd(void *p, hevcasm_instruction_set mask)
 }
 
 
-void invoke_ssd(void *p, int n)
+void invoke_ssd_linear(void *p, int n)
 {
-	bound_ssd *s = p;
+	bound_ssd_linear *s = p;
 	while (n--)
 	{
 		s->ssd = s->f(s->data[0], s->data[1], BLOCK_SIZE);
@@ -100,20 +100,20 @@ void invoke_ssd(void *p, int n)
 }
 
 
-int mismatch_ssd(void *boundRef, void *boundTest)
+int mismatch_ssd_linear(void *boundRef, void *boundTest)
 {
-	bound_ssd *ref = boundRef;
-	bound_ssd *test = boundTest;
+	bound_ssd_linear *ref = boundRef;
+	bound_ssd_linear *test = boundTest;
 
 	return  ref->ssd != test->ssd;
 }
 
 
-void HEVCASM_API hevcasm_test_ssd(int *error_count, hevcasm_instruction_set mask)
+void HEVCASM_API hevcasm_test_ssd_linear(int *error_count, hevcasm_instruction_set mask)
 {
-	printf("\nhevcasm_ssd - Sum of Square Differences\n");
+	printf("\nhevcasm_ssd_linear - Linear Sum of Square Differences\n");
 
-	bound_ssd b[2];
+	bound_ssd_linear b[2];
 
 	for (int n = 0; n < 2; ++n)
 	{
@@ -125,5 +125,5 @@ void HEVCASM_API hevcasm_test_ssd(int *error_count, hevcasm_instruction_set mask
 
 	b[1] = b[0];
 
-	*error_count += hevcasm_test(&b[0], &b[1], get_ssd, invoke_ssd, mismatch_ssd, mask, 100000);
+	*error_count += hevcasm_test(&b[0], &b[1], get_ssd_linear, invoke_ssd_linear, mismatch_ssd_linear, mask, 100000);
 }
