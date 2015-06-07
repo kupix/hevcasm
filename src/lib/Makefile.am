@@ -1,9 +1,9 @@
 SUBDIRS = f265
 
 if DEBUG
-  AM_CFLAGS =-I$(top_srcdir)/src/lib -I$(top_srcdir)/src/lib/libvpx -I$(top_srcdir)/src/lib/libvpx/config/gcc -Wall -Wno-unused-function -g -O3
+  AM_CFLAGS =-I$(top_srcdir)/src/lib -I$(top_srcdir)/src/lib/libvpx -I$(top_srcdir)/src/lib/libvpx/config/gcc -Wall -Wno-unused-function -g
 else
-  AM_CFLAGS =-I$(top_srcdir)/src/lib -I$(top_srcdir)/src/lib/libvpx -I$(top_srcdir)/src/lib/libvpx/config/gcc -Wall -Wno-unused-function
+  AM_CFLAGS =-I$(top_srcdir)/src/lib -I$(top_srcdir)/src/lib/libvpx -I$(top_srcdir)/src/lib/libvpx/config/gcc -Wall -Wno-unused-function -O3
 endif
 
 SUFFIXES: .asm
