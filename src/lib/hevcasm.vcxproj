@@ -225,6 +225,8 @@
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|x64'">x264</IncludePaths>
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
       <Defines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">ARCH_X86_64=0;HAVE_ALIGNED_STACK=1;PREFIX</Defines>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ARCH_X86_64=0;HAVE_ALIGNED_STACK=1;PREFIX</Defines>
     </YASM>
     <YASM Include="libvpx\vp9\encoder\x86\vp9_sad4d_sse2.asm">
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">libvpx;libvpx\vp9;libvpx\config\msvs\$(Platform)</IncludePaths>

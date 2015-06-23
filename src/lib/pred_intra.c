@@ -133,7 +133,9 @@ void hevcasm_populate_pred_intra(hevcasm_table_pred_intra *table, hevcasm_instru
 	}
 
 	hevcasm_pred_intra **entry = hevcasm_get_pred_intra(table, 1, hevcasm_pred_intra_pack(1, 3));
+#if !defined(WIN32) || defined(_M_X64)
 	if (mask & HEVCASM_AVX2) *entry = f265_lbd_predict_intra_dc_8_avx2;
+#endif
 }
 
 

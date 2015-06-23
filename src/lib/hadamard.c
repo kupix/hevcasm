@@ -129,8 +129,10 @@ static int compute_satd_8x8(const uint8_t *pA, ptrdiff_t strideA, const uint8_t 
 }
 
 
+#ifdef HEVCASM_X64
 hevcasm_hadamard_satd hevcasm_hadamard_satd_4x4_sse2;
 hevcasm_hadamard_satd hevcasm_hadamard_satd_8x8_avx2;
+#endif
 
 void HEVCASM_API hevcasm_populate_hadamard_satd(hevcasm_table_hadamard_satd *table, hevcasm_instruction_set mask)
 {
@@ -145,6 +147,7 @@ void HEVCASM_API hevcasm_populate_hadamard_satd(hevcasm_table_hadamard_satd *tab
 		*hevcasm_get_hadamard_satd(table, 3) = compute_satd_8x8;
 	}
 
+#ifdef HEVCASM_X64
 	if (mask & HEVCASM_SSE2)
 	{
 		*hevcasm_get_hadamard_satd(table, 2) = hevcasm_hadamard_satd_4x4_sse2;
@@ -154,6 +157,7 @@ void HEVCASM_API hevcasm_populate_hadamard_satd(hevcasm_table_hadamard_satd *tab
 	{
 		*hevcasm_get_hadamard_satd(table, 3) = hevcasm_hadamard_satd_8x8_avx2;
 	}
+#endif
 }
 
 
