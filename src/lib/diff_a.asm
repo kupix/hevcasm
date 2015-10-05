@@ -39,7 +39,7 @@
 
 
 ; Sum of square differences
-; extern "C" int ssd_linear(const std::uint8_t *p1, const std::uint8_t *p2, int n)
+; extern "C" int ssd_linear(const uint8_t *p1, const uint8_t *p2, int n)
 
 INIT_XMM avx
 cglobal ssd_linear, 3, 3, 8

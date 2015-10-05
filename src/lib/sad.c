@@ -33,6 +33,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "sad_a.h"
 #include "sad.h"
 #include "hevcasm_test.h"
 #include "vp9_rtcd.h"
@@ -119,32 +120,50 @@ static void hevcasm_sad_multiref_4_c_ref(const uint8_t *src, ptrdiff_t stride_sr
 	}
 }
 
+static void wrap(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref[], ptrdiff_t stride_ref, int sad[], uint32_t rect)
+{
+	hevcasm_sad_multiref_4_12xh_avx2(src, stride_src, ref, stride_ref, sad, rect);
+}
 
 hevcasm_sad_multiref* get_sad_multiref(int ways, int width, int height, hevcasm_instruction_set mask)
 {
-	if (ways != 4) return 0;
+	hevcasm_sad_multiref* f = 0;
 
-	if (mask & HEVCASM_SSE2) switch (HEVCASM_RECT(width, height))
-	{
-	case HEVCASM_RECT(64, 64): return (hevcasm_sad_multiref*)&vp9_sad64x64x4d_sse2;
-	case HEVCASM_RECT(64, 32): return (hevcasm_sad_multiref*)&vp9_sad64x32x4d_sse2;
-	case HEVCASM_RECT(32, 64): return (hevcasm_sad_multiref*)&vp9_sad32x64x4d_sse2;
-	case HEVCASM_RECT(32, 32): return (hevcasm_sad_multiref*)&vp9_sad32x32x4d_sse2;
-	case HEVCASM_RECT(32, 16): return (hevcasm_sad_multiref*)&vp9_sad32x16x4d_sse2;
-	case HEVCASM_RECT(16, 32): return (hevcasm_sad_multiref*)&vp9_sad16x32x4d_sse2;
-	case HEVCASM_RECT(16, 16): return (hevcasm_sad_multiref*)&vp9_sad16x16x4d_sse2;
-	case HEVCASM_RECT(16, 8): return (hevcasm_sad_multiref*)&vp9_sad16x8x4d_sse2;
-	case HEVCASM_RECT(8, 16): return (hevcasm_sad_multiref*)&vp9_sad8x16x4d_sse2;
-	case HEVCASM_RECT(8, 8): return (hevcasm_sad_multiref*)&vp9_sad8x8x4d_sse2;
-	case HEVCASM_RECT(8, 4): return (hevcasm_sad_multiref*)&vp9_sad8x4x4d_sse2;
-	}
+	if (ways != 4) return 0;
 
 	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
-		return &hevcasm_sad_multiref_4_c_ref;
+		f = &hevcasm_sad_multiref_4_c_ref;
 	}
 
-	return 0;
+	if (mask & HEVCASM_SSE2) switch (HEVCASM_RECT(width, height))
+	{
+	case HEVCASM_RECT(64, 64): f = (hevcasm_sad_multiref*)&vp9_sad64x64x4d_sse2; break;
+	case HEVCASM_RECT(64, 32): f = (hevcasm_sad_multiref*)&vp9_sad64x32x4d_sse2; break;
+	case HEVCASM_RECT(32, 64): f = (hevcasm_sad_multiref*)&vp9_sad32x64x4d_sse2; break;
+	case HEVCASM_RECT(32, 32): f = (hevcasm_sad_multiref*)&vp9_sad32x32x4d_sse2; break;
+	case HEVCASM_RECT(32, 16): f = (hevcasm_sad_multiref*)&vp9_sad32x16x4d_sse2; break;
+	case HEVCASM_RECT(16, 32): f = (hevcasm_sad_multiref*)&vp9_sad16x32x4d_sse2; break;
+	case HEVCASM_RECT(16, 16): f = (hevcasm_sad_multiref*)&vp9_sad16x16x4d_sse2; break;
+	case HEVCASM_RECT(16, 8): f = (hevcasm_sad_multiref*)&vp9_sad16x8x4d_sse2; break;
+	case HEVCASM_RECT(8, 16): f = (hevcasm_sad_multiref*)&vp9_sad8x16x4d_sse2; break;
+	case HEVCASM_RECT(8, 8): f = (hevcasm_sad_multiref*)&vp9_sad8x8x4d_sse2; break;
+	case HEVCASM_RECT(8, 4): f = (hevcasm_sad_multiref*)&vp9_sad8x4x4d_sse2; break;
+	}
+
+	if (mask & HEVCASM_AVX2) switch (width)
+	{
+	case 64: f = hevcasm_sad_multiref_4_64xh_avx2; break;
+	case 48: f = hevcasm_sad_multiref_4_48xh_avx2; break;
+	case 32: f = hevcasm_sad_multiref_4_32xh_avx2; break;
+	case 24: f = hevcasm_sad_multiref_4_24xh_avx2; break;
+	case 16: f = hevcasm_sad_multiref_4_16xh_avx2; break;
+	case 12: f = hevcasm_sad_multiref_4_12xh_avx2; break;
+	case 8: if (!f) f = hevcasm_sad_multiref_4_8xh_avx2; break;
+	case 4: f = hevcasm_sad_multiref_4_4xh_avx2; break;
+	}
+
+	return f;
 }
 
 
@@ -210,10 +229,13 @@ int mismatch_sad(void *boundRef, void *boundTest)
 
 
 static const int partitions[][2] = {
-	{ 64, 64 }, { 64, 32 },
-	{ 32, 64 }, { 32, 32 }, { 32, 16 },
-	{ 16, 32 }, { 16, 16 }, { 16, 8 },
-	{ 8, 16 }, { 8, 8 }, { 8, 4 },
+	{ 64, 64 },{ 64, 48 },{ 64, 32 },{ 64, 16 },
+	{ 48, 64 },
+	{ 32, 64 },{ 32, 32 },{ 32, 24 },{ 32, 16 }, {32, 8},
+	{ 24, 32 },
+	{ 16, 64 },{ 16, 32 },{ 16, 16 },{ 16, 12 },{ 16, 8 },{16, 4},
+	{ 12, 16 },
+	{ 8, 32 },{ 8, 16 },{ 8, 8 }, { 8, 4 },
 	{ 4, 8 },
 	{ 0, 0 } };
 
@@ -313,6 +335,6 @@ void HEVCASM_API hevcasm_test_sad_multiref(int *error_count, hevcasm_instruction
 		b[0].width = partitions[i][0];
 		b[0].height = partitions[i][1];
 		b[1] = b[0];
-		*error_count += hevcasm_test(&b[0], &b[1], init_sad_multiref, invoke_sad_multiref, mismatch_sad_multiref, mask, 100000);
+		*error_count += hevcasm_test(&b[0], &b[1], init_sad_multiref, invoke_sad_multiref, mismatch_sad_multiref, mask, 1);
 	}
 }

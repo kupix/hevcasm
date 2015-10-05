@@ -94,6 +94,9 @@
     <YASM Include="ssd_a.asm">
       <Filter>Yasm Files</Filter>
     </YASM>
+    <YASM Include="sad_a.asm">
+      <Filter>Yasm Files</Filter>
+    </YASM>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="hevcasm.c">

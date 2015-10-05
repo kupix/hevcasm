@@ -219,7 +219,7 @@ const_00000004000000040000000400000004:
 SECTION .text
 
 
-; void hevcasm_partial_butterfly_16v_ssse3(std::int16_t *dst, const std::int16_t *src, int shift);
+; void hevcasm_partial_butterfly_16v_ssse3(int16_t *dst, const int16_t *src, int shift);
 INIT_XMM ssse3
 cglobal partial_butterfly_16v, 3, 6, 16
 
@@ -412,7 +412,7 @@ cglobal partial_butterfly_16v, 3, 6, 16
 	
 	RET
 
-; void transform_partial_butterfly_16h_ssse3(std::int16_t *dst, const std::int16_t *src, std::ptrdiff_t, srcStride, int shift);
+; void transform_partial_butterfly_16h_ssse3(int16_t *dst, const int16_t *src, std::ptrdiff_t, srcStride, int shift);
 ; shift parameter ignored (r3)
 INIT_XMM ssse3
 cglobal partial_butterfly_16h, 4, 7, 16
@@ -514,7 +514,7 @@ cglobal partial_butterfly_16h, 4, 7, 16
 ; this function potentially be combined with the horizontal feature with no
 ; need for temporary memory buffer in between.
 
-; void transform_partial_butterfly_inverse_8v_ssse3(std::int16_t *dst, const std::int16_t *src, int shift);
+; void transform_partial_butterfly_inverse_8v_ssse3(int16_t *dst, const int16_t *src, int shift);
 INIT_XMM ssse3
 cglobal partial_butterfly_inverse_8v, 3, 5, 16
 	
@@ -675,7 +675,7 @@ cglobal partial_butterfly_inverse_8v, 3, 5, 16
 	RET
 	 
 
-; void transform_partial_butterfly_inverse_8h_ssse3(std::int16_t *dst, const std::int16_t *src, int shift);
+; void transform_partial_butterfly_inverse_8h_ssse3(int16_t *dst, const int16_t *src, int shift);
 INIT_XMM ssse3
 cglobal partial_butterfly_inverse_8h, 3, 5, 16
 	mov r4d, 8
@@ -735,7 +735,7 @@ cglobal partial_butterfly_inverse_8h, 3, 5, 16
 
 
 
-; void transform_partial_butterfly_inverse_16v_ssse3(std::int16_t *dst, const std::int16_t *src, int shift);
+; void transform_partial_butterfly_inverse_16v_ssse3(int16_t *dst, const int16_t *src, int shift);
 INIT_XMM ssse3
 cglobal partial_butterfly_inverse_16v, 3, 6, 16, 8*2*16
 
@@ -978,7 +978,7 @@ cglobal partial_butterfly_inverse_16v, 3, 6, 16, 8*2*16
 	RET
 
 
-; void transform_partial_butterfly_inverse_16h_ssse3(std::int16_t *dst, const std::int16_t *src, int shift);
+; void transform_partial_butterfly_inverse_16h_ssse3(int16_t *dst, const int16_t *src, int shift);
 INIT_XMM ssse3
 cglobal partial_butterfly_inverse_16h, 3, 5, 16
 	mov r4d, 16

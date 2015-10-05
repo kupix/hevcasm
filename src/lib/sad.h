@@ -96,17 +96,7 @@ typedef void hevcasm_sad_multiref(const uint8_t *src, ptrdiff_t stride_src, cons
 
 typedef struct
 {
-	hevcasm_sad_multiref *sad64x64_4;
-	hevcasm_sad_multiref *sad64x32_4;
-	hevcasm_sad_multiref *sad32x64_4;
-	hevcasm_sad_multiref *sad32x32_4;
-	hevcasm_sad_multiref *sad32x16_4;
-	hevcasm_sad_multiref *sad16x32_4;
-	hevcasm_sad_multiref *sad16x16_4;
-	hevcasm_sad_multiref *sad16x8_4;
-	hevcasm_sad_multiref *sad8x16_4;
-	hevcasm_sad_multiref *sad8x8_4;
-	hevcasm_sad_multiref *sad8x4_4;
+	hevcasm_sad_multiref *lookup[16][16];
 	hevcasm_sad_multiref *sadGeneric_4;
 }
 hevcasm_table_sad_multiref;
@@ -114,22 +104,7 @@ hevcasm_table_sad_multiref;
 static hevcasm_sad_multiref** hevcasm_get_sad_multiref(hevcasm_table_sad_multiref *table, int ways, int width, int height)
 {
 	if (ways != 4) return 0;
-
-	switch (HEVCASM_RECT(width, height))
-	{
-	case HEVCASM_RECT(64, 64): return &table->sad64x64_4;
-	case HEVCASM_RECT(64, 32): return &table->sad64x32_4;
-	case HEVCASM_RECT(32, 64): return &table->sad32x64_4;
-	case HEVCASM_RECT(32, 32): return &table->sad32x32_4;
-	case HEVCASM_RECT(32, 16): return &table->sad32x16_4;
-	case HEVCASM_RECT(16, 32): return &table->sad16x32_4;
-	case HEVCASM_RECT(16, 16): return &table->sad16x16_4;
-	case HEVCASM_RECT(16, 8): return &table->sad16x8_4;
-	case HEVCASM_RECT(8, 16): return &table->sad8x16_4;
-	case HEVCASM_RECT(8, 8): return &table->sad8x8_4;
-	case HEVCASM_RECT(8, 4): return &table->sad8x4_4;
-	default:;
-	}
+	return &table->lookup[(width>>2)-1][(height>>2)-1];
 	return &table->sadGeneric_4;
 }
 

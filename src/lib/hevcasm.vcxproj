@@ -294,6 +294,14 @@
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">x264</IncludePaths>
       <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">x264</IncludePaths>
     </YASM>
+    <YASM Include="sad_a.asm">
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">x264</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">x264</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">x264</IncludePaths>
+      <IncludePaths Condition="'$(Configuration)|$(Platform)'=='Release|x64'">x264</IncludePaths>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
+      <Defines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
+    </YASM>
     <YASM Include="ssd_a.asm">
       <Defines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>
       <Defines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">ARCH_X86_64=1;HAVE_ALIGNED_STACK=1</Defines>

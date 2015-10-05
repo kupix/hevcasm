@@ -35,6 +35,9 @@
 %define private_prefix hevcasm
 %include "x86inc.asm"
 
+
+SECTION .text
+
 %define ORDER(a, b, c, d) ((a << 6) | (b << 4) | (c << 2) | d)
 
 
