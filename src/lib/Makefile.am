@@ -25,6 +25,7 @@ libhevcasm_a_SOURCES = \
 	pred_inter.c \
 	ssd.c \
 	ssd_a.asm \
+	sad_a.asm \
 	quantize.c \
 	residual_decode.c \
 	sad.c \
