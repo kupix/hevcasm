@@ -105,7 +105,6 @@ static hevcasm_sad_multiref** hevcasm_get_sad_multiref(hevcasm_table_sad_multire
 {
 	if (ways != 4) return 0;
 	return &table->lookup[(width>>2)-1][(height>>2)-1];
-	return &table->sadGeneric_4;
 }
 
 void HEVCASM_API hevcasm_populate_sad_multiref(hevcasm_table_sad_multiref *table, hevcasm_instruction_set mask);

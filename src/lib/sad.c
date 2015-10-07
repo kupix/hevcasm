@@ -131,11 +131,6 @@ hevcasm_sad_multiref* get_sad_multiref(int ways, int width, int height, hevcasm_
 
 	if (ways != 4) return 0;
 
-	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
-	{
-		f = &hevcasm_sad_multiref_4_c_ref;
-	}
-
 	if (mask & HEVCASM_SSE2) switch (HEVCASM_RECT(width, height))
 	{
 	case HEVCASM_RECT(64, 64): f = (hevcasm_sad_multiref*)&vp9_sad64x64x4d_sse2; break;
@@ -161,6 +156,11 @@ hevcasm_sad_multiref* get_sad_multiref(int ways, int width, int height, hevcasm_
 	case 12: f = hevcasm_sad_multiref_4_12xh_avx2; break;
 	case 8: if (!f) f = hevcasm_sad_multiref_4_8xh_avx2; break;
 	case 4: f = hevcasm_sad_multiref_4_4xh_avx2; break;
+	}
+
+	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
+	{
+		if (!f) f = &hevcasm_sad_multiref_4_c_ref;
 	}
 
 	return f;
