@@ -29,12 +29,13 @@ before_script:
   - export PATH=$PATH:$PWD
   - cd ..
   - cp get-intel-sde $HOME
-  - cd $HOME
+  - pushd $HOME
   - if [ ! -a sde-external-7.31.0-2015-09-25-lin ]; then wget http://pypi.python.org/packages/source/m/mechanize/mechanize-0.2.5.tar.gz; fi
   - if [ ! -a sde-external-7.31.0-2015-09-25-lin ]; then tar xf mechanize-0.2.5.tar.gz; fi
   - if [ ! -a sde-external-7.31.0-2015-09-25-lin ]; then mv mechanize-0.2.5 mechanize; fi
   - if [ ! -a sde-external-7.31.0-2015-09-25-lin ]; then ./get-intel-sde sde-external-7.31.0-2015-09-25-lin.tar.bz2 && tar xjf sde-external-7.31.0-2015-09-25-lin.tar.bz2; fi
   - export PATH=$PATH:$HOME/sde-external-7.31.0-2015-09-25-lin
+  - popd
 
 script:
   - export CC=gcc-4.8
