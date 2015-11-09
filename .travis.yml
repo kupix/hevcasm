@@ -36,12 +36,11 @@ before_script:
   - if [ ! -a sde-external-7.31.0-2015-09-25-lin ]; then mv mechanize-0.2.5 mechanize; fi
   - if [ ! -a sde-external-7.31.0-2015-09-25-lin ]; then ./get-intel-sde sde-external-7.31.0-2015-09-25-lin.tar.bz2 && tar xjf sde-external-7.31.0-2015-09-25-lin.tar.bz2; fi
   - export PATH=$PATH:$HOME/sde-external-7.31.0-2015-09-25-lin
-  - sde64 -- ls -l
 
 script:
   - export CXX=g++-4.8 CC=gcc-4.8
   - autoreconf -iv
   - ./configure
   - make
-  - ./src/bin/hevcasm
+  - sde64 -hsw -- ./src/bin/hevcasm
 
