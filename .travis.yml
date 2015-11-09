@@ -25,6 +25,11 @@ before_script:
   - make
   - export PATH=$PATH:$PWD
   - cd ..
+  - wget http://pypi.python.org/packages/source/m/mechanize/mechanize-0.2.5.tar.gz
+  - tar xvf mechanize-0.2.5.tar.gz
+  - mv mechanize-0.2.5 mechanize
+  - ./get-intel-sde
+  - ls -l
   - nasm -v
   - yasm --version
 
