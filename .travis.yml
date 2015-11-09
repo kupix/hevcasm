@@ -11,7 +11,7 @@ addons:
 
 cache:
   directories:
-  - $HOME/sde-external-7.31.0-2015-09-25-lin
+    - $HOME/sde-external-7.31.0-2015-09-25-lin
 
 before_script:
   - wget http://www.nasm.us/pub/nasm/releasebuilds/2.11.08/nasm-2.11.08.tar.gz
