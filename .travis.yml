@@ -10,6 +10,10 @@ addons:
       - gcc-4.8
       - g++-4.8
 
+cache:
+  directories:
+  - $HOME/sde-external-7.31.0-2015-09-25-lin
+
 before_script:
   - wget http://www.nasm.us/pub/nasm/releasebuilds/2.11.08/nasm-2.11.08.tar.gz
   - tar xf nasm-2.11.08.tar.gz
@@ -28,11 +32,10 @@ before_script:
   - wget http://pypi.python.org/packages/source/m/mechanize/mechanize-0.2.5.tar.gz
   - tar xf mechanize-0.2.5.tar.gz
   - mv mechanize-0.2.5 mechanize
-  - ./get-intel-sde sde-external-7.31.0-2015-09-25-lin.tar.bz2
-  - tar xjf sde-external-7.31.0-2015-09-25-lin.tar.bz2
-  - ls -l
-  - nasm -v
-  - yasm --version
+  - cd $HOME
+  - if [! -a cache] ./get-intel-sde sde-external-7.31.0-2015-09-25-lin.tar.bz2 && tar xjf sde-external-7.31.0-2015-09-25-lin.tar.bz2
+  - export PATH=$PATH:$HOME/sde-external-7.31.0-2015-09-25-lin
+  - sde64 -- ls -l
 
 script:
   - export CXX=g++-4.8 CC=gcc-4.8
