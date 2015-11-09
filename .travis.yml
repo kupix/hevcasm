@@ -8,7 +8,6 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - gcc-4.8
-      - g++-4.8
 
 cache:
   directories:
@@ -38,7 +37,7 @@ before_script:
   - export PATH=$PATH:$HOME/sde-external-7.31.0-2015-09-25-lin
 
 script:
-  - export CXX=g++-4.8 CC=gcc-4.8
+  - export CC=gcc-4.8
   - autoreconf -iv
   - ./configure
   - make
