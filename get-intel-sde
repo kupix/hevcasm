@@ -15,5 +15,5 @@ br.open('https://software.intel.com/protected-download/267266/144917')
 br.select_form(nr=1)
 br.find_control(type="checkbox").items[0].selected = True
 br.submit()
-br.retrieve('https://software.intel.com/system/files/managed/b4/0d/sde-external-7.31.0-2015-09-25-lin.tar.bz2')
+br.retrieve('https://software.intel.com/system/files/managed/b4/0d/' + sys.argv[1], sys.argv[1])
 

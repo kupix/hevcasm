@@ -8,35 +8,39 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - gcc-4.8
-      - g++-4.8
+
+cache:
+  directories:
+    - $HOME/sde-external-7.31.0-2015-09-25-lin
 
 before_script:
   - wget http://www.nasm.us/pub/nasm/releasebuilds/2.11.08/nasm-2.11.08.tar.gz
-  - tar xvf nasm-2.11.08.tar.gz
+  - tar xf nasm-2.11.08.tar.gz
   - cd nasm-2.11.08
   - ./configure
   - make
   - export PATH=$PATH:$PWD
   - cd ..
   - wget http://www.tortall.net/projects/yasm/releases/yasm-1.3.0.tar.gz
-  - tar xvf yasm-1.3.0.tar.gz
+  - tar xf yasm-1.3.0.tar.gz
   - cd yasm-1.3.0
   - ./configure
   - make
   - export PATH=$PATH:$PWD
   - cd ..
-  - wget http://pypi.python.org/packages/source/m/mechanize/mechanize-0.2.5.tar.gz
-  - tar xvf mechanize-0.2.5.tar.gz
-  - mv mechanize-0.2.5 mechanize
-  - ./get-intel-sde
-  - ls -l
-  - nasm -v
-  - yasm --version
+  - cp get-intel-sde $HOME
+  - pushd $HOME
+  - if [ -d "sde-external-7.31.0-2015-09-25-lin" ]; then echo "using cached SDE"; fi
+  - if [ ! -d "sde-external-7.31.0-2015-09-25-lin" ]; then wget http://pypi.python.org/packages/source/m/mechanize/mechanize-0.2.5.tar.gz; fi
+  - if [ ! -d "sde-external-7.31.0-2015-09-25-lin" ]; then tar xf mechanize-0.2.5.tar.gz && mv mechanize-0.2.5 mechanize; fi
+  - if [ ! -d "sde-external-7.31.0-2015-09-25-lin" ]; then ./get-intel-sde sde-external-7.31.0-2015-09-25-lin.tar.bz2 && tar xjf sde-external-7.31.0-2015-09-25-lin.tar.bz2; fi
+  - export PATH=$PATH:$HOME/sde-external-7.31.0-2015-09-25-lin
+  - popd
 
 script:
-  - export CXX=g++-4.8 CC=gcc-4.8
+  - export CC=gcc-4.8
   - autoreconf -iv
   - ./configure
   - make
-  - ./src/bin/hevcasm
+  - sde64 -hsw -- ./src/bin/hevcasm
 
