@@ -583,7 +583,7 @@ void HEVCASM_API hevcasm_populate_inverse_transform_add8(hevcasm_table_inverse_t
 }
 
 
-void HEVCASM_API hevcasm_populate_inverse_transform_add16(hevcasm_table_inverse_transform_add8 *table, hevcasm_instruction_set mask, int encoder)
+void HEVCASM_API hevcasm_populate_inverse_transform_add16(hevcasm_table_inverse_transform_add16 *table, hevcasm_instruction_set mask, int encoder)
 {
 	*hevcasm_get_inverse_transform_add16(table, 1, 2) = get_inverse_transform_add16(1, 2, mask, encoder);
 	for (int log2TrafoSize = 2; log2TrafoSize <= 5; ++log2TrafoSize)
