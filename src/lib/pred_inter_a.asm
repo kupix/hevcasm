@@ -81,16 +81,16 @@ PRED_INTER_8TAP_COEFFICIENT_PAIRS 4, dw
 		; Frac = 0/8
 		times %1 %2 0, 64
 		times %1 %2 0, 0
-		; Frac = 0/8
+		; Frac = 1/8
 		times %1 %2 -2, 58
 		times %1 %2 10, -2
-		; Frac = 0/8
+		; Frac = 2/8
 		times %1 %2 -4, 54
 		times %1 %2 16, -2
-		; Frac = 0/8
+		; Frac = 3/8
 		times %1 %2 -6, 46
 		times %1 %2 28, -4
-		; Frac = 0/8
+		; Frac = 4/8
 		times %1 %2 -4, 36
 		times %1 %2 36, -4
 		; Frac = 5/8
@@ -166,6 +166,103 @@ cglobal pred_uni_copy_8to8_64xh, 8, 8, 4
 	movu [r0 + 48], m3
 	lea r2, [r2 + r3]
 	lea r0, [r0 + r1]
+	dec r5d
+	jg .loop
+	RET
+
+
+; void hevcasm_pred_uni_copy_16to16_8xh_sse2(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
+INIT_XMM sse2
+cglobal pred_uni_copy_16to16_8xh, 8, 8, 1
+.loop
+	movu m0, [r2]
+	movu [r0], m0
+	lea r2, [r2 + 2 * r3]
+	lea r0, [r0 + 2 * r1]
+	dec r5d
+	jg .loop
+	RET
+
+
+; void hevcasm_pred_uni_copy_16to16_16xh_sse2(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
+INIT_XMM sse2
+cglobal pred_uni_copy_16to16_16xh, 8, 8, 2
+.loop
+	movu m0, [r2]
+	movu m1, [r2 + 16]
+	movu [r0], m0
+	movu [r0 + 16], m1
+	lea r2, [r2 + 2 * r3]
+	lea r0, [r0 + 2 * r1]
+	dec r5d
+	jg .loop
+	RET
+
+
+; void hevcasm_pred_uni_copy_16to16_32xh_sse2(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
+INIT_XMM sse2
+cglobal pred_uni_copy_16to16_32xh, 8, 8, 4
+.loop
+	movu m0, [r2]
+	movu m1, [r2 + 16]
+	movu m2, [r2 + 32]
+	movu m3, [r2 + 48]
+	movu [r0], m0
+	movu [r0 + 16], m1
+	movu [r0 + 32], m2
+	movu [r0 + 48], m3
+	lea r2, [r2 + 2 * r3]
+	lea r0, [r0 + 2 * r1]
+	dec r5d
+	jg .loop
+	RET
+
+
+; void hevcasm_pred_uni_copy_16to16_48xh_sse2(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
+INIT_XMM sse2
+cglobal pred_uni_copy_16to16_48xh, 8, 8, 4
+.loop
+	movu m0, [r2]
+	movu m1, [r2 + 16]
+	movu m2, [r2 + 32]
+	movu m3, [r2 + 48]
+	movu [r0], m0
+	movu [r0 + 16], m1
+	movu [r0 + 32], m2
+	movu [r0 + 48], m3
+	movu m0, [r2 + 64]
+	movu m1, [r2 + 80]
+	movu [r0 + 64], m0
+	movu [r0 + 80], m1
+	lea r2, [r2 + 2 * r3]
+	lea r0, [r0 + 2 * r1]
+	dec r5d
+	jg .loop
+	RET
+
+
+; void hevcasm_pred_uni_copy_16to16_64xh_sse2(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
+INIT_XMM sse2
+cglobal pred_uni_copy_16to16_64xh, 8, 8, 4
+.loop
+	movu m0, [r2]
+	movu m1, [r2 + 16]
+	movu m2, [r2 + 32]
+	movu m3, [r2 + 48]
+	movu [r0], m0
+	movu [r0 + 16], m1
+	movu [r0 + 32], m2
+	movu [r0 + 48], m3
+	movu m0, [r2 + 64]
+	movu m1, [r2 + 80]
+	movu m2, [r2 + 96]
+	movu m3, [r2 + 112]
+	movu [r0 + 64], m0
+	movu [r0 + 80], m1
+	movu [r0 + 96], m2
+	movu [r0 + 112], m3
+	lea r2, [r2 + 2 * r3]
+	lea r0, [r0 + 2 * r1]
 	dec r5d
 	jg .loop
 	RET

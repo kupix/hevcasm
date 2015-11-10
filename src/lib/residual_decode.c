@@ -347,16 +347,16 @@ static void hevcasm_inverse_partial_butterfly_32x32_c_opt(int16_t dst[32 * 32], 
 }
 
 
-uint8_t hevcasm_clip(int16_t x, int bit_depth)
+int hevcasm_clip(int x, int bit_depth)
 {
-	const uint8_t max = (int)(1 << bit_depth) - 1;
-	if (x > max) return max;
 	if (x < 0) return 0;
-	return (uint8_t)x;
+	int const max = (int)(1 << bit_depth) - 1;
+	if (x > max) return max;
+	return x;
 }
 
 
-void hevcasm_add_residual(int n, uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, int16_t *residual)
+void hevcasm_add8_residual(int n, uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, int16_t *residual)
 {
 	for (int y = 0; y < n; ++y)
 	{
@@ -367,72 +367,128 @@ void hevcasm_add_residual(int n, uint8_t *dst, ptrdiff_t stride_dst, const uint8
 	}
 }
 
+void hevcasm_add16_residual(int n, uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *pred, ptrdiff_t stride_pred, int16_t *residual, int bitDepth)
+{
+	for (int y = 0; y < n; ++y)
+	{
+		for (int x = 0; x < n; ++x)
+		{
+			dst[x + y * stride_dst] = hevcasm_clip(pred[x + y * stride_pred] + residual[x + y * n], bitDepth);
+		}
+	}
+}
 
-void hevcasm_idct_4x4_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[4 * 4])
+
+void hevcasm_idct_4x4_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[4 * 4], int bitDepth)
 {
 	int16_t temp[2][4 * 4];
 	hevcasm_inverse_partial_butterfly_4x4_c_opt(temp[0], coeffs, 7);
-	hevcasm_inverse_partial_butterfly_4x4_c_opt(temp[1], temp[0], 12);
-	hevcasm_add_residual(4, dst, stride_dst, pred, stride_pred, temp[1]);
+	hevcasm_inverse_partial_butterfly_4x4_c_opt(temp[1], temp[0], 20 - bitDepth);
+	hevcasm_add8_residual(4, dst, stride_dst, pred, stride_pred, temp[1]);
 }
 
 
-void hevcasm_idst_4x4_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[4 * 4])
+void hevcasm_idct_4x4_16_c_opt(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[4 * 4], int bitDepth)
+{
+	int16_t temp[2][4 * 4];
+	hevcasm_inverse_partial_butterfly_4x4_c_opt(temp[0], coeffs, 7);
+	hevcasm_inverse_partial_butterfly_4x4_c_opt(temp[1], temp[0], 20 - bitDepth);
+	hevcasm_add16_residual(4, dst, stride_dst, pred, stride_pred, temp[1], bitDepth);
+}
+
+
+void hevcasm_idst_4x4_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[4 * 4], int bitDepth)
 {
 	int16_t temp[2][4 * 4];
 	hevcasm_inverse_partial_butterfly_4x4_dst_c_opt(temp[0], coeffs, 7);
-	hevcasm_inverse_partial_butterfly_4x4_dst_c_opt(temp[1], temp[0], 12);
-	hevcasm_add_residual(4, dst, stride_dst, pred, stride_pred, temp[1]);
+	hevcasm_inverse_partial_butterfly_4x4_dst_c_opt(temp[1], temp[0], 20 - bitDepth);
+	hevcasm_add8_residual(4, dst, stride_dst, pred, stride_pred, temp[1]);
 }
 
 
-void hevcasm_idct_8x8_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[8 * 8])
+void hevcasm_idst_4x4_16_c_opt(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[4 * 4], int bitDepth)
+{
+	int16_t temp[2][4 * 4];
+	hevcasm_inverse_partial_butterfly_4x4_dst_c_opt(temp[0], coeffs, 7);
+	hevcasm_inverse_partial_butterfly_4x4_dst_c_opt(temp[1], temp[0], 20 - bitDepth);
+	hevcasm_add16_residual(4, dst, stride_dst, pred, stride_pred, temp[1], bitDepth);
+}
+
+
+void hevcasm_idct_8x8_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[8 * 8], int bitDepth)
 {
 	int16_t temp[2][8 * 8];
 	hevcasm_inverse_partial_butterfly_8x8_c_opt(temp[0], coeffs, 7);
-	hevcasm_inverse_partial_butterfly_8x8_c_opt(temp[1], temp[0], 12);
-	hevcasm_add_residual(8, dst, stride_dst, pred, stride_pred, temp[1]);
+	hevcasm_inverse_partial_butterfly_8x8_c_opt(temp[1], temp[0], 20 - bitDepth);
+	hevcasm_add8_residual(8, dst, stride_dst, pred, stride_pred, temp[1]);
 }
 
 
-void hevcasm_idct_16x16_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[8 * 8])
+void hevcasm_idct_8x8_16_c_opt(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[8 * 8], int bitDepth)
+{
+	int16_t temp[2][8 * 8];
+	hevcasm_inverse_partial_butterfly_8x8_c_opt(temp[0], coeffs, 7);
+	hevcasm_inverse_partial_butterfly_8x8_c_opt(temp[1], temp[0], 20 - bitDepth);
+	hevcasm_add16_residual(8, dst, stride_dst, pred, stride_pred, temp[1], bitDepth);
+}
+
+
+void hevcasm_idct_16x16_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[8 * 8], int bitDepth)
 {
 	int16_t temp[2][16 * 16];
 	hevcasm_inverse_partial_butterfly_16x16_c_opt(temp[0], coeffs, 7);
-	hevcasm_inverse_partial_butterfly_16x16_c_opt(temp[1], temp[0], 12);
-	hevcasm_add_residual(16, dst, stride_dst, pred, stride_pred, temp[1]);
+	hevcasm_inverse_partial_butterfly_16x16_c_opt(temp[1], temp[0], 20 - bitDepth);
+	hevcasm_add8_residual(16, dst, stride_dst, pred, stride_pred, temp[1]);
 }
 
 
-void hevcasm_idct_32x32_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[32 * 32])
+void hevcasm_idct_16x16_16_c_opt(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[8 * 8], int bitDepth)
+{
+	int16_t temp[2][16 * 16];
+	hevcasm_inverse_partial_butterfly_16x16_c_opt(temp[0], coeffs, 7);
+	hevcasm_inverse_partial_butterfly_16x16_c_opt(temp[1], temp[0], 20 - bitDepth);
+	hevcasm_add16_residual(16, dst, stride_dst, pred, stride_pred, temp[1], bitDepth);
+}
+
+
+void hevcasm_idct_32x32_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[32 * 32], int bitDepth)
 {
 	int16_t temp[2][32 * 32];
 	hevcasm_inverse_partial_butterfly_32x32_c_opt(temp[0], coeffs, 7);
-	hevcasm_inverse_partial_butterfly_32x32_c_opt(temp[1], temp[0], 12);
-	hevcasm_add_residual(32, dst, stride_dst, pred, stride_pred, temp[1]);
+	hevcasm_inverse_partial_butterfly_32x32_c_opt(temp[1], temp[0], 20 - bitDepth);
+	hevcasm_add8_residual(32, dst, stride_dst, pred, stride_pred, temp[1]);
+}
+
+
+void hevcasm_idct_32x32_16_c_opt(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[32 * 32], int bitDepth)
+{
+	int16_t temp[2][32 * 32];
+	hevcasm_inverse_partial_butterfly_32x32_c_opt(temp[0], coeffs, 7);
+	hevcasm_inverse_partial_butterfly_32x32_c_opt(temp[1], temp[0], 20 - bitDepth);
+	hevcasm_add16_residual(32, dst, stride_dst, pred, stride_pred, temp[1], bitDepth);
 }
 
 
 /* hevcasm_idct_8x8_ssse3 uses too many xmm registers for a 32-bit build */
 #ifdef HEVCASM_X64
-void hevcasm_idct_8x8_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[8 * 8])
+void hevcasm_idct_8x8_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[8 * 8], int bitDepth)
 {
 	HEVCASM_ALIGN(32, int16_t, temp[2][8 * 8]);
 	hevcasm_partial_butterfly_inverse_8v_ssse3(temp[0], coeffs, 7);
-	hevcasm_partial_butterfly_inverse_8h_ssse3(temp[1], temp[0], 12);
-	hevcasm_add_residual(8, dst, stride_dst, pred, stride_pred, temp[1]);
+	hevcasm_partial_butterfly_inverse_8h_ssse3(temp[1], temp[0], 20 - bitDepth);
+	hevcasm_add8_residual(8, dst, stride_dst, pred, stride_pred, temp[1]);
 }
 #endif
 
 
 /* hevcasm_idct_16x16_ssse3 uses too many xmm registers for a 32-bit build */
 #ifdef HEVCASM_X64
-void hevcasm_idct_16x16_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[16 * 16])
+void hevcasm_idct_16x16_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[16 * 16], int bitDepth)
 {
 	HEVCASM_ALIGN(32, int16_t, temp[2][16 * 16]);
 	hevcasm_partial_butterfly_inverse_16v_ssse3(temp[0], coeffs, 7);
-	hevcasm_partial_butterfly_inverse_16h_ssse3(temp[1], temp[0], 12);
-	hevcasm_add_residual(16, dst, stride_dst, pred, stride_pred, temp[1]);
+	hevcasm_partial_butterfly_inverse_16h_ssse3(temp[1], temp[0], 20 - bitDepth);
+	hevcasm_add8_residual(16, dst, stride_dst, pred, stride_pred, temp[1]);
 }
 #endif
 
@@ -442,7 +498,7 @@ void hevcasm_idct_16x16_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t 
 /* these functions only assemble for 64-bit */
 
 #define F265_IDCT_WRAPPER_FUNCTION(op, size) \
-void hevcasm_##op##_##size##x##size##_avx2(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[size * size]) \
+void hevcasm_##op##_##size##x##size##_avx2(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[size * size], int bitDepth) \
 { \
 	HEVCASM_ALIGN(32, uint8_t, spill[16 * size * size]); \
 	\
@@ -458,11 +514,11 @@ F265_IDCT_WRAPPER_FUNCTION(idct, 32)
 #endif
 
 
-static hevcasm_inverse_transform_add* get_inverse_transform_add(int trType, int log2TrafoSize, hevcasm_instruction_set mask, int encoder)
+static hevcasm_inverse_transform_add8* get_inverse_transform_add8(int trType, int log2TrafoSize, hevcasm_instruction_set mask, int encoder)
 {
 	const int nCbS = 1 << log2TrafoSize;
 
-	hevcasm_inverse_transform_add *f = 0;
+	hevcasm_inverse_transform_add8 *f = 0;
 
 	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
@@ -482,7 +538,7 @@ static hevcasm_inverse_transform_add* get_inverse_transform_add(int trType, int 
 	if (mask & HEVCASM_AVX2)
 	{
 		if (nCbS == 4 && !trType) f = hevcasm_idct_4x4_avx2;
-		if (nCbS == 4 && trType) f =  hevcasm_idst_4x4_avx2;
+		if (nCbS == 4 && trType) f = hevcasm_idst_4x4_avx2;
 		if (nCbS == 8) f = hevcasm_idct_8x8_avx2;
 		if (nCbS == 16) f = hevcasm_idct_16x16_avx2;
 
@@ -499,13 +555,40 @@ static hevcasm_inverse_transform_add* get_inverse_transform_add(int trType, int 
 	return f;
 }
 
-
-void HEVCASM_API hevcasm_populate_inverse_transform_add(hevcasm_table_inverse_transform_add *table, hevcasm_instruction_set mask, int encoder)
+static hevcasm_inverse_transform_add16* get_inverse_transform_add16(int trType, int log2TrafoSize, hevcasm_instruction_set mask, int encoder)
 {
-	*hevcasm_get_inverse_transform_add(table, 1, 2) = get_inverse_transform_add(1, 2, mask, encoder);
+	const int nCbS = 1 << log2TrafoSize;
+
+	hevcasm_inverse_transform_add16 *f = 0;
+
+	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
+	{
+		if (nCbS == 4) f = trType ? hevcasm_idst_4x4_16_c_opt : hevcasm_idct_4x4_16_c_opt;
+		if (nCbS == 8) f = hevcasm_idct_8x8_16_c_opt;
+		if (nCbS == 16) f = hevcasm_idct_16x16_16_c_opt;
+		if (nCbS == 32) f = hevcasm_idct_32x32_16_c_opt;
+	}
+
+	return f;
+}
+
+
+void HEVCASM_API hevcasm_populate_inverse_transform_add8(hevcasm_table_inverse_transform_add8 *table, hevcasm_instruction_set mask, int encoder)
+{
+	*hevcasm_get_inverse_transform_add8(table, 1, 2) = get_inverse_transform_add8(1, 2, mask, encoder);
 	for (int log2TrafoSize = 2; log2TrafoSize <= 5; ++log2TrafoSize)
 	{
-		*hevcasm_get_inverse_transform_add(table, 0, log2TrafoSize) = get_inverse_transform_add(0, log2TrafoSize, mask, encoder);
+		*hevcasm_get_inverse_transform_add8(table, 0, log2TrafoSize) = get_inverse_transform_add8(0, log2TrafoSize, mask, encoder);
+	}
+}
+
+
+void HEVCASM_API hevcasm_populate_inverse_transform_add16(hevcasm_table_inverse_transform_add8 *table, hevcasm_instruction_set mask, int encoder)
+{
+	*hevcasm_get_inverse_transform_add16(table, 1, 2) = get_inverse_transform_add16(1, 2, mask, encoder);
+	for (int log2TrafoSize = 2; log2TrafoSize <= 5; ++log2TrafoSize)
+	{
+		*hevcasm_get_inverse_transform_add16(table, 0, log2TrafoSize) = get_inverse_transform_add16(0, log2TrafoSize, mask, encoder);
 	}
 }
 
@@ -514,23 +597,23 @@ typedef struct
 {
 	const int16_t *coefficients;
 	const uint8_t *predicted;
-	hevcasm_inverse_transform_add *f;
+	hevcasm_inverse_transform_add8 *f;
 	int log2TrafoSize;
 	int trType;
 	uint8_t dst[32 * 32];
 } 
-bind_inverse_transform_add;
+bind_inverse_transform_add8;
 
 
-int init_inverse_transform_add(void *p, hevcasm_instruction_set mask)
+int init_inverse_transform_add8(void *p, hevcasm_instruction_set mask)
 {
-	bind_inverse_transform_add *s = p;
+	bind_inverse_transform_add8 *s = p;
 
-	hevcasm_table_inverse_transform_add table;
+	hevcasm_table_inverse_transform_add8 table;
 
-	hevcasm_populate_inverse_transform_add(&table, mask, 1);
+	hevcasm_populate_inverse_transform_add8(&table, mask, 1);
 
-	s->f = *hevcasm_get_inverse_transform_add(&table, s->trType, s->log2TrafoSize);
+	s->f = *hevcasm_get_inverse_transform_add8(&table, s->trType, s->log2TrafoSize);
 
 	if (s->f && mask == HEVCASM_C_REF)
 	{
@@ -542,21 +625,21 @@ int init_inverse_transform_add(void *p, hevcasm_instruction_set mask)
 }
 
 
-void invoke_inverse_transform_add(void *p, int n)
+void invoke_inverse_transform_add8(void *p, int n)
 {
-	bind_inverse_transform_add *s = p;
+	bind_inverse_transform_add8 *s = p;
 
 	while (n--)
 	{
-		s->f(s->dst, (ptrdiff_t)1 << s->log2TrafoSize, s->predicted, (ptrdiff_t)1 << s->log2TrafoSize, s->coefficients);
+		s->f(s->dst, (ptrdiff_t)1 << s->log2TrafoSize, s->predicted, (ptrdiff_t)1 << s->log2TrafoSize, s->coefficients, 8);
 	}
 }
 
 
-int mismatch_transform_add(void *boundRef, void *boundTest)
+int mismatch_transform_add8(void *boundRef, void *boundTest)
 {
-	bind_inverse_transform_add *ref = boundRef;
-	bind_inverse_transform_add *test = boundTest;
+	bind_inverse_transform_add8 *ref = boundRef;
+	bind_inverse_transform_add8 *test = boundTest;
 
 	const int nCbS = 1 << ref->log2TrafoSize;
 
@@ -564,9 +647,9 @@ int mismatch_transform_add(void *boundRef, void *boundTest)
 }
 
 
-void hevcasm_test_inverse_transform_add(int *error_count, hevcasm_instruction_set mask)
+void hevcasm_test_inverse_transform_add8(int *error_count, hevcasm_instruction_set mask)
 {
-	printf("\ninverse_transform_add - Inverse Transform, then add to predicted\n");
+	printf("\ninverse_transform_add8 - Inverse Transform, then add to predicted\n");
 
 	HEVCASM_ALIGN(32, int16_t, coefficients[32 * 32]);
 	HEVCASM_ALIGN(32, uint8_t, predicted[32 * 32]);
@@ -574,7 +657,7 @@ void hevcasm_test_inverse_transform_add(int *error_count, hevcasm_instruction_se
 	for (int x = 0; x < 32 * 32; x++) coefficients[x] = ((rand() << 1) ^ rand()) & 0xffff;
 	for (int x = 0; x < 32 * 32; x++) predicted[x] = rand() & 0xff;
 
-	bind_inverse_transform_add b[2];
+	bind_inverse_transform_add8 b[2];
 	b[0].coefficients = coefficients;
 	b[0].predicted = predicted;
 
@@ -584,7 +667,7 @@ void hevcasm_test_inverse_transform_add(int *error_count, hevcasm_instruction_se
 		b[0].log2TrafoSize = (j == 1) ? 2 : j;
 		b[1] = b[0];
 
-		*error_count += hevcasm_test(&b[0], &b[1], init_inverse_transform_add, invoke_inverse_transform_add, mismatch_transform_add, mask, 100000);
+		*error_count += hevcasm_test(&b[0], &b[1], init_inverse_transform_add8, invoke_inverse_transform_add8, mismatch_transform_add8, mask, 100000);
 	}
 }
 

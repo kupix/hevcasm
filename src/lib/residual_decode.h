@@ -51,16 +51,24 @@ extern "C"
 
 
 
-typedef void hevcasm_inverse_transform_add(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t *coeffs);
+typedef void hevcasm_inverse_transform_add8(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t *coeffs, int bitDepth);
+typedef void hevcasm_inverse_transform_add16(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *pred, ptrdiff_t stride_pred, const int16_t *coeffs, int bitDepth);
 
 typedef struct
 {
-	hevcasm_inverse_transform_add *dst;
-	hevcasm_inverse_transform_add *dct[4];
+	hevcasm_inverse_transform_add8 *dst;
+	hevcasm_inverse_transform_add8 *dct[4];
 }
-hevcasm_table_inverse_transform_add;
+hevcasm_table_inverse_transform_add8;
 
-static hevcasm_inverse_transform_add** hevcasm_get_inverse_transform_add(hevcasm_table_inverse_transform_add *table, int trType, int log2TrafoSize)
+typedef struct
+{
+	hevcasm_inverse_transform_add16 *dst;
+	hevcasm_inverse_transform_add16 *dct[4];
+}
+hevcasm_table_inverse_transform_add16;
+
+static hevcasm_inverse_transform_add8** hevcasm_get_inverse_transform_add8(hevcasm_table_inverse_transform_add8 *table, int trType, int log2TrafoSize)
 {
 	if (trType)
 	{
@@ -73,9 +81,24 @@ static hevcasm_inverse_transform_add** hevcasm_get_inverse_transform_add(hevcasm
 	}
 }
 
-void HEVCASM_API hevcasm_populate_inverse_transform_add(hevcasm_table_inverse_transform_add *table, hevcasm_instruction_set mask, int encoder);
+static hevcasm_inverse_transform_add16** hevcasm_get_inverse_transform_add16(hevcasm_table_inverse_transform_add16 *table, int trType, int log2TrafoSize)
+{
+	if (trType)
+	{
+		assert(log2TrafoSize == 2);
+		return &table->dst;
+	}
+	else
+	{
+		return &table->dct[log2TrafoSize - 2];
+	}
+}
 
-void HEVCASM_API hevcasm_test_inverse_transform_add(int *error_count, hevcasm_instruction_set mask);
+void HEVCASM_API hevcasm_populate_inverse_transform_add8(hevcasm_table_inverse_transform_add8 *table, hevcasm_instruction_set mask, int encoder);
+void HEVCASM_API hevcasm_populate_inverse_transform_add16(hevcasm_table_inverse_transform_add16 *table, hevcasm_instruction_set mask, int encoder);
+
+void HEVCASM_API hevcasm_test_inverse_transform_add8(int *error_count, hevcasm_instruction_set mask);
+void HEVCASM_API hevcasm_test_inverse_transform_add16(int *error_count, hevcasm_instruction_set mask);
 
 
 // Review: this is an encode function in a file called "residual_decode.h"
