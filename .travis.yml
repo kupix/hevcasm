@@ -14,6 +14,9 @@ cache:
     - $HOME/sde-external-7.31.0-2015-09-25-lin
 
 before_script:
+  - wget --no-check-certificate http://www.cmake.org/files/v3.3/cmake-3.3.2-Linux-i386.tar.gz
+      && tar -xzf cmake-3.3.2-Linux-i386.tar.gz
+      && sudo cp -fR cmake-3.3.2-Linux-i386/* /usr  
   - wget http://www.nasm.us/pub/nasm/releasebuilds/2.11.08/nasm-2.11.08.tar.gz
   - tar xf nasm-2.11.08.tar.gz
   - cd nasm-2.11.08

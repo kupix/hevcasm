@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project (HEVCasm)
 add_subdirectory (src/lib)
+set(ASMJIT_STATIC true)
+add_subdirectory (asmjit)
 add_subdirectory (src/bin)
