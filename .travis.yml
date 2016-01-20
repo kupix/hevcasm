@@ -40,8 +40,9 @@ before_script:
 
 script:
   - export CC=gcc-4.8
-  - autoreconf -iv
-  - ./configure
+  - mkdir build
+  - cd build
+  - cmake ..
   - make
-  - sde64 -hsw -- ./src/bin/hevcasm
+  - sde64 -hsw -- hevcasm
 

@@ -36,7 +36,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "sad_a.h"
 #include "sad.h"
 #include "hevcasm_test.h"
-#include "vp9_rtcd.h"
+//#include "vp9_rtcd.h"
 
 #include <stdlib.h>
 #include <string.h>
