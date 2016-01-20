@@ -9,12 +9,6 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
-    <Filter Include="NASM Files">
-      <UniqueIdentifier>{dfbf93b7-36ec-4d01-b687-3f8caab800b3}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Yasm Files">
-      <UniqueIdentifier>{1a7ba7e9-376f-4500-a0ac-620bbca30bee}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="residual_decode.h">
@@ -58,47 +52,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <YASM Include="residual_decode_a.asm">
-      <Filter>Yasm Files</Filter>
-    </YASM>
-    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad4d_sse2.asm">
-      <Filter>Yasm Files</Filter>
-    </YASM>
-    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_mmx.asm">
-      <Filter>Yasm Files</Filter>
-    </YASM>
-    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_sse2.asm">
-      <Filter>Yasm Files</Filter>
-    </YASM>
-    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_sse3.asm">
-      <Filter>Yasm Files</Filter>
-    </YASM>
-    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_sse4.asm">
-      <Filter>Yasm Files</Filter>
-    </YASM>
-    <YASM Include="libvpx\vp9\encoder\x86\vp9_sad_ssse3.asm">
-      <Filter>Yasm Files</Filter>
-    </YASM>
-    <YASM Include="pred_inter_a.asm">
-      <Filter>Yasm Files</Filter>
-    </YASM>
-    <YASM Include="diff_a.asm">
-      <Filter>Yasm Files</Filter>
-    </YASM>
-    <YASM Include="quantize_a.asm">
-      <Filter>Yasm Files</Filter>
-    </YASM>
-    <YASM Include="hadamard_a.asm">
-      <Filter>Yasm Files</Filter>
-    </YASM>
-    <YASM Include="ssd_a.asm">
-      <Filter>Yasm Files</Filter>
-    </YASM>
-    <YASM Include="sad_a.asm">
-      <Filter>Yasm Files</Filter>
-    </YASM>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="hevcasm.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -129,19 +82,5 @@
     <ClCompile Include="ssd.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="f265\dct.asm">
-      <Filter>NASM Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="f265\encode.asm">
-      <Filter>NASM Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="f265\intra.asm">
-      <Filter>NASM Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="f265\pixel.asm">
-      <Filter>NASM Files</Filter>
-    </CustomBuild>
   </ItemGroup>
 </Project>

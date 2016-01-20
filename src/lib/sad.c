@@ -64,17 +64,17 @@ hevcasm_sad* get_sad(int width, int height, hevcasm_instruction_set mask)
 {
 	if (mask & HEVCASM_SSE2) switch (HEVCASM_RECT(width, height))
 	{
-	case HEVCASM_RECT(64, 64): return (hevcasm_sad*)&vp9_sad64x64_sse2;
-	case HEVCASM_RECT(64, 32): return (hevcasm_sad*)&vp9_sad64x32_sse2;
-	case HEVCASM_RECT(32, 64): return (hevcasm_sad*)&vp9_sad32x64_sse2;
-	case HEVCASM_RECT(32, 32): return (hevcasm_sad*)&vp9_sad32x32_sse2;
-	case HEVCASM_RECT(32, 16): return (hevcasm_sad*)&vp9_sad32x16_sse2;
-	case HEVCASM_RECT(16, 32): return (hevcasm_sad*)&vp9_sad16x32_sse2;
-	case HEVCASM_RECT(16, 16): return (hevcasm_sad*)&vp9_sad16x16_sse2;
-	case HEVCASM_RECT(16, 8): return (hevcasm_sad*)&vp9_sad16x8_sse2;
-	case HEVCASM_RECT(8, 16): return (hevcasm_sad*)&vp9_sad8x16_sse2;
-	case HEVCASM_RECT(8, 8): return (hevcasm_sad*)&vp9_sad8x8_sse2;
-	case HEVCASM_RECT(8, 4): return (hevcasm_sad*)&vp9_sad8x4_sse2;
+	//case HEVCASM_RECT(64, 64): return (hevcasm_sad*)&vp9_sad64x64_sse2;
+	//case HEVCASM_RECT(64, 32): return (hevcasm_sad*)&vp9_sad64x32_sse2;
+	//case HEVCASM_RECT(32, 64): return (hevcasm_sad*)&vp9_sad32x64_sse2;
+	//case HEVCASM_RECT(32, 32): return (hevcasm_sad*)&vp9_sad32x32_sse2;
+	//case HEVCASM_RECT(32, 16): return (hevcasm_sad*)&vp9_sad32x16_sse2;
+	//case HEVCASM_RECT(16, 32): return (hevcasm_sad*)&vp9_sad16x32_sse2;
+	//case HEVCASM_RECT(16, 16): return (hevcasm_sad*)&vp9_sad16x16_sse2;
+	//case HEVCASM_RECT(16, 8): return (hevcasm_sad*)&vp9_sad16x8_sse2;
+	//case HEVCASM_RECT(8, 16): return (hevcasm_sad*)&vp9_sad8x16_sse2;
+	//case HEVCASM_RECT(8, 8): return (hevcasm_sad*)&vp9_sad8x8_sse2;
+	//case HEVCASM_RECT(8, 4): return (hevcasm_sad*)&vp9_sad8x4_sse2;
 	}
 
 	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
@@ -133,30 +133,30 @@ hevcasm_sad_multiref* get_sad_multiref(int ways, int width, int height, hevcasm_
 
 	if (mask & HEVCASM_SSE2) switch (HEVCASM_RECT(width, height))
 	{
-	case HEVCASM_RECT(64, 64): f = (hevcasm_sad_multiref*)&vp9_sad64x64x4d_sse2; break;
-	case HEVCASM_RECT(64, 32): f = (hevcasm_sad_multiref*)&vp9_sad64x32x4d_sse2; break;
-	case HEVCASM_RECT(32, 64): f = (hevcasm_sad_multiref*)&vp9_sad32x64x4d_sse2; break;
-	case HEVCASM_RECT(32, 32): f = (hevcasm_sad_multiref*)&vp9_sad32x32x4d_sse2; break;
-	case HEVCASM_RECT(32, 16): f = (hevcasm_sad_multiref*)&vp9_sad32x16x4d_sse2; break;
-	case HEVCASM_RECT(16, 32): f = (hevcasm_sad_multiref*)&vp9_sad16x32x4d_sse2; break;
-	case HEVCASM_RECT(16, 16): f = (hevcasm_sad_multiref*)&vp9_sad16x16x4d_sse2; break;
-	case HEVCASM_RECT(16, 8): f = (hevcasm_sad_multiref*)&vp9_sad16x8x4d_sse2; break;
-	case HEVCASM_RECT(8, 16): f = (hevcasm_sad_multiref*)&vp9_sad8x16x4d_sse2; break;
-	case HEVCASM_RECT(8, 8): f = (hevcasm_sad_multiref*)&vp9_sad8x8x4d_sse2; break;
-	case HEVCASM_RECT(8, 4): f = (hevcasm_sad_multiref*)&vp9_sad8x4x4d_sse2; break;
+	//case HEVCASM_RECT(64, 64): f = (hevcasm_sad_multiref*)&vp9_sad64x64x4d_sse2; break;
+	//case HEVCASM_RECT(64, 32): f = (hevcasm_sad_multiref*)&vp9_sad64x32x4d_sse2; break;
+	//case HEVCASM_RECT(32, 64): f = (hevcasm_sad_multiref*)&vp9_sad32x64x4d_sse2; break;
+	//case HEVCASM_RECT(32, 32): f = (hevcasm_sad_multiref*)&vp9_sad32x32x4d_sse2; break;
+	//case HEVCASM_RECT(32, 16): f = (hevcasm_sad_multiref*)&vp9_sad32x16x4d_sse2; break;
+	//case HEVCASM_RECT(16, 32): f = (hevcasm_sad_multiref*)&vp9_sad16x32x4d_sse2; break;
+	//case HEVCASM_RECT(16, 16): f = (hevcasm_sad_multiref*)&vp9_sad16x16x4d_sse2; break;
+	//case HEVCASM_RECT(16, 8): f = (hevcasm_sad_multiref*)&vp9_sad16x8x4d_sse2; break;
+	//case HEVCASM_RECT(8, 16): f = (hevcasm_sad_multiref*)&vp9_sad8x16x4d_sse2; break;
+	//case HEVCASM_RECT(8, 8): f = (hevcasm_sad_multiref*)&vp9_sad8x8x4d_sse2; break;
+	//case HEVCASM_RECT(8, 4): f = (hevcasm_sad_multiref*)&vp9_sad8x4x4d_sse2; break;
 	}
 
-	if (mask & HEVCASM_AVX2) switch (width)
-	{
-	case 64: f = hevcasm_sad_multiref_4_64xh_avx2; break;
-	case 48: f = hevcasm_sad_multiref_4_48xh_avx2; break;
-	case 32: f = hevcasm_sad_multiref_4_32xh_avx2; break;
-	case 24: f = hevcasm_sad_multiref_4_24xh_avx2; break;
-	case 16: f = hevcasm_sad_multiref_4_16xh_avx2; break;
-	case 12: f = hevcasm_sad_multiref_4_12xh_avx2; break;
-	case 8: if (!f) f = hevcasm_sad_multiref_4_8xh_avx2; break;
-	case 4: f = hevcasm_sad_multiref_4_4xh_avx2; break;
-	}
+	//if (mask & HEVCASM_AVX2) switch (width)
+	//{
+	//case 64: f = hevcasm_sad_multiref_4_64xh_avx2; break;
+	//case 48: f = hevcasm_sad_multiref_4_48xh_avx2; break;
+	//case 32: f = hevcasm_sad_multiref_4_32xh_avx2; break;
+	//case 24: f = hevcasm_sad_multiref_4_24xh_avx2; break;
+	//case 16: f = hevcasm_sad_multiref_4_16xh_avx2; break;
+	//case 12: f = hevcasm_sad_multiref_4_12xh_avx2; break;
+	//case 8: if (!f) f = hevcasm_sad_multiref_4_8xh_avx2; break;
+	//case 4: f = hevcasm_sad_multiref_4_4xh_avx2; break;
+	//}
 
 	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{

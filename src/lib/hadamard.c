@@ -150,12 +150,12 @@ void HEVCASM_API hevcasm_populate_hadamard_satd(hevcasm_table_hadamard_satd *tab
 #ifdef HEVCASM_X64
 	if (mask & HEVCASM_SSE2)
 	{
-		*hevcasm_get_hadamard_satd(table, 2) = hevcasm_hadamard_satd_4x4_sse2;
+		//*hevcasm_get_hadamard_satd(table, 2) = hevcasm_hadamard_satd_4x4_sse2;
 	}
 
 	if (mask & HEVCASM_AVX2)
 	{
-		*hevcasm_get_hadamard_satd(table, 3) = hevcasm_hadamard_satd_8x8_avx2;
+		//*hevcasm_get_hadamard_satd(table, 3) = hevcasm_hadamard_satd_8x8_avx2;
 	}
 #endif
 }

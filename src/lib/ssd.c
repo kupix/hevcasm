@@ -79,9 +79,9 @@ void HEVCASM_API hevcasm_populate_ssd(hevcasm_table_ssd *table, hevcasm_instruct
 
 	if (mask & HEVCASM_AVX)
 	{
-		*hevcasm_get_ssd(table, 4) = hevcasm_ssd_16x16_avx;
-		*hevcasm_get_ssd(table, 5) = hevcasm_ssd_32x32_avx;
-		*hevcasm_get_ssd(table, 6) = hevcasm_ssd_64x64_avx;
+		//*hevcasm_get_ssd(table, 4) = hevcasm_ssd_16x16_avx;
+		//*hevcasm_get_ssd(table, 5) = hevcasm_ssd_32x32_avx;
+		//*hevcasm_get_ssd(table, 6) = hevcasm_ssd_64x64_avx;
 	}
 }
 

@@ -68,7 +68,7 @@ static hevcasm_quantize_inverse * get_quantize_inverse(hevcasm_instruction_set m
 	
 	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT)) f = hevcasm_quantize_inverse_c_ref;
 
-	if (mask & HEVCASM_SSE41) f = hevcasm_quantize_inverse_sse4;
+	//if (mask & HEVCASM_SSE41) f = hevcasm_quantize_inverse_sse4;
 
 	return f;
 }
@@ -192,7 +192,7 @@ static hevcasm_quantize * get_quantize(hevcasm_instruction_set mask)
 
 	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT)) f = hevcasm_quantize_c_ref;
 
-	if (mask & HEVCASM_SSE41) f = hevcasm_quantize_sse4;
+	//if (mask & HEVCASM_SSE41) f = hevcasm_quantize_sse4;
 
 	return f;
 }
@@ -311,10 +311,10 @@ hevcasm_quantize_reconstruct * HEVCASM_API get_quantize_reconstruct(int log2Traf
 	if (mask & HEVCASM_SSE41)
 	{
 		const int nCbS = 1 << log2TrafoSize;
-		if (nCbS == 4) f = hevcasm_quantize_reconstruct_4x4_sse4;
-		if (nCbS == 8) f = hevcasm_quantize_reconstruct_8x8_sse4;
-		if (nCbS == 16) f = hevcasm_quantize_reconstruct_16x16_sse4;
-		if (nCbS == 32) f = hevcasm_quantize_reconstruct_32x32_sse4;
+		//if (nCbS == 4) f = hevcasm_quantize_reconstruct_4x4_sse4;
+		//if (nCbS == 8) f = hevcasm_quantize_reconstruct_8x8_sse4;
+		//if (nCbS == 16) f = hevcasm_quantize_reconstruct_16x16_sse4;
+		//if (nCbS == 32) f = hevcasm_quantize_reconstruct_32x32_sse4;
 	}
 
 	return f;

@@ -294,15 +294,16 @@ static hevcasm_pred_uni_8to8* get_pred_uni_8to8(int taps, int w, int h, int xFra
 	{
 		if (!xFrac && !yFrac)
 		{
-			if (w <= 64) f = hevcasm_pred_uni_copy_8to8_64xh_sse2;
-			if (w <= 48) f = hevcasm_pred_uni_copy_8to8_48xh_sse2;
-			if (w <= 32) f = hevcasm_pred_uni_copy_8to8_32xh_sse2;
-			if (w <= 16) f = hevcasm_pred_uni_copy_8to8_16xh_sse2;
+			//if (w <= 64) f = hevcasm_pred_uni_copy_8to8_64xh_sse2;
+			//if (w <= 48) f = hevcasm_pred_uni_copy_8to8_48xh_sse2;
+			//if (w <= 32) f = hevcasm_pred_uni_copy_8to8_32xh_sse2;
+			//if (w <= 16) f = hevcasm_pred_uni_copy_8to8_16xh_sse2;
 		}
 	}
 
 	if (mask & HEVCASM_SSE41)
 	{
+#if 0
 		if (taps == 8 && xFrac && !yFrac)
 		{
 			if (w <= 64) f = hevcasm_pred_uni_8tap_8to8_h_64xh_sse4;
@@ -343,6 +344,7 @@ static hevcasm_pred_uni_8to8* get_pred_uni_8to8(int taps, int w, int h, int xFra
 			if (w <= 32) f = hevcasm_pred_uni_4tap_8to8_hv_32xh_sse4;
 			if (w <= 16) f = hevcasm_pred_uni_4tap_8to8_hv_16xh_sse4;
 		}
+#endif
 	}
 	return f;
 }
@@ -530,29 +532,29 @@ MAKE_hevcasm_pred_bi_xtap_8to8(8)
 MAKE_hevcasm_pred_bi_xtap_8to8(4)
 
 
-#define MAKE_hevcasm_pred_bi_xtap_8to8_sse4(taps, width) \
-	\
-	void hevcasm_pred_bi_ ## taps ## tap_8to8_ ## width ## xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref0, const uint8_t *ref1, ptrdiff_t stride_ref, int w, int h, int xFrac0, int yFrac0, int xFrac1, int yFrac1) \
-{ \
-	HEVCASM_ALIGN(32, int16_t, intermediate[2][(64 + taps - 1) * 64]); /* todo: can reduce stack usage here by making array size function of width */ \
-	\
-	/* Horizontal filter */ \
-	hevcasm_pred_uni_ ## taps ## tap_8to16_h_ ## width ## xh_sse4(intermediate[0], 64, ref0 - (taps/2-1) * stride_ref, stride_ref, w, h + taps - 1, xFrac0, 0); \
-	 \
-	/* Horizontal filter */ \
-	hevcasm_pred_uni_ ## taps ## tap_8to16_h_ ## width ## xh_sse4(intermediate[1], 64, ref1 - (taps/2-1) * stride_ref, stride_ref, w, h + taps - 1, xFrac1, 0); \
-	\
-	/* Two vertical filters and combine their output for bi pred */ \
-	hevcasm_pred_bi_v_ ## taps ## tap_16to16_ ## width ## xh_sse4(dst, stride_dst, intermediate[0], intermediate[1], 64, w, h, yFrac0, yFrac1); \
-} \
-
-MAKE_hevcasm_pred_bi_xtap_8to8_sse4(8, 16)
-MAKE_hevcasm_pred_bi_xtap_8to8_sse4(8, 32)
-MAKE_hevcasm_pred_bi_xtap_8to8_sse4(8, 48)
-MAKE_hevcasm_pred_bi_xtap_8to8_sse4(8, 64)
-
-MAKE_hevcasm_pred_bi_xtap_8to8_sse4(4, 16)
-MAKE_hevcasm_pred_bi_xtap_8to8_sse4(4, 32)
+//#define MAKE_hevcasm_pred_bi_xtap_8to8_sse4(taps, width) \
+//	\
+//	void hevcasm_pred_bi_ ## taps ## tap_8to8_ ## width ## xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref0, const uint8_t *ref1, ptrdiff_t stride_ref, int w, int h, int xFrac0, int yFrac0, int xFrac1, int yFrac1) \
+//{ \
+//	HEVCASM_ALIGN(32, int16_t, intermediate[2][(64 + taps - 1) * 64]); /* todo: can reduce stack usage here by making array size function of width */ \
+//	\
+//	/* Horizontal filter */ \
+//	hevcasm_pred_uni_ ## taps ## tap_8to16_h_ ## width ## xh_sse4(intermediate[0], 64, ref0 - (taps/2-1) * stride_ref, stride_ref, w, h + taps - 1, xFrac0, 0); \
+//	 \
+//	/* Horizontal filter */ \
+//	hevcasm_pred_uni_ ## taps ## tap_8to16_h_ ## width ## xh_sse4(intermediate[1], 64, ref1 - (taps/2-1) * stride_ref, stride_ref, w, h + taps - 1, xFrac1, 0); \
+//	\
+//	/* Two vertical filters and combine their output for bi pred */ \
+//	hevcasm_pred_bi_v_ ## taps ## tap_16to16_ ## width ## xh_sse4(dst, stride_dst, intermediate[0], intermediate[1], 64, w, h, yFrac0, yFrac1); \
+//} \
+//
+//MAKE_hevcasm_pred_bi_xtap_8to8_sse4(8, 16)
+//MAKE_hevcasm_pred_bi_xtap_8to8_sse4(8, 32)
+//MAKE_hevcasm_pred_bi_xtap_8to8_sse4(8, 48)
+//MAKE_hevcasm_pred_bi_xtap_8to8_sse4(8, 64)
+//
+//MAKE_hevcasm_pred_bi_xtap_8to8_sse4(4, 16)
+//MAKE_hevcasm_pred_bi_xtap_8to8_sse4(4, 32)
 
 
 hevcasm_pred_bi_8to8* get_pred_bi_8to8(int taps, int w, int h, int xFracA, int yFracA, int xFracB, int yFracB, hevcasm_instruction_set mask)
@@ -569,10 +571,10 @@ hevcasm_pred_bi_8to8* get_pred_bi_8to8(int taps, int w, int h, int xFracA, int y
 	{
 		if (!xFracA && !yFracA && !xFracB && !yFracB)
 		{
-			if (w <= 64) f = hevcasm_pred_bi_8to8_copy_64xh_sse2;
-			if (w <= 48) f = hevcasm_pred_bi_8to8_copy_48xh_sse2;
-			if (w <= 32) f = hevcasm_pred_bi_8to8_copy_32xh_sse2;
-			if (w <= 16) f = hevcasm_pred_bi_8to8_copy_16xh_sse2;
+			//if (w <= 64) f = hevcasm_pred_bi_8to8_copy_64xh_sse2;
+			//if (w <= 48) f = hevcasm_pred_bi_8to8_copy_48xh_sse2;
+			//if (w <= 32) f = hevcasm_pred_bi_8to8_copy_32xh_sse2;
+			//if (w <= 16) f = hevcasm_pred_bi_8to8_copy_16xh_sse2;
 		}
 	}
 
@@ -580,15 +582,15 @@ hevcasm_pred_bi_8to8* get_pred_bi_8to8(int taps, int w, int h, int xFracA, int y
 	{
 		if (taps == 8 && (xFracA || yFracA || xFracB || yFracB))
 		{
-			if (w <= 64) f = hevcasm_pred_bi_8tap_8to8_64xh_sse4;
-			if (w <= 48) f = hevcasm_pred_bi_8tap_8to8_48xh_sse4;
-			if (w <= 32) f = hevcasm_pred_bi_8tap_8to8_32xh_sse4;
-			if (w <= 16) f = hevcasm_pred_bi_8tap_8to8_16xh_sse4;
+			//if (w <= 64) f = hevcasm_pred_bi_8tap_8to8_64xh_sse4;
+			//if (w <= 48) f = hevcasm_pred_bi_8tap_8to8_48xh_sse4;
+			//if (w <= 32) f = hevcasm_pred_bi_8tap_8to8_32xh_sse4;
+			//if (w <= 16) f = hevcasm_pred_bi_8tap_8to8_16xh_sse4;
 		}
 		if (taps == 4 && (xFracA || yFracA || xFracB || yFracB))
 		{
-			if (w <= 32) f = hevcasm_pred_bi_4tap_8to8_32xh_sse4;
-			if (w <= 16) f = hevcasm_pred_bi_4tap_8to8_16xh_sse4;
+			//if (w <= 32) f = hevcasm_pred_bi_4tap_8to8_32xh_sse4;
+			//if (w <= 16) f = hevcasm_pred_bi_4tap_8to8_16xh_sse4;
 		}
 	}
 

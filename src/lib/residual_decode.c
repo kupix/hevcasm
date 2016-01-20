@@ -415,25 +415,25 @@ void hevcasm_idct_32x32_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t 
 
 /* hevcasm_idct_8x8_ssse3 uses too many xmm registers for a 32-bit build */
 #ifdef HEVCASM_X64
-void hevcasm_idct_8x8_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[8 * 8])
-{
-	HEVCASM_ALIGN(32, int16_t, temp[2][8 * 8]);
-	hevcasm_partial_butterfly_inverse_8v_ssse3(temp[0], coeffs, 7);
-	hevcasm_partial_butterfly_inverse_8h_ssse3(temp[1], temp[0], 12);
-	hevcasm_add_residual(8, dst, stride_dst, pred, stride_pred, temp[1]);
-}
+//void hevcasm_idct_8x8_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[8 * 8])
+//{
+//	HEVCASM_ALIGN(32, int16_t, temp[2][8 * 8]);
+//	hevcasm_partial_butterfly_inverse_8v_ssse3(temp[0], coeffs, 7);
+//	hevcasm_partial_butterfly_inverse_8h_ssse3(temp[1], temp[0], 12);
+//	hevcasm_add_residual(8, dst, stride_dst, pred, stride_pred, temp[1]);
+//}
 #endif
 
 
 /* hevcasm_idct_16x16_ssse3 uses too many xmm registers for a 32-bit build */
 #ifdef HEVCASM_X64
-void hevcasm_idct_16x16_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[16 * 16])
-{
-	HEVCASM_ALIGN(32, int16_t, temp[2][16 * 16]);
-	hevcasm_partial_butterfly_inverse_16v_ssse3(temp[0], coeffs, 7);
-	hevcasm_partial_butterfly_inverse_16h_ssse3(temp[1], temp[0], 12);
-	hevcasm_add_residual(16, dst, stride_dst, pred, stride_pred, temp[1]);
-}
+//void hevcasm_idct_16x16_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[16 * 16])
+//{
+//	HEVCASM_ALIGN(32, int16_t, temp[2][16 * 16]);
+//	hevcasm_partial_butterfly_inverse_16v_ssse3(temp[0], coeffs, 7);
+//	hevcasm_partial_butterfly_inverse_16h_ssse3(temp[1], temp[0], 12);
+//	hevcasm_add_residual(16, dst, stride_dst, pred, stride_pred, temp[1]);
+//}
 #endif
 
 
@@ -449,11 +449,11 @@ void hevcasm_##op##_##size##x##size##_avx2(uint8_t *dst, ptrdiff_t stride_dst, c
 	f265_lbd_##op##_##size##_avx2(dst, (int)stride_dst, pred, (int)stride_pred, coeffs, &spill[8 * size * size]); \
 } \
 
-F265_IDCT_WRAPPER_FUNCTION(idst, 4)
-F265_IDCT_WRAPPER_FUNCTION(idct, 4)
-F265_IDCT_WRAPPER_FUNCTION(idct, 8)
-F265_IDCT_WRAPPER_FUNCTION(idct, 16)
-F265_IDCT_WRAPPER_FUNCTION(idct, 32)
+//F265_IDCT_WRAPPER_FUNCTION(idst, 4)
+//F265_IDCT_WRAPPER_FUNCTION(idct, 4)
+//F265_IDCT_WRAPPER_FUNCTION(idct, 8)
+//F265_IDCT_WRAPPER_FUNCTION(idct, 16)
+//F265_IDCT_WRAPPER_FUNCTION(idct, 32)
 
 #endif
 
@@ -475,24 +475,24 @@ static hevcasm_inverse_transform_add* get_inverse_transform_add(int trType, int 
 #ifdef HEVCASM_X64
 	if (mask & HEVCASM_SSSE3)
 	{
-		if (nCbS == 8) f = hevcasm_idct_8x8_ssse3;
-		if (nCbS == 16) f = hevcasm_idct_16x16_ssse3;
+		//if (nCbS == 8) f = hevcasm_idct_8x8_ssse3;
+		//if (nCbS == 16) f = hevcasm_idct_16x16_ssse3;
 	}
 
 	if (mask & HEVCASM_AVX2)
 	{
-		if (nCbS == 4 && !trType) f = hevcasm_idct_4x4_avx2;
-		if (nCbS == 4 && trType) f =  hevcasm_idst_4x4_avx2;
-		if (nCbS == 8) f = hevcasm_idct_8x8_avx2;
-		if (nCbS == 16) f = hevcasm_idct_16x16_avx2;
+		//if (nCbS == 4 && !trType) f = hevcasm_idct_4x4_avx2;
+		//if (nCbS == 4 && trType) f =  hevcasm_idst_4x4_avx2;
+		//if (nCbS == 8) f = hevcasm_idct_8x8_avx2;
+		//if (nCbS == 16) f = hevcasm_idct_16x16_avx2;
 
-		// The 32x32 idct from f265 is non-conforming. Suspect arithmetic overflow.
-		// This probem becomes apparent when decoding the DELTAQP_A conformance stream which has artificial, extreme coefficient values.
-		if (encoder)
-		{
-			// If we are using this function inside an encoder with naturally occuring quantised input coefficients, it will not cause a problem.
-			if (nCbS == 32) f = hevcasm_idct_32x32_avx2;
-		}
+		//// The 32x32 idct from f265 is non-conforming. Suspect arithmetic overflow.
+		//// This probem becomes apparent when decoding the DELTAQP_A conformance stream which has artificial, extreme coefficient values.
+		//if (encoder)
+		//{
+		//	// If we are using this function inside an encoder with naturally occuring quantised input coefficients, it will not cause a problem.
+		//	if (nCbS == 32) f = hevcasm_idct_32x32_avx2;
+		//}
 	}
 #endif
 
@@ -894,12 +894,12 @@ void hevcasm_dct_32x32_c_opt(int16_t coeffs[32 * 32], const int16_t *src, ptrdif
 
 /* hevcasm_dct_16x16_ssse3 uses too many xmm registers for a 32-bit build */
 #ifdef HEVCASM_X64
-void hevcasm_dct_16x16_ssse3(int16_t *coeffs, const int16_t *src, ptrdiff_t src_stride)
-{
-	HEVCASM_ALIGN(32, int16_t, temp[16 * 16]);
-	hevcasm_partial_butterfly_16h_ssse3(temp, src, src_stride, 3);
-	hevcasm_partial_butterfly_16v_ssse3(coeffs, temp, 10);
-}
+//void hevcasm_dct_16x16_ssse3(int16_t *coeffs, const int16_t *src, ptrdiff_t src_stride)
+//{
+//	HEVCASM_ALIGN(32, int16_t, temp[16 * 16]);
+//	hevcasm_partial_butterfly_16h_ssse3(temp, src, src_stride, 3);
+//	hevcasm_partial_butterfly_16v_ssse3(coeffs, temp, 10);
+//}
 #endif
 
 
@@ -920,7 +920,7 @@ hevcasm_transform* HEVCASM_API get_transform(int trType, int log2TrafoSize, hevc
 #ifdef HEVCASM_X64
 	if (mask & HEVCASM_SSSE3)
 	{
-		if (nCbS == 16) f = hevcasm_dct_16x16_ssse3;
+//		if (nCbS == 16) f = hevcasm_dct_16x16_ssse3;
 	}
 #endif
 
