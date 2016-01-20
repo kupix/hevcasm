@@ -36,13 +36,16 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "sad_a.h"
 #include "sad.h"
 #include "hevcasm_test.h"
-//#include "vp9_rtcd.h"
+
+#include "asmjit/asmjit.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
-
+asmjit::JitRuntime runtime;
+asmjit::X86Assembler a(&runtime);
+asmjit::X86Compiler c(&a);
 
 static int hevcasm_sad_c_ref(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref, ptrdiff_t stride_ref, uint32_t rect)
 {
