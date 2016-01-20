@@ -192,12 +192,12 @@ void hevcasm_pred_uni_8tap_8to8_hv(uint8_t *dst, ptrdiff_t stride_dst, const uin
 	hevcasm_pred_uni_ ## taps ## tap_16to8_v ## suffix(dst, stride_dst, intermediate + (taps/2-1) * 64, 64, nPbW, nPbH, 0, yFrac); \
 } \
 
-MAKE_hevcasm_pred_uni_xtap_8to8_hv(8, _16xh_sse4)
-MAKE_hevcasm_pred_uni_xtap_8to8_hv(8, _32xh_sse4)
-MAKE_hevcasm_pred_uni_xtap_8to8_hv(8, _48xh_sse4)
-MAKE_hevcasm_pred_uni_xtap_8to8_hv(8, _64xh_sse4)
-MAKE_hevcasm_pred_uni_xtap_8to8_hv(4, _16xh_sse4)
-MAKE_hevcasm_pred_uni_xtap_8to8_hv(4, _32xh_sse4)
+//MAKE_hevcasm_pred_uni_xtap_8to8_hv(8, _16xh_sse4)
+//MAKE_hevcasm_pred_uni_xtap_8to8_hv(8, _32xh_sse4)
+//MAKE_hevcasm_pred_uni_xtap_8to8_hv(8, _48xh_sse4)
+//MAKE_hevcasm_pred_uni_xtap_8to8_hv(8, _64xh_sse4)
+//MAKE_hevcasm_pred_uni_xtap_8to8_hv(4, _16xh_sse4)
+//MAKE_hevcasm_pred_uni_xtap_8to8_hv(4, _32xh_sse4)
 
 
 void hevcasm_pred_uni_4tap_8to8_h(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac)
