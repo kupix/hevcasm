@@ -122,7 +122,7 @@ static void hevcasm_sad_multiref_4_c_ref(const uint8_t *src, ptrdiff_t stride_sr
 
 static void wrap(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref[], ptrdiff_t stride_ref, int sad[], uint32_t rect)
 {
-	hevcasm_sad_multiref_4_12xh_avx2(src, stride_src, ref, stride_ref, sad, rect);
+	//hevcasm_sad_multiref_4_12xh_avx2(src, stride_src, ref, stride_ref, sad, rect);
 }
 
 hevcasm_sad_multiref* get_sad_multiref(int ways, int width, int height, hevcasm_instruction_set mask)
