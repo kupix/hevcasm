@@ -47,6 +47,24 @@ asmjit::JitRuntime runtime;
 asmjit::X86Assembler a(&runtime);
 asmjit::X86Compiler c(&a);
 
+struct Compiler
+{
+	Compiler()
+	{
+		using namespace asmjit;
+		c.addFunc(FuncBuilder5<int, const uint8_t *, ptrdiff_t, const uint8_t *, ptrdiff_t, uint32_t>(kCallConvHost));
+		X86GpVar sad = c.newInt32("sad");
+		c.xor_(sad, sad);
+		c.ret(sad);
+		c.endFunc();
+		c.finalize();
+		this->mySad = asmjit_cast<hevcasm_sad *>(a.make());
+	}
+	hevcasm_sad *mySad;
+};
+
+Compiler compiler;
+
 static int hevcasm_sad_c_ref(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref, ptrdiff_t stride_ref, uint32_t rect)
 {
 	const int width = rect >> 8;
@@ -63,8 +81,13 @@ static int hevcasm_sad_c_ref(const uint8_t *src, ptrdiff_t stride_src, const uin
 }
 
 
+
 hevcasm_sad* get_sad(int width, int height, hevcasm_instruction_set mask)
 {
+	if ((mask & HEVCASM_AVX2) && width==64 && height== 64)
+	{
+		return compiler.mySad;
+	}
 	//if (mask & HEVCASM_SSE2) switch (HEVCASM_RECT(width, height))
 	//{
 	//case HEVCASM_RECT(64, 64): return (hevcasm_sad*)&vp9_sad64x64_sse2;
