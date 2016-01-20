@@ -524,7 +524,7 @@ bind_inverse_transform_add;
 
 int init_inverse_transform_add(void *p, hevcasm_instruction_set mask)
 {
-	bind_inverse_transform_add *s = p;
+	bind_inverse_transform_add *s = (bind_inverse_transform_add *)p;
 
 	hevcasm_table_inverse_transform_add table;
 
@@ -544,7 +544,7 @@ int init_inverse_transform_add(void *p, hevcasm_instruction_set mask)
 
 void invoke_inverse_transform_add(void *p, int n)
 {
-	bind_inverse_transform_add *s = p;
+	bind_inverse_transform_add *s = (bind_inverse_transform_add *)p;
 
 	while (n--)
 	{
@@ -555,8 +555,8 @@ void invoke_inverse_transform_add(void *p, int n)
 
 int mismatch_transform_add(void *boundRef, void *boundTest)
 {
-	bind_inverse_transform_add *ref = boundRef;
-	bind_inverse_transform_add *test = boundTest;
+	bind_inverse_transform_add *ref = (bind_inverse_transform_add *)boundRef;
+	bind_inverse_transform_add *test = (bind_inverse_transform_add *)boundTest;
 
 	const int nCbS = 1 << ref->log2TrafoSize;
 
@@ -952,7 +952,7 @@ bound_transform;
 
 int init_transform(void *p, hevcasm_instruction_set mask)
 {
-	bound_transform *s = p;
+	bound_transform *s = (bound_transform *)p;
 
 	hevcasm_table_transform table;
 	hevcasm_populate_transform(&table, mask);
@@ -972,7 +972,7 @@ int init_transform(void *p, hevcasm_instruction_set mask)
 
 void invoke_transform(void *p, int n)
 {
-	bound_transform *s = p;
+	bound_transform *s = (bound_transform *)p;
 
 	while (n--)
 	{
@@ -983,8 +983,8 @@ void invoke_transform(void *p, int n)
 
 int mismatch_transform(void *boundRef, void *boundTest)
 {
-	bound_transform *ref = boundRef;
-	bound_transform *test = boundTest;
+	bound_transform *ref = (bound_transform *)boundRef;
+	bound_transform *test = (bound_transform *)boundTest;
 	
 	const int nCbS = 1 << ref->log2TrafoSize;
 

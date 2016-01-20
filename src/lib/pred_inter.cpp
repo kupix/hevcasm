@@ -94,11 +94,11 @@ static void hevcasm_pred_uni_generic(
 	ptrdiff_t stride_tap, 
 	int n, int fractionalPosition, int shift, int add)
 {
-	int16_t *dst16 = dst;
-	uint8_t *dst8 = dst;
+	int16_t *dst16 = (int16_t *)dst;
+	uint8_t *dst8 = (uint8_t *)dst;
 
-	const int16_t *src16 = src;
-	const uint8_t *src8 = src;
+	const int16_t *src16 = (int16_t *)src;
+	const uint8_t *src8 = (uint8_t *)src;
 
 	while (h--)
 	{
@@ -390,7 +390,7 @@ bound_pred_uni;
 
 static int get_pred_uni(void *p, hevcasm_instruction_set mask)
 {
-	bound_pred_uni *s = p;
+	bound_pred_uni *s = (bound_pred_uni *)p;
 
 	hevcasm_table_pred_uni_8to8 table;
 
@@ -413,7 +413,7 @@ static int get_pred_uni(void *p, hevcasm_instruction_set mask)
 
 void invoke_pred_uni(void *p, int n)
 {
-	bound_pred_uni *s = p;
+	bound_pred_uni *s = (bound_pred_uni *)p;
 	while (n--)
 	{
 		s->f(s->dst, s->stride_dst, s->ref, s->stride_ref, s->w, s->h, s->xFrac, s->yFrac);
@@ -423,8 +423,8 @@ void invoke_pred_uni(void *p, int n)
 
 int mismatch_pred_uni(void *boundRef, void *boundTest)
 {
-	bound_pred_uni *ref = boundRef;
-	bound_pred_uni *test = boundTest;
+	bound_pred_uni *ref = (bound_pred_uni *)boundRef;
+	bound_pred_uni *test = (bound_pred_uni *)boundTest;
 
 	for (int y = 0; y < ref->h; ++y)
 	{
@@ -638,7 +638,7 @@ bound_pred_bi;
 
 int init_pred_bi_8to8(void *p, hevcasm_instruction_set mask)
 {
-	bound_pred_bi *s = p;
+	bound_pred_bi *s = (bound_pred_bi *)p;
 
 	hevcasm_table_pred_bi_8to8 table;
 
@@ -662,7 +662,7 @@ int init_pred_bi_8to8(void *p, hevcasm_instruction_set mask)
 
 void invoke_pred_bi_8to8(void *p, int n)
 {
-	bound_pred_bi *s = p;
+	bound_pred_bi *s = (bound_pred_bi *)p;
 	while (n--)
 	{
 		s->f(s->dst, s->stride_dst, s->refA, s->refB, s->stride_ref, s->w, s->h, s->xFracA, s->yFracA, s->xFracB, s->yFracB);
@@ -672,8 +672,8 @@ void invoke_pred_bi_8to8(void *p, int n)
 
 int mismatch_pred_bi_8to8(void *boundRef, void *boundTest)
 {
-	bound_pred_bi *ref = boundRef;
-	bound_pred_bi *test = boundTest;
+	bound_pred_bi *ref = (bound_pred_bi *)boundRef;
+	bound_pred_bi *test = (bound_pred_bi *)boundTest;
 
 	for (int y = 0; y < ref->h; ++y)
 	{

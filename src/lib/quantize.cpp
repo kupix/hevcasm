@@ -94,7 +94,7 @@ hevcasm_bound_quantize_inverse;
 
 int init_quantize_inverse(void *p, hevcasm_instruction_set mask)
 {
-	hevcasm_bound_quantize_inverse *s = p;
+	hevcasm_bound_quantize_inverse *s = (hevcasm_bound_quantize_inverse *)p;
 
 	hevcasm_table_quantize_inverse table;
 
@@ -127,8 +127,8 @@ void invoke_quantize_inverse(void *p, int count)
 
 int mismatch_quantize_inverse(void *boundRef, void *boundTest)
 {
-	hevcasm_bound_quantize_inverse *ref = boundRef;
-	hevcasm_bound_quantize_inverse *test = boundTest;
+	hevcasm_bound_quantize_inverse *ref = (hevcasm_bound_quantize_inverse *)boundRef;
+	hevcasm_bound_quantize_inverse *test = (hevcasm_bound_quantize_inverse *)boundTest;
 
 	const int nCbS = 1 << ref->log2TrafoSize;
 
@@ -222,7 +222,7 @@ hevcasm_bound_quantize;
 
 int init_quantize(void *p, hevcasm_instruction_set mask)
 {
-	hevcasm_bound_quantize *s = p;
+	hevcasm_bound_quantize *s = (hevcasm_bound_quantize *)p;
 	hevcasm_table_quantize table;
 	hevcasm_populate_quantize(&table, mask);
 	s->f = *hevcasm_get_quantize(&table);
@@ -249,8 +249,8 @@ void invoke_quantize(void *p, int iterations)
 
 int mismatch_quantize(void *boundRef, void *boundTest)
 {
-	hevcasm_bound_quantize *ref = boundRef;
-	hevcasm_bound_quantize *test = boundTest;
+	hevcasm_bound_quantize *ref = (hevcasm_bound_quantize *)boundRef;
+	hevcasm_bound_quantize *test = (hevcasm_bound_quantize *)boundTest;
 
 	const int n = 1 << (2 * ref->log2TrafoSize);
 
@@ -345,7 +345,7 @@ bound_quantize_reconstruct;
 
 int init_quantize_reconstruct(void *p, hevcasm_instruction_set mask)
 {
-	bound_quantize_reconstruct *s = p;
+	bound_quantize_reconstruct *s = (bound_quantize_reconstruct *)p;
 
 	hevcasm_table_quantize_reconstruct table;
 
@@ -367,7 +367,7 @@ int init_quantize_reconstruct(void *p, hevcasm_instruction_set mask)
 
 void invoke_quantize_reconstruct(void *p, int n)
 {
-	bound_quantize_reconstruct *s = p;
+	bound_quantize_reconstruct *s = (bound_quantize_reconstruct *)p;
 	while (n--)
 	{
 		const int nCbS = 1 << s->log2TrafoSize;
@@ -377,8 +377,8 @@ void invoke_quantize_reconstruct(void *p, int n)
 
 int mismatch_quantize_reconstruct(void *boundRef, void *boundTest)
 {
-	bound_quantize_reconstruct *ref = boundRef;
-	bound_quantize_reconstruct *test = boundTest;
+	bound_quantize_reconstruct *ref = (bound_quantize_reconstruct *)boundRef;
+	bound_quantize_reconstruct *test = (bound_quantize_reconstruct *)boundTest;
 
 	const int nCbS = 1 << ref->log2TrafoSize;
 

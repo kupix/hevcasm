@@ -152,7 +152,7 @@ bound_pred_intra;
 
 static int get_pred_intra(void *p, hevcasm_instruction_set mask)
 {
-	bound_pred_intra *s = p;
+	bound_pred_intra *s = (bound_pred_intra *)p;
 
 	const char *lookup[35] = { 0, "DC", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
@@ -184,7 +184,7 @@ static int get_pred_intra(void *p, hevcasm_instruction_set mask)
 
 void invoke_pred_intra(void *p, int n)
 {
-	bound_pred_intra *s = p;
+	bound_pred_intra *s = (bound_pred_intra *)p;
 	while (n--)
 	{
 		s->f(s->dst, s->neighbours, s->intraPredMode, s->packed);
@@ -194,8 +194,8 @@ void invoke_pred_intra(void *p, int n)
 
 int mismatch_pred_intra(void *boundRef, void *boundTest)
 {
-	bound_pred_intra *ref = boundRef;
-	bound_pred_intra *test = boundTest;
+	bound_pred_intra *ref = (bound_pred_intra *)boundRef;
+	bound_pred_intra *test = (bound_pred_intra *)boundTest;
 
 	const int k = (ref->packed >> 1) & 0x7f;
 	const int nTbS = 1 << k;

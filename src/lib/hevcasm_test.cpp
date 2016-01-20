@@ -20,7 +20,7 @@ and / or other materials provided with the distribution.
 be used to endorse or promote products derived from this software without
 specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"	
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 ARE DISCLAIMED.IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
@@ -33,97 +33,105 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "diff_a.h"
-#include "diff.h"
 #include "hevcasm_test.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
 
 
-static int hevcasm_ssd_linear_c_ref(const uint8_t *p1, const uint8_t *p2, int n)
+int hevcasm_count_average_cycles(
+	void *boundRef, void *boundTest,
+	hevcasm_bound_invoke *f, 
+	hevcasm_bound_mismatch *m, 
+	double *first_result, 
+	hevcasm_instruction_set set, 
+	int iterations)
 {
-	int sum = 0;
-	for (int i = 0; i<n; ++i)
+	hevcasm_timestamp sum = 0;
+	int warmup = 100;
+	int count = 0;
+	while (count < iterations)
 	{
-		const int diff = p1[i] - p2[i];
-		sum += diff * diff;
-	}
-	return sum;
-}
+		const hevcasm_timestamp start = hevcasm_get_timestamp();
+		f(boundTest, 4);
+		const hevcasm_timestamp duration = hevcasm_get_timestamp() - start;
 
-
-hevcasm_ssd_linear * HEVCASM_API hevcasm_get_ssd_linear(int size, hevcasm_instruction_set mask)
-{
-	hevcasm_ssd_linear *f = 0;
-	
-	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT)) f = hevcasm_ssd_linear_c_ref;
-
-	if (mask & HEVCASM_AVX) f = hevcasm_ssd_linear_avx;
-
-	return f;
-}
-
-
-#define BLOCK_SIZE 0x200
-
-
-typedef struct
-{
-	HEVCASM_ALIGN(32, uint8_t, data[2][BLOCK_SIZE]);
-	hevcasm_ssd_linear *f;
-	int ssd;
-}
-bound_ssd_linear;
-
-
-int get_ssd_linear(void *p, hevcasm_instruction_set mask)
-{
-	bound_ssd_linear *s = p;
-
-	s->f = hevcasm_get_ssd_linear(BLOCK_SIZE, mask);
-
-	if (mask == HEVCASM_C_REF) printf("\t%d:", BLOCK_SIZE);
-
-	return !!s->f;
-}
-
-
-void invoke_ssd_linear(void *p, int n)
-{
-	bound_ssd_linear *s = p;
-	while (n--)
-	{
-		s->ssd = s->f(s->data[0], s->data[1], BLOCK_SIZE);
-	}
-}
-
-
-int mismatch_ssd_linear(void *boundRef, void *boundTest)
-{
-	bound_ssd_linear *ref = boundRef;
-	bound_ssd_linear *test = boundTest;
-
-	return  ref->ssd != test->ssd;
-}
-
-
-void HEVCASM_API hevcasm_test_ssd_linear(int *error_count, hevcasm_instruction_set mask)
-{
-	printf("\nhevcasm_ssd_linear - Linear Sum of Square Differences\n");
-
-	bound_ssd_linear b[2];
-
-	for (int n = 0; n < 2; ++n)
-	{
-		for (int x = 0; x < BLOCK_SIZE; ++x)
+		if (warmup == 0)
 		{
-			b[0].data[n][x] = rand();
+			if (8 * duration * count < 7 * 4 * sum)
+			{
+				sum = 0;
+				count = 0;
+				warmup = 100;
+			}
+			else 	if (7 * duration * count <= 8 * 4 * sum)
+			{
+				count += 4;
+				sum += duration;
+			}
+			else
+			{
+				warmup = 100;
+			}
+		}
+		else
+		{
+			--warmup;
+		}
+	}
+	
+	{
+		const int average = (int)((sum + count / 2) / count);
+
+		printf(" %s:", hevcasm_instruction_set_as_text(set));
+		printf("%d", average);
+		if (*first_result != 0.0)
+		{
+			printf("(x%.2f)", *first_result / average);
+		}
+		else
+		{
+			*first_result = average;
 		}
 	}
 
-	b[1] = b[0];
+	if (boundRef)
+	{
+		f(boundRef, 1);
+		if (m(boundRef, boundTest))
+		{
+			printf("-MISMATCH");
+			return 1;
+		}
+	}
 
-	*error_count += hevcasm_test(&b[0], &b[1], get_ssd_linear, invoke_ssd_linear, mismatch_ssd_linear, mask, 100000);
+	return 0;
+}
+
+
+int hevcasm_test(
+	void *ref, 
+	void *test, 
+	hevcasm_bound_get *get, 
+	hevcasm_bound_invoke *invoke, 
+	hevcasm_bound_mismatch *mismatch, 
+	hevcasm_instruction_set mask, 
+	int iterations)
+{
+	int error_count = 0;
+
+	if (get(ref, HEVCASM_C_REF))
+	{
+		invoke(ref, 1);
+
+		double first_result = 0.0;
+		for (hevcasm_instruction_set set = HEVCASM_C_OPT; set; set <<= 1)
+		{
+			if (get(test, set & mask))
+			{
+				error_count += hevcasm_count_average_cycles(ref, test, invoke, mismatch, &first_result, set, iterations);
+			}
+		}
+		printf("\n");
+	}
+
+	return error_count;
 }

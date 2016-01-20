@@ -42,13 +42,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <inttypes.h>
 
 
-typedef enum {
-#define X(value, name, description) name = value,
-	HEVCASM_INSTRUCTION_SET_XMACRO
-#undef X
-} hevcasm_instruction_set_idx_t;
 
-static const char *hevcasm_instruction_set_as_text(hevcasm_instruction_set_idx_t set)
+static const char *hevcasm_instruction_set_as_text(hevcasm_instruction_set set)
 {
 #define X(value, name, description) if (set == (1 << value)) return #name;
 	HEVCASM_INSTRUCTION_SET_XMACRO

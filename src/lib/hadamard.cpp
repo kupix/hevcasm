@@ -173,7 +173,7 @@ bound_hadamard_satd;
 
 int init_hadamard_satd(void *p, hevcasm_instruction_set mask)
 {
-	bound_hadamard_satd *s = p;
+	bound_hadamard_satd *s = (bound_hadamard_satd *)p;
 
 	hevcasm_table_hadamard_satd table;
 
@@ -193,7 +193,7 @@ int init_hadamard_satd(void *p, hevcasm_instruction_set mask)
 
 void invoke_hadamard_satd(void *p, int n)
 {
-	bound_hadamard_satd *s = p;
+	bound_hadamard_satd *s = (bound_hadamard_satd *)p;
 	const int nCbS = 1 << s->log2TrafoSize;
 	while (n--)
 	{
@@ -204,8 +204,8 @@ void invoke_hadamard_satd(void *p, int n)
 
 int mismatch_hadamard_satd(void *boundRef, void *boundTest)
 {
-	bound_hadamard_satd *ref = boundRef;
-	bound_hadamard_satd *test = boundTest;
+	bound_hadamard_satd *ref = (bound_hadamard_satd *)boundRef;
+	bound_hadamard_satd *test = (bound_hadamard_satd *)boundTest;
 
 	return ref->satd != test->satd;
 }

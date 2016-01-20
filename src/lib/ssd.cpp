@@ -98,7 +98,7 @@ bound_ssd;
 
 int init_ssd(void *p, hevcasm_instruction_set mask)
 {
-	bound_ssd *s = p;
+	bound_ssd *s = (bound_ssd *)p;
 
 	hevcasm_table_ssd table;
 
@@ -118,7 +118,7 @@ int init_ssd(void *p, hevcasm_instruction_set mask)
 
 void invoke_ssd(void *p, int n)
 {
-	bound_ssd *s = p;
+	bound_ssd *s = (bound_ssd *)p;
 	const int nCbS = 1 << s->log2TrafoSize;
 	while (n--)
 	{
@@ -129,8 +129,8 @@ void invoke_ssd(void *p, int n)
 
 int mismatch_ssd(void *boundRef, void *boundTest)
 {
-	bound_ssd *ref = boundRef;
-	bound_ssd *test = boundTest;
+	bound_ssd *ref = (bound_ssd *)boundRef;
+	bound_ssd *test = (bound_ssd *)boundTest;
 
 	return ref->ssd != test->ssd;
 }
