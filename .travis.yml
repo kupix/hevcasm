@@ -47,5 +47,5 @@ script:
   - cd build
   - cmake ..
   - make
-  - sde64 -hsw -- hevcasm
+  - sde64 -hsw -- ./build/src/bin/hevcasm
 
