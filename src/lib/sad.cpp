@@ -98,20 +98,33 @@ struct Compiler
 
 Compiler compiler;
 
+struct Function
+	:
+	Xbyak::CodeGenerator
+{
+#ifdef WIN32
+	Xbyak::Reg64 const &arg0() { return rcx; }
+	Xbyak::Reg64 const &arg1() { return rdx; }
+	Xbyak::Reg64 const &arg2() { return r8; }
+	Xbyak::Reg64 const &arg3() { return r9; }
+#else
+	Xbyak::Reg64 const &arg0() { return rdi; }
+	Xbyak::Reg64 const &arg1() { return rsi; }
+	Xbyak::Reg64 const &arg2() { return rdx; }
+	Xbyak::Reg64 const &arg3() { return rcx; }
+#endif
+};
+
 struct SadSse2 
 	: 
-	Xbyak::CodeGenerator 
+	Function
 {
 	SadSse2(int width, int height)
 	{
-		using namespace Xbyak;
-
-		auto &src = rcx;
-		auto &stride_src = rdx;
-		auto &ref = r8;
-		auto &stride_ref = r9;
-		//
-		// const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref, ptrdiff_t stride_ref, uint32_t rect
+		auto &src = arg0();
+		auto &stride_src = arg1();
+		auto &ref = arg2();
+		auto &stride_ref = arg3();
 
 		assert(width == 64);
 
@@ -137,6 +150,7 @@ struct SadSse2
 			dec(eax);
 			jg("loop");
 		}
+
 		movhlps(xmm1, xmm0);
 		paddd(xmm0, xmm1);
 		movd(eax, xmm0);
@@ -163,7 +177,7 @@ static int hevcasm_sad_c_ref(const uint8_t *src, ptrdiff_t stride_src, const uin
 
 hevcasm_sad* get_sad(int width, int height, hevcasm_instruction_set mask)
 {
-	if ((mask & HEVCASM_AVX2) && width==64 && height== 64)
+	if ((mask & HEVCASM_SSE2) && width==64 && height== 64)
 	{	
 		static SadSse2 sadSse2(64, 64);
 		return (hevcasm_sad*)sadSse2.getCode();
