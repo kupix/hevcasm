@@ -1,13 +1,10 @@
 cmake_minimum_required(VERSION 3.0)
 
-Set(ASMJIT_EMBED TRUE)
-Add_Definitions(-DASMJIT_STATIC)
+include_directories(${CMAKE_SOURCE_DIR} "${CMAKE_SOURCE_DIR}/xbyak")
 
-Set(ASMJIT_DIR "${CMAKE_SOURCE_DIR}/asmjit")
-Include("${ASMJIT_DIR}/CMakeLists.txt")
-
-include_directories("${ASMJIT_DIR}/src" ${CMAKE_SOURCE_DIR} "${CMAKE_SOURCE_DIR}/xbyak")
-
-add_library (libhevcasm diff.cpp hadamard.cpp hevcasm.cpp hevcasm_test.cpp pred_inter.cpp pred_intra.cpp quantize.cpp residual_decode.cpp sad.cpp ssd.cpp ${ASMJIT_SRC})
-Target_Link_Libraries(libhevcasm ${ASMJIT_DEPS})
+add_library (libhevcasm diff.cpp hadamard.cpp hevcasm.cpp hevcasm_test.cpp pred_inter.cpp pred_intra.cpp quantize.cpp residual_decode.cpp sad.cpp ssd.cpp)
+target_link_libraries(libhevcasm)
 target_include_directories (libhevcasm PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+set(GCC_COMPILE_FLAGS "-fno-operator-names")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COMPILE_FLAGS}")

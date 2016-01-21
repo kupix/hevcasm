@@ -5,7 +5,7 @@ and contributor rights, including patent rights, and no such rights are
 granted under this license.
 
 
-Copyright(c) 2011 - 2014, Parabola Research Limited
+Copyright(c) 2011 - 2016, Parabola Research Limited
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,127 +36,146 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "sad_a.h"
 #include "sad.h"
 #include "hevcasm_test.h"
-
-#include "asmjit/asmjit.h"
-#include "jitasm/jitasm.h"
-#include "xbyak/xbyak.h"
-
+#include "Jit.h"
+#include <array>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
-asmjit::JitRuntime runtime;
-asmjit::X86Assembler a(&runtime);
-asmjit::X86Compiler c(&a);
 
-struct Compiler
+template <int width, int height, class Enable=void>
+struct SadSse2
 {
-	Compiler()
-	{
-		using namespace asmjit;
-		using namespace asmjit::host;
-		c.addFunc(FuncBuilder5<int, const uint8_t *, ptrdiff_t, const uint8_t *, ptrdiff_t, uint32_t>(kCallConvHost));
-//		a.vpxor(ymm0, ymm0, ymm0);
-		//mov              n_rowsd, % 1
-		//	pxor                  m0, m0
-		//	.loop:
-		//movu                  m1, [refq]
-		//	movu                  m2, [refq + 16]
-		//	movu                  m3, [refq + 32]
-		//	movu                  m4, [refq + 48]
-		//	% if % 2 == 1
-		//	pavgb                 m1, [second_predq + mmsize * 0]
-		//	pavgb                 m2, [second_predq + mmsize * 1]
-		//	pavgb                 m3, [second_predq + mmsize * 2]
-		//	pavgb                 m4, [second_predq + mmsize * 3]
-		//	lea         second_predq, [second_predq + mmsize * 4]
-		//	% endif
-		//	psadbw                m1, [srcq]
-		//	psadbw                m2, [srcq + 16]
-		//	psadbw                m3, [srcq + 32]
-		//	psadbw                m4, [srcq + 48]
-		//	paddd                 m1, m2
-		//	paddd                 m3, m4
-		//	add                 refq, ref_strideq
-		//	paddd                 m0, m1
-		//	add                 srcq, src_strideq
-		//	paddd                 m0, m3
-		//	dec              n_rowsd
-		//	jg.loop
-		//movhlps               m1, m0
-		//paddd                 m0, m1
-		//movd                 eax, m0
-		X86GpVar sad = c.newInt32("sad");
-		c.xor_(sad, sad);
-		c.ret(sad);
-		c.endFunc();
-		c.finalize();
-		this->mySad = asmjit_cast<hevcasm_sad *>(a.make());
-	}
-	hevcasm_sad *mySad;
+	SadSse2(Jit::Buffer &) { }
+	hevcasm_sad *function() { return 0; }
 };
 
-Compiler compiler;
 
-struct Function
+template <int width, int height>
+struct SadSse2<width, height, typename std::enable_if<width %16 == 0 || width == 8>::type>
 	:
-	Xbyak::CodeGenerator
+	Jit::Function<SadSse2<width, height>, hevcasm_sad>
 {
-#ifdef WIN32
-	Xbyak::Reg64 const &arg0() { return rcx; }
-	Xbyak::Reg64 const &arg1() { return rdx; }
-	Xbyak::Reg64 const &arg2() { return r8; }
-	Xbyak::Reg64 const &arg3() { return r9; }
-#else
-	Xbyak::Reg64 const &arg0() { return rdi; }
-	Xbyak::Reg64 const &arg1() { return rsi; }
-	Xbyak::Reg64 const &arg2() { return rdx; }
-	Xbyak::Reg64 const &arg3() { return rcx; }
-#endif
-};
-
-struct SadSse2 
-	: 
-	Function
-{
-	SadSse2(int width, int height)
+	SadSse2(Jit::Buffer &jitBuffer)
+		:
+		Jit::Function<SadSse2<width, height>, hevcasm_sad>(jitBuffer)
 	{
 		auto &src = arg0();
 		auto &stride_src = arg1();
 		auto &ref = arg2();
 		auto &stride_ref = arg3();
 
-		assert(width == 64);
+		auto &stride_ref_x3 = r10;
+		auto &stride_src_x3 = r11;
 
-		mov(eax, 64);
+		if (width == 8)
+		{
+			mov(eax, height / 2);
+		}
+		else if (width == 16)
+		{
+			mov(eax, height / 4);
+			lea(stride_ref_x3, ptr[stride_ref + stride_ref * 2]);
+			lea(stride_src_x3, ptr[stride_src + stride_src * 2]);
+		}
+		else if (width == 32)
+		{
+			mov(eax, height / 2);
+		}
+		else
+		{
+			mov(eax, height);
+		}
+
 		pxor(xmm0, xmm0);
 		
 		L("loop");
 		{
-			movdqu(xmm1, ptr[ref + 0 * 16]);
-			movdqu(xmm2, ptr[ref + 1 * 16]);
-			movdqu(xmm3, ptr[ref + 2 * 16]);
-			movdqu(xmm4, ptr[ref + 3 * 16]);
-			psadbw(xmm1, ptr[src + 0 * 16]);
-			psadbw(xmm2, ptr[src + 1 * 16]);
-			psadbw(xmm3, ptr[src + 2 * 16]);
-			psadbw(xmm4, ptr[src + 3 * 16]);
-			paddd(xmm1, xmm2);
-			add(src, stride_src);
-			paddd(xmm3, xmm4);
-			add(ref, stride_ref);
-			paddd(xmm0, xmm1);
-			paddd(xmm0, xmm3);
-			dec(eax);
-			jg("loop");
+			if (width == 8)
+			{
+				movq(xmm1, ptr[ref]);
+				movhps(xmm1, ptr[ref + stride_ref]);
+				movq(xmm2, ptr[src]);
+				movhps(xmm2, ptr[src + stride_src]);
+				psadbw(xmm1, xmm2);
+
+				lea(ref, ptr[ref + stride_ref * 2]);
+				paddd(xmm0, xmm1);
+				lea(src, ptr[src + stride_src * 2]);
+				paddd(xmm0, xmm3);
+			}
+			else if (width == 16)
+			{
+				movdqu(xmm1, ptr[ref]);
+				movdqu(xmm2, ptr[ref + stride_ref]);
+				movdqu(xmm3, ptr[ref + stride_ref * 2]);
+				movdqu(xmm4, ptr[ref + stride_ref_x3]);
+
+				psadbw(xmm1, ptr[src]);
+				psadbw(xmm2, ptr[src + stride_src]);
+				psadbw(xmm3, ptr[src + stride_src * 2]);
+				psadbw(xmm4, ptr[src + stride_src_x3]);
+
+				lea(src, ptr[src + stride_src * 4]);
+				paddd(xmm1, xmm2);
+				lea(ref, ptr[ref + stride_ref * 4]);
+				paddd(xmm3, xmm4);
+				paddd(xmm0, xmm1);
+				paddd(xmm0, xmm3);
+			}
+			else if (width == 32)
+			{
+				movdqu(xmm1, ptr[ref]);
+				movdqu(xmm2, ptr[ref + 16]);
+				movdqu(xmm3, ptr[ref + stride_ref]);
+				movdqu(xmm4, ptr[ref + stride_ref + 16]);
+
+				psadbw(xmm1, ptr[src]);
+				psadbw(xmm2, ptr[src + 16]);
+				psadbw(xmm3, ptr[src + stride_src]);
+				psadbw(xmm4, ptr[src + stride_src + 16]);
+
+				lea(src, ptr[src + stride_src * 2]);
+				paddd(xmm1, xmm2);
+				lea(ref, ptr[ref + stride_ref * 2]);
+				paddd(xmm3, xmm4);
+				paddd(xmm0, xmm1);
+				paddd(xmm0, xmm3);
+			}
+			else
+			{
+				assert(width > 32);
+				movdqu(xmm1, ptr[ref]);
+				movdqu(xmm2, ptr[ref + 16]);
+				movdqu(xmm3, ptr[ref + 32]);
+				if (width > 48) movdqu(xmm4, ptr[ref + 48]);
+				psadbw(xmm1, ptr[src + 0 ]);
+				psadbw(xmm2, ptr[src + 16]);
+				psadbw(xmm3, ptr[src + 32]);
+				if (width > 48) psadbw(xmm4, ptr[src + 48]);
+				paddd(xmm1, xmm2);
+
+				add(src, stride_src);
+				if (width > 48) paddd(xmm3, xmm4);
+				paddd(xmm0, xmm1);
+				add(ref, stride_ref);
+				paddd(xmm0, xmm3);
+			}
 		}
+		dec(eax);
+		jg("loop");
 
 		movhlps(xmm1, xmm0);
 		paddd(xmm0, xmm1);
 		movd(eax, xmm0);
 		ret();
+
+		commit();
 	}
 };
+
+
+
 
 static int hevcasm_sad_c_ref(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref, ptrdiff_t stride_ref, uint32_t rect)
 {
@@ -174,28 +193,26 @@ static int hevcasm_sad_c_ref(const uint8_t *src, ptrdiff_t stride_src, const uin
 }
 
 
+static Jit::Buffer jitBuffer(100000);
+
 
 hevcasm_sad* get_sad(int width, int height, hevcasm_instruction_set mask)
 {
-	if ((mask & HEVCASM_SSE2) && width==64 && height== 64)
-	{	
-		static SadSse2 sadSse2(64, 64);
-		return (hevcasm_sad*)sadSse2.getCode();
+	if (mask & HEVCASM_SSE2)
+	{
+#define X(w, h) \
+		{ \
+			static SadSse2<w, h> sadSse2(jitBuffer); \
+			if (w==width && h==height) \
+			{ \
+				auto f = sadSse2.function(); \
+				if (f) return f; \
+			} \
+		}
+
+		X_HEVC_PU_SIZES;
+#undef X
 	}
-	//if (mask & HEVCASM_SSE2) switch (HEVCASM_RECT(width, height))
-	//{
-	//case HEVCASM_RECT(64, 64): return (hevcasm_sad*)&vp9_sad64x64_sse2;
-	//case HEVCASM_RECT(64, 32): return (hevcasm_sad*)&vp9_sad64x32_sse2;
-	//case HEVCASM_RECT(32, 64): return (hevcasm_sad*)&vp9_sad32x64_sse2;
-	//case HEVCASM_RECT(32, 32): return (hevcasm_sad*)&vp9_sad32x32_sse2;
-	//case HEVCASM_RECT(32, 16): return (hevcasm_sad*)&vp9_sad32x16_sse2;
-	//case HEVCASM_RECT(16, 32): return (hevcasm_sad*)&vp9_sad16x32_sse2;
-	//case HEVCASM_RECT(16, 16): return (hevcasm_sad*)&vp9_sad16x16_sse2;
-	//case HEVCASM_RECT(16, 8): return (hevcasm_sad*)&vp9_sad16x8_sse2;
-	//case HEVCASM_RECT(8, 16): return (hevcasm_sad*)&vp9_sad8x16_sse2;
-	//case HEVCASM_RECT(8, 8): return (hevcasm_sad*)&vp9_sad8x8_sse2;
-	//case HEVCASM_RECT(8, 4): return (hevcasm_sad*)&vp9_sad8x4_sse2;
-	//}
 
 	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
@@ -240,16 +257,123 @@ static void hevcasm_sad_multiref_4_c_ref(const uint8_t *src, ptrdiff_t stride_sr
 	}
 }
 
-static void wrap(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref[], ptrdiff_t stride_ref, int sad[], uint32_t rect)
+
+template <int width, int height, class Enable = void>
+struct Sad4Avx2
 {
-	//hevcasm_sad_multiref_4_12xh_avx2(src, stride_src, ref, stride_ref, sad, rect);
-}
+	Sad4Avx2(Jit::Buffer &) { }
+	hevcasm_sad_multiref *function() { return 0; }
+};
+
+
+template <int width, int height>
+struct Sad4Avx2<width, height, typename std::enable_if<width == 4>::type>
+	:
+	Jit::Function<Sad4Avx2<width, height>, hevcasm_sad_multiref>
+{
+	Sad4Avx2(Jit::Buffer &jitBuffer)
+		:
+		Jit::Function<Sad4Avx2<width, height>, hevcasm_sad_multiref>(jitBuffer)
+	{
+		push(rdi);
+		push(rsi);
+		sub(rsp, 0x38);
+		vmovaps(ptr[rsp + 0x50], xmm6);
+		vmovaps(ptr[rsp + 0x60], xmm7);
+		vmovaps(ptr[rsp + 0x20], xmm8);
+		mov(r10, ptr[rsp + 0x70]);
+		mov(r11, ptr[rsp + 0x78]);
+
+		vpxor(xmm0, xmm0);
+		vpxor(xmm1, xmm1);
+		vpxor(xmm2, xmm2);
+		vpxor(xmm3, xmm3);
+
+		mov(rax, ptr[r8]);
+		mov(rdi, ptr[r8 + 0x8]);
+		mov(rsi, ptr[r8 + 0x10]);
+		mov(r8, ptr[r8 + 0x18]);
+		
+		sub(rdi, rax);
+		sub(rsi, rax);
+		sub(r8, rax);
+		
+		and(r11, 0xFF);
+		shr(r11, 1);
+
+		L("loop");
+		{
+			vmovd(xmm4, ptr[rcx]);
+			vmovd(xmm5, ptr[rax]);
+			vmovd(xmm6, ptr[rdi + rax]);
+			vmovd(xmm7, ptr[rsi + rax]);
+			vmovd(xmm8, ptr[r8 + rax]);
+			lea(rax, ptr[rax + r9]);
+			vpunpckldq(xmm4,ptr[rcx + rdx]);
+			vpunpckldq(xmm5,ptr[rax]);
+			vpunpckldq(xmm6,ptr[rdi + rax]);
+			vpunpckldq(xmm7,ptr[rsi + rax]);
+			vpunpckldq(xmm8,ptr[r8 + rax]);
+			lea(rax, ptr[rax + r9]);
+			lea(rcx, ptr[rcx + rdx * 2]);
+			vpsadbw(xmm5, xmm4);
+			vpsadbw(xmm6, xmm4);
+			vpsadbw(xmm7, xmm4);
+			vpsadbw(xmm8, xmm4);
+			vpunpckldq(xmm5, xmm6);
+			vpunpckldq(xmm7, xmm8);
+			vpaddd(xmm0, xmm5);
+			vpaddd(xmm2, xmm7);
+		}
+		dec(r11);
+		jg("loop");
+
+		vpslldq(xmm1, xmm1, 4);
+		vpslldq(xmm3, xmm3, 4);
+		vpor(xmm0, xmm1);
+		vpor(xmm2, xmm3);
+		vmovdqa(xmm1, xmm0);
+		vmovdqa(xmm3, xmm2);
+		vpunpcklqdq(xmm0, xmm2);
+		vpunpckhqdq( xmm1, xmm3);
+		vpaddd(xmm0, xmm1);
+		vmovdqu(ptr[r10], xmm0);
+
+		vmovaps(xmm8, ptr[rsp + 0x20]);
+		add(rsp, 0x38);
+		vmovaps(xmm7, ptr[rsp + 0x28]);
+		vmovaps(xmm6, ptr[rsp + 0x18]);
+		pop(rsi);
+		pop(rdi);
+		ret();
+
+		commit();
+	}
+};
+
 
 hevcasm_sad_multiref* get_sad_multiref(int ways, int width, int height, hevcasm_instruction_set mask)
 {
 	hevcasm_sad_multiref* f = 0;
 
 	if (ways != 4) return 0;
+
+	if (mask & HEVCASM_AVX2)
+	{
+#define X(w, h) \
+		{ \
+			static Sad4Avx2<w, h> sad4Avx2(jitBuffer); \
+			if (w==width && h==height) \
+			{ \
+				auto f = sad4Avx2.function(); \
+				if (f) return f; \
+			} \
+		}
+
+		X_HEVC_PU_SIZES;
+#undef X
+	}
+
 
 	//if (mask & HEVCASM_SSE2) switch (HEVCASM_RECT(width, height))
 	//{
@@ -413,6 +537,12 @@ int init_sad_multiref(void *p, hevcasm_instruction_set mask)
 void invoke_sad_multiref(void *p, int n)
 {
 	bound_sad_multiref *s = (bound_sad_multiref *)p;
+
+	s->sad[0] = 0;
+	s->sad[1] = 0;
+	s->sad[2] = 0;
+	s->sad[3] = 0;
+
 	while (n--)
 	{
 		s->f(s->src, 64, s->ref_array, 64, s->sad, HEVCASM_RECT(s->width, s->height));
@@ -424,6 +554,8 @@ int mismatch_sad_multiref(void *boundRef, void *boundTest)
 {
 	bound_sad_multiref *ref = (bound_sad_multiref *)boundRef;
 	bound_sad_multiref *test = (bound_sad_multiref *)boundTest;
+
+	assert(ref->ways);
 
 	for (int i = 0; i < ref->ways; ++i)
 	{
