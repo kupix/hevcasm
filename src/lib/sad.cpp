@@ -103,7 +103,6 @@ struct SadSse2
 				lea(ref, ptr[ref + stride_ref * 2]);
 				paddd(xmm0, xmm1);
 				lea(src, ptr[src + stride_src * 2]);
-				paddd(xmm0, xmm3);
 			}
 			else if (width == 16)
 			{
