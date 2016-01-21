@@ -38,6 +38,8 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "hevcasm_test.h"
 
 #include "asmjit/asmjit.h"
+#include "jitasm/jitasm.h"
+#include "xbyak/xbyak.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -52,7 +54,38 @@ struct Compiler
 	Compiler()
 	{
 		using namespace asmjit;
+		using namespace asmjit::host;
 		c.addFunc(FuncBuilder5<int, const uint8_t *, ptrdiff_t, const uint8_t *, ptrdiff_t, uint32_t>(kCallConvHost));
+//		a.vpxor(ymm0, ymm0, ymm0);
+		//mov              n_rowsd, % 1
+		//	pxor                  m0, m0
+		//	.loop:
+		//movu                  m1, [refq]
+		//	movu                  m2, [refq + 16]
+		//	movu                  m3, [refq + 32]
+		//	movu                  m4, [refq + 48]
+		//	% if % 2 == 1
+		//	pavgb                 m1, [second_predq + mmsize * 0]
+		//	pavgb                 m2, [second_predq + mmsize * 1]
+		//	pavgb                 m3, [second_predq + mmsize * 2]
+		//	pavgb                 m4, [second_predq + mmsize * 3]
+		//	lea         second_predq, [second_predq + mmsize * 4]
+		//	% endif
+		//	psadbw                m1, [srcq]
+		//	psadbw                m2, [srcq + 16]
+		//	psadbw                m3, [srcq + 32]
+		//	psadbw                m4, [srcq + 48]
+		//	paddd                 m1, m2
+		//	paddd                 m3, m4
+		//	add                 refq, ref_strideq
+		//	paddd                 m0, m1
+		//	add                 srcq, src_strideq
+		//	paddd                 m0, m3
+		//	dec              n_rowsd
+		//	jg.loop
+		//movhlps               m1, m0
+		//paddd                 m0, m1
+		//movd                 eax, m0
 		X86GpVar sad = c.newInt32("sad");
 		c.xor_(sad, sad);
 		c.ret(sad);
@@ -64,6 +97,52 @@ struct Compiler
 };
 
 Compiler compiler;
+
+struct SadSse2 
+	: 
+	Xbyak::CodeGenerator 
+{
+	SadSse2(int width, int height)
+	{
+		using namespace Xbyak;
+
+		auto &src = rcx;
+		auto &stride_src = rdx;
+		auto &ref = r8;
+		auto &stride_ref = r9;
+		//
+		// const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref, ptrdiff_t stride_ref, uint32_t rect
+
+		assert(width == 64);
+
+		mov(eax, 64);
+		pxor(xmm0, xmm0);
+		
+		L("loop");
+		{
+			movdqu(xmm1, ptr[ref + 0 * 16]);
+			movdqu(xmm2, ptr[ref + 1 * 16]);
+			movdqu(xmm3, ptr[ref + 2 * 16]);
+			movdqu(xmm4, ptr[ref + 3 * 16]);
+			psadbw(xmm1, ptr[src + 0 * 16]);
+			psadbw(xmm2, ptr[src + 1 * 16]);
+			psadbw(xmm3, ptr[src + 2 * 16]);
+			psadbw(xmm4, ptr[src + 3 * 16]);
+			paddd(xmm1, xmm2);
+			add(src, stride_src);
+			paddd(xmm3, xmm4);
+			add(ref, stride_ref);
+			paddd(xmm0, xmm1);
+			paddd(xmm0, xmm3);
+			dec(eax);
+			jg("loop");
+		}
+		movhlps(xmm1, xmm0);
+		paddd(xmm0, xmm1);
+		movd(eax, xmm0);
+		ret();
+	}
+};
 
 static int hevcasm_sad_c_ref(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref, ptrdiff_t stride_ref, uint32_t rect)
 {
@@ -85,8 +164,9 @@ static int hevcasm_sad_c_ref(const uint8_t *src, ptrdiff_t stride_src, const uin
 hevcasm_sad* get_sad(int width, int height, hevcasm_instruction_set mask)
 {
 	if ((mask & HEVCASM_AVX2) && width==64 && height== 64)
-	{
-		return compiler.mySad;
+	{	
+		static SadSse2 sadSse2(64, 64);
+		return (hevcasm_sad*)sadSse2.getCode();
 	}
 	//if (mask & HEVCASM_SSE2) switch (HEVCASM_RECT(width, height))
 	//{

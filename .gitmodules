@@ -1,3 +1,9 @@
 [submodule "asmjit"]
 	path = asmjit
 	url = https://github.com/kobalicek/asmjit.git
+[submodule "jitasm"]
+	path = jitasm
+	url = https://github.com/hlide/jitasm.git
+[submodule "xbyak"]
+	path = xbyak
+	url = https://github.com/herumi/xbyak.git

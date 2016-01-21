@@ -6,7 +6,7 @@ Add_Definitions(-DASMJIT_STATIC)
 Set(ASMJIT_DIR "${CMAKE_SOURCE_DIR}/asmjit")
 Include("${ASMJIT_DIR}/CMakeLists.txt")
 
-include_directories("${ASMJIT_DIR}/src")
+include_directories("${ASMJIT_DIR}/src" ${CMAKE_SOURCE_DIR} "${CMAKE_SOURCE_DIR}/xbyak")
 
 add_library (libhevcasm diff.cpp hadamard.cpp hevcasm.cpp hevcasm_test.cpp pred_inter.cpp pred_intra.cpp quantize.cpp residual_decode.cpp sad.cpp ssd.cpp ${ASMJIT_SRC})
 Target_Link_Libraries(libhevcasm ${ASMJIT_DEPS})
