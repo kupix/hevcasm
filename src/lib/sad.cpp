@@ -43,23 +43,17 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 
 
-template <int width, int height, class Enable=void>
+// make width and height dynamic - make this not a template
 struct SadSse2
-{
-	SadSse2(Jit::Buffer &) { }
-	hevcasm_sad *function() { return 0; }
-};
-
-
-template <int width, int height>
-struct SadSse2<width, height, typename std::enable_if<width %16 == 0 || width == 8>::type>
 	:
-	Jit::Function<SadSse2<width, height>, hevcasm_sad>
+	Jit::Function<SadSse2, hevcasm_sad>
 {
-	SadSse2(Jit::Buffer &jitBuffer)
+	SadSse2(Jit::Buffer &jitBuffer, int width, int height)
 		:
-		Jit::Function<SadSse2<width, height>, hevcasm_sad>(jitBuffer)
+		Jit::Function<SadSse2, hevcasm_sad>(jitBuffer)
 	{
+		if ((width % 16) && width != 8) return;
+
 		auto &src = arg0();
 		auto &stride_src = arg1();
 		auto &ref = arg2();
@@ -202,7 +196,7 @@ hevcasm_sad* get_sad(int width, int height, hevcasm_instruction_set mask)
 	{
 #define X(w, h) \
 		{ \
-			static SadSse2<w, h> sadSse2(jitBuffer); \
+			static SadSse2 sadSse2(jitBuffer, w, h); \
 			if (w==width && h==height) \
 			{ \
 				auto f = sadSse2.function(); \

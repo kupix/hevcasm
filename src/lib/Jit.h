@@ -95,6 +95,8 @@ struct Function
 
 	FunctionType *function() const
 	{
+		if (this->getSize() == 0) return 0;
+
 		assert(this->committed);
 		return reinterpret_cast<FunctionType *>(this->getCode());
 	}
