@@ -252,23 +252,16 @@ static void hevcasm_sad_multiref_4_c_ref(const uint8_t *src, ptrdiff_t stride_sr
 }
 
 
-template <int width, int height, class Enable = void>
 struct Sad4Avx2
-{
-	Sad4Avx2(Jit::Buffer &) { }
-	hevcasm_sad_multiref *function() { return 0; }
-};
-
-
-template <int width, int height>
-struct Sad4Avx2<width, height, typename std::enable_if<width == 4>::type>
 	:
-	Jit::Function<Sad4Avx2<width, height>, hevcasm_sad_multiref>
+	Jit::Function<Sad4Avx2, hevcasm_sad_multiref>
 {
-	Sad4Avx2(Jit::Buffer &jitBuffer)
+	Sad4Avx2(Jit::Buffer &jitBuffer, int width, int height)
 		:
-		Jit::Function<Sad4Avx2<width, height>, hevcasm_sad_multiref>(jitBuffer)
+		Jit::Function<Sad4Avx2, hevcasm_sad_multiref>(jitBuffer)
 	{
+		if (width != 4)  return;
+
 		push(rdi);
 		push(rsi);
 		sub(rsp, 0x38);
@@ -356,7 +349,7 @@ hevcasm_sad_multiref* get_sad_multiref(int ways, int width, int height, hevcasm_
 	{
 #define X(w, h) \
 		{ \
-			static Sad4Avx2<w, h> sad4Avx2(jitBuffer); \
+			static Sad4Avx2 sad4Avx2(jitBuffer, w, h); \
 			if (w==width && h==height) \
 			{ \
 				auto f = sad4Avx2.function(); \
