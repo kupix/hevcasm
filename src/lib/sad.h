@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define INCLUDED_sad_h
 
 #include "hevcasm.h"
+#include <functional>
 
 
 #ifdef __cplusplus
@@ -75,8 +76,15 @@ extern "C"
 	X(8, 4); \
 	X(4, 8); \
 
+
+//typedef std::function<int(const uint8_t * /*src*/, ptrdiff_t /*stride_src*/, const uint8_t * /*ref*/, ptrdiff_t /*stride_ref*/, uint32_t /*rect*/)> hevcasm_sad;
+
 /* Rectangular SAD (Sum of Absolute Differences) with single reference */
 typedef int hevcasm_sad(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref, ptrdiff_t stride_ref, uint32_t rect);
+
+
+
+
 
 typedef struct
 {

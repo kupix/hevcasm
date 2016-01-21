@@ -81,50 +81,164 @@ private:
 };
 
 
-template <class Base, class FunctionType>
+template <typename FunctionType>
+struct CountArguments;
+
+
+template<typename R, typename ...Args>
+struct CountArguments<R(Args...)>
+{
+	static const size_t value = sizeof...(Args);
+};
+
+
+template <class Derived, class FunctionType>
 struct Function
 	:
 	Xbyak::CodeGenerator
 {
 	Function(Buffer &buffer)
 		:
-		buffer(buffer),
+		buffer(&buffer),
 		Xbyak::CodeGenerator(buffer.nRemainingBytes(), buffer.pointer())
 	{
+	}
+
+	template<typename ... Types>
+	Function(Function *secondPass, Types ... config)
+		:
+		buffer(0)
+	{
+		static_cast<Derived *>(this)->assemble(config...);
+	}
+
+	template<typename ... Types>
+	Function(Buffer &buffer, Types ... config)
+		:
+		buffer(&buffer),
+		Xbyak::CodeGenerator(buffer.nRemainingBytes(), buffer.pointer())
+	{
+		Derived firstPass(this, config...);
+		if (firstPass.getSize() == 0) return;
+
+		this->prologue(firstPass.variables, firstPass.mmRegisters);
+		static_cast<Derived *>(this)->assemble(config...);
+		this->epilogue(firstPass.variables, firstPass.mmRegisters);
+		
+		this->buffer->increment(this->getSize());
 	}
 
 	FunctionType *function() const
 	{
 		if (this->getSize() == 0) return 0;
 
-		assert(this->committed);
 		return reinterpret_cast<FunctionType *>(this->getCode());
 	}
 
 protected:
+	int stackOffset;
 
-#ifdef WIN32
-	Xbyak::Reg64 const &arg0() { return rcx; }
-	Xbyak::Reg64 const &arg1() { return rdx; }
-	Xbyak::Reg64 const &arg2() { return r8; }
-	Xbyak::Reg64 const &arg3() { return r9; }
-#else
-	Xbyak::Reg64 const &arg0() { return rdi; }
-	Xbyak::Reg64 const &arg1() { return rsi; }
-	Xbyak::Reg64 const &arg2() { return rdx; }
-	Xbyak::Reg64 const &arg3() { return rcx; }
-#endif
-
-	void commit()
+	void prologue(int variables, int mmRegisters)
 	{
-		this->buffer.increment(this->getSize());
-		this->committed = true;
+#ifdef WIN32
+		for (int i = 4; i < CountArguments<FunctionType>::value; ++i)
+		{
+			mov(arg64(i), ptr[rsp + 8 + 8 * i]);
+		}
+
+		this->stackOffset = 8;
+
+		int registers = CountArguments<FunctionType>::value + variables;
+		for (int i = 7; i < registers; ++i)
+		{
+			push(reg64(i));
+			this->stackOffset = 8 - this->stackOffset;
+		}
+
+		if (mmRegisters >= 6)
+		{
+			this->stackOffset += 16 * (mmRegisters - 6);
+			sub(rsp, this->stackOffset);
+
+			for (int i = 6; i < mmRegisters; ++i)
+			{
+				vmovaps(ptr[rsp + (i - 6) * 16], regXmm(i));
+			}
+		}
+#else
+		for (int i = 6; i < CountArguments<FunctionType>::value; ++i)
+		{
+			mov(arg64(i), ptr[rsp + 8 * (i - 5)]);
+		}
+#endif
+	}
+
+	void epilogue(int variables, int mmRegisters)
+	{
+#ifdef WIN32
+		if (mmRegisters >= 6)
+		{
+			for (int i = mmRegisters - 1; i >= 6; --i)
+			{
+				vmovaps(regXmm(i), ptr[rsp + (i - 6) * 16]);
+			}
+
+			add(rsp, this->stackOffset);
+		}
+
+		int registers = CountArguments<FunctionType>::value + variables;
+		for (int i = registers - 1; i >= 7; --i)
+		{
+			pop(reg64(i));
+		}
+#else
+#endif
+		ret();
+	}
+
+	Xbyak::Reg64 const &reg64(size_t i)
+	{
+#ifdef WIN32
+		Xbyak::Reg64 const *lookup[15] = { &rcx, &rdx, &r8, &r9, &r10, &r11, &rax, &rdi, &rsi, &rbx, &rbp, &r12, &r13, &r14, &r15 };
+#else
+		Xbyak::Reg64 const *lookup[15] = { &rdi, &rsi, &rdx, &rcx, &r8, &r9, &rax, &r10, &r11, &rbx, &rbp, &r12, &r13, &r14, &r15 };
+#endif
+		return *lookup[i];
+	}
+
+	Xbyak::Reg64 const &arg64(size_t i)
+	{
+		assert(i < CountArguments<FunctionType>::value);
+		return reg64(i);
+	}
+
+	Xbyak::Reg64 const &var64(size_t i)
+	{
+		i += CountArguments<FunctionType>::value;
+		return reg64(i);
+	}
+
+	Xbyak::Reg64 const &getVar64()
+	{
+		return reg64(CountArguments<FunctionType>::value + this->variables++);
+	}
+
+	Xbyak::Xmm const &regXmm(size_t i)
+	{
+		Xbyak::Xmm const *lookup[] = { &xmm0, &xmm1, &xmm2, &xmm3, &xmm4, &xmm5, &xmm6, &xmm7, &xmm8, &xmm9, &xmm10, &xmm11, &xmm12, &xmm13, &xmm14, &xmm15 };
+		return *lookup[i];
+	}
+
+	Xbyak::Xmm const &getXmm()
+	{
+		return regXmm(this->mmRegisters++);
 	}
 
 private:
-	Buffer &buffer;
-	bool committed = false;
+	Buffer *buffer;
 	int increment = 0;
+	int variables = 0;
+	int mmRegisters = 0;
 };
 
 }

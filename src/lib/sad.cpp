@@ -43,43 +43,50 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 
 
-// make width and height dynamic - make this not a template
 struct SadSse2
 	:
 	Jit::Function<SadSse2, hevcasm_sad>
 {
-	SadSse2(Jit::Buffer &jitBuffer, int width, int height)
-		:
-		Jit::Function<SadSse2, hevcasm_sad>(jitBuffer)
+	using Jit::Function<SadSse2, hevcasm_sad>::Function;
+
+	void assemble(int width, int height)
 	{
 		if ((width % 16) && width != 8) return;
 
-		auto &src = arg0();
-		auto &stride_src = arg1();
-		auto &ref = arg2();
-		auto &stride_ref = arg3();
+		auto &src = arg64(0);
+		auto &stride_src = arg64(1);
+		auto &ref = arg64(2);
+		auto &stride_ref = arg64(3);
 
-		auto &stride_ref_x3 = r10;
-		auto &stride_src_x3 = r11;
+		auto &n = getVar64();
+
+		const Xbyak::Reg64 *stride_ref_x3 = width == 16 ? &getVar64() : 0;
+		const Xbyak::Reg64 *stride_src_x3 = width == 16 ? &getVar64() : 0;
 
 		if (width == 8)
 		{
-			mov(eax, height / 2);
+			mov(n, height / 2);
 		}
 		else if (width == 16)
 		{
-			mov(eax, height / 4);
-			lea(stride_ref_x3, ptr[stride_ref + stride_ref * 2]);
-			lea(stride_src_x3, ptr[stride_src + stride_src * 2]);
+			mov(n, height / 4);
+			lea(*stride_ref_x3, ptr[stride_ref + stride_ref * 2]);
+			lea(*stride_src_x3, ptr[stride_src + stride_src * 2]);
 		}
 		else if (width == 32)
 		{
-			mov(eax, height / 2);
+			mov(n, height / 2);
 		}
 		else
 		{
-			mov(eax, height);
+			mov(n, height);
 		}
+
+		auto &xmm0 = getXmm();
+		auto &xmm1 = getXmm();
+		auto &xmm2 = getXmm();
+		auto &xmm3 = getXmm();
+		auto &xmm4 = getXmm();
 
 		pxor(xmm0, xmm0);
 		
@@ -103,12 +110,12 @@ struct SadSse2
 				movdqu(xmm1, ptr[ref]);
 				movdqu(xmm2, ptr[ref + stride_ref]);
 				movdqu(xmm3, ptr[ref + stride_ref * 2]);
-				movdqu(xmm4, ptr[ref + stride_ref_x3]);
+				movdqu(xmm4, ptr[ref + *stride_ref_x3]);
 
 				psadbw(xmm1, ptr[src]);
 				psadbw(xmm2, ptr[src + stride_src]);
 				psadbw(xmm3, ptr[src + stride_src * 2]);
-				psadbw(xmm4, ptr[src + stride_src_x3]);
+				psadbw(xmm4, ptr[src + *stride_src_x3]);
 
 				lea(src, ptr[src + stride_src * 4]);
 				paddd(xmm1, xmm2);
@@ -156,15 +163,12 @@ struct SadSse2
 				paddd(xmm0, xmm3);
 			}
 		}
-		dec(eax);
+		dec(n);
 		jg("loop");
 
 		movhlps(xmm1, xmm0);
 		paddd(xmm0, xmm1);
 		movd(eax, xmm0);
-		ret();
-
-		commit();
 	}
 };
 
@@ -256,20 +260,31 @@ struct Sad4Avx2
 	:
 	Jit::Function<Sad4Avx2, hevcasm_sad_multiref>
 {
-	Sad4Avx2(Jit::Buffer &jitBuffer, int width, int height)
-		:
-		Jit::Function<Sad4Avx2, hevcasm_sad_multiref>(jitBuffer)
+	using Jit::Function<Sad4Avx2, hevcasm_sad_multiref>::Function;
+
+	void assemble(int width, int height)
 	{
 		if (width != 4)  return;
 
-		push(rdi);
-		push(rsi);
-		sub(rsp, 0x38);
-		vmovaps(ptr[rsp + 0x50], xmm6);
-		vmovaps(ptr[rsp + 0x60], xmm7);
-		vmovaps(ptr[rsp + 0x20], xmm8);
-		mov(r10, ptr[rsp + 0x70]);
-		mov(r11, ptr[rsp + 0x78]);
+		auto &xmm0 = getXmm();
+		auto &xmm1 = getXmm();
+		auto &xmm2 = getXmm();
+		auto &xmm3 = getXmm();
+		auto &xmm4 = getXmm();
+		auto &xmm5 = getXmm();
+		auto &xmm6 = getXmm();
+		auto &xmm7 = getXmm();
+		auto &xmm8 = getXmm();
+
+		auto &rcx = arg64(0);
+		auto &rdx = arg64(1);
+		auto &r8 = arg64(2);
+		auto &r9 = arg64(3);
+		auto &r10 = arg64(4);
+		auto &r11 = arg64(5);
+		auto &rax = getVar64();
+		auto &rdi = getVar64();
+		auto &rsi = getVar64();
 
 		vpxor(xmm0, xmm0);
 		vpxor(xmm1, xmm1);
@@ -280,12 +295,12 @@ struct Sad4Avx2
 		mov(rdi, ptr[r8 + 0x8]);
 		mov(rsi, ptr[r8 + 0x10]);
 		mov(r8, ptr[r8 + 0x18]);
-		
+
 		sub(rdi, rax);
 		sub(rsi, rax);
 		sub(r8, rax);
-		
-		and(r11, 0xFF);
+
+		and (r11, 0xFF);
 		shr(r11, 1);
 
 		L("loop");
@@ -296,11 +311,11 @@ struct Sad4Avx2
 			vmovd(xmm7, ptr[rsi + rax]);
 			vmovd(xmm8, ptr[r8 + rax]);
 			lea(rax, ptr[rax + r9]);
-			vpunpckldq(xmm4,ptr[rcx + rdx]);
-			vpunpckldq(xmm5,ptr[rax]);
-			vpunpckldq(xmm6,ptr[rdi + rax]);
-			vpunpckldq(xmm7,ptr[rsi + rax]);
-			vpunpckldq(xmm8,ptr[r8 + rax]);
+			vpunpckldq(xmm4, ptr[rcx + rdx]);
+			vpunpckldq(xmm5, ptr[rax]);
+			vpunpckldq(xmm6, ptr[rdi + rax]);
+			vpunpckldq(xmm7, ptr[rsi + rax]);
+			vpunpckldq(xmm8, ptr[r8 + rax]);
 			lea(rax, ptr[rax + r9]);
 			lea(rcx, ptr[rcx + rdx * 2]);
 			vpsadbw(xmm5, xmm4);
@@ -322,19 +337,9 @@ struct Sad4Avx2
 		vmovdqa(xmm1, xmm0);
 		vmovdqa(xmm3, xmm2);
 		vpunpcklqdq(xmm0, xmm2);
-		vpunpckhqdq( xmm1, xmm3);
+		vpunpckhqdq(xmm1, xmm3);
 		vpaddd(xmm0, xmm1);
 		vmovdqu(ptr[r10], xmm0);
-
-		vmovaps(xmm8, ptr[rsp + 0x20]);
-		add(rsp, 0x38);
-		vmovaps(xmm7, ptr[rsp + 0x28]);
-		vmovaps(xmm6, ptr[rsp + 0x18]);
-		pop(rsi);
-		pop(rdi);
-		ret();
-
-		commit();
 	}
 };
 
