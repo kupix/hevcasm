@@ -75,12 +75,6 @@ struct Buffer
 		return this->p;
 	}
 
-	template <class Function>
-	void assemble(Function &function)
-	{
-		Assembler(*this)
-	}
-
 private:
 	std::vector<uint8_t> buffer;
 	uint8_t *p;
