@@ -110,6 +110,7 @@ struct Function
 		buffer(0)
 	{
 		static_cast<Derived *>(this)->assemble(config...);
+		static_cast<Derived *>(this)->data(config...);
 	}
 
 	template<typename ... Types>
@@ -121,10 +122,19 @@ struct Function
 		Derived firstPass(this, config...);
 		if (firstPass.getSize() == 0) return;
 
+		if (firstPass.debug)
+		{
+			std::cerr << "function has "
+				<< CountArguments<FunctionType>::value << " arguments, "
+				<< firstPass.variables << " variables and uses the first "
+				<< firstPass.mmRegisters << " XMM registers\n";
+		}
+
 		this->prologue(firstPass.variables, firstPass.mmRegisters);
 		static_cast<Derived *>(this)->assemble(config...);
 		this->epilogue(firstPass.variables, firstPass.mmRegisters);
-		
+		static_cast<Derived *>(this)->data(config...);
+
 		this->buffer->increment(this->getSize());
 	}
 
@@ -136,35 +146,54 @@ struct Function
 	}
 
 protected:
+	int frameSize;
 	int stackOffset;
+
+	template<typename ... Types>
+	void data(Types ... config)
+	{
+	}
 
 	void prologue(int variables, int mmRegisters)
 	{
 #ifdef WIN32
-		for (int i = 4; i < CountArguments<FunctionType>::value; ++i)
-		{
-			mov(arg64(i), ptr[rsp + 8 + 8 * i]);
-		}
-
-		this->stackOffset = 8;
+		this->frameSize = 0;
 
 		int registers = CountArguments<FunctionType>::value + variables;
 		for (int i = 7; i < registers; ++i)
 		{
 			push(reg64(i));
-			this->stackOffset = 8 - this->stackOffset;
+			this->frameSize += 8;
 		}
 
-		if (mmRegisters >= 6)
+		this->stackOffset = 0x28;
+
+		if (mmRegisters > 8)
 		{
-			this->stackOffset += 16 * (mmRegisters - 6);
-			sub(rsp, this->stackOffset);
-
-			for (int i = 6; i < mmRegisters; ++i)
-			{
-				vmovaps(ptr[rsp + (i - 6) * 16], regXmm(i));
-			}
+			if (this->frameSize & 8) this->stackOffset += 8;
+			this->stackOffset += (mmRegisters - 8) * 16;
 		}
+
+		if (this->stackOffset)
+		{
+			this->frameSize += this->stackOffset;
+			sub(rsp, this->stackOffset);
+		}
+
+		// Store xmm6 and xmm7 in shadow space
+		if (mmRegisters > 6) vmovaps(ptr[rsp + this->frameSize + 8], xmm6);
+		if (mmRegisters > 7) vmovaps(ptr[rsp + this->frameSize + 24], xmm7);
+		// Store xmm8 and up in allocated stack
+		for (int i = 8; i < mmRegisters; ++i)
+		{
+			vmovaps(ptr[rsp + (i - 6) * 0x10], regXmm(i));
+		}
+
+		for (int i = 4; i < CountArguments<FunctionType>::value; ++i)
+		{
+			mov(arg64(i), ptr[rsp + this->frameSize + 8 * (i + 1)]);
+		}
+
 #else
 		for (int i = 6; i < CountArguments<FunctionType>::value; ++i)
 		{
@@ -176,13 +205,15 @@ protected:
 	void epilogue(int variables, int mmRegisters)
 	{
 #ifdef WIN32
-		if (mmRegisters >= 6)
+		if (mmRegisters > 6) vmovaps(xmm6, ptr[rsp + this->frameSize + 8]);
+		if (mmRegisters > 7) vmovaps(xmm7, ptr[rsp + this->frameSize + 24]);
+		for (int i = 8; i < mmRegisters; ++i)
 		{
-			for (int i = mmRegisters - 1; i >= 6; --i)
-			{
-				vmovaps(regXmm(i), ptr[rsp + (i - 6) * 16]);
-			}
+			vmovaps(regXmm(i), ptr[rsp + (i - 6) * 0x10]);
+		}
 
+		if (this->stackOffset)
+		{
 			add(rsp, this->stackOffset);
 		}
 
@@ -233,6 +264,8 @@ protected:
 	{
 		return regXmm(this->mmRegisters++);
 	}
+
+	bool debug = false;
 
 private:
 	Buffer *buffer;

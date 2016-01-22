@@ -261,9 +261,40 @@ struct Sad4Avx2
 {
 	using Jit::Function<Sad4Avx2, hevcasm_sad_multiref>::Function;
 
+	Xbyak::Label mask_24_32;
+	Xbyak::Label mask_12_16;
+
+	void data(int width, int height)
+	{
+		align();
+
+		if (width == 24)
+		{
+			L(mask_24_32);
+			dq(0xffffffffffffffffull);
+			dq(0xffffffffffffffffull);
+			dq(0xffffffffffffffffull);
+			dq(0);
+		}
+
+		if (width == 12)
+		{
+			L(mask_12_16);
+			dq(0xffffffffffffffffull);
+			dq(0x00000000ffffffffull);
+			dq(0xffffffffffffffffull);
+			dq(0x00000000ffffffffull);
+		}
+	}
+		
 	void assemble(int width, int height)
 	{
-		if (width != 4)  return;
+		auto &src = arg64(0);
+		auto &src_stride = arg64(1);
+		auto &ref = arg64(2);
+		auto &ref_stride = arg64(3);
+		auto &sads = arg64(4);
+		auto &rect = arg64(5);
 
 		auto &xmm0 = getXmm();
 		auto &xmm1 = getXmm();
@@ -275,70 +306,331 @@ struct Sad4Avx2
 		auto &xmm7 = getXmm();
 		auto &xmm8 = getXmm();
 
-		auto &rcx = arg64(0);
-		auto &rdx = arg64(1);
-		auto &r8 = arg64(2);
-		auto &r9 = arg64(3);
-		auto &r10 = arg64(4);
-		auto &r11 = arg64(5);
-		auto &rax = getVar64();
-		auto &rdi = getVar64();
-		auto &rsi = getVar64();
-
-		vpxor(xmm0, xmm0);
-		vpxor(xmm1, xmm1);
-		vpxor(xmm2, xmm2);
-		vpxor(xmm3, xmm3);
-
-		mov(rax, ptr[r8]);
-		mov(rdi, ptr[r8 + 0x8]);
-		mov(rsi, ptr[r8 + 0x10]);
-		mov(r8, ptr[r8 + 0x18]);
-
-		sub(rdi, rax);
-		sub(rsi, rax);
-		sub(r8, rax);
-
-		and (r11, 0xFF);
-		shr(r11, 1);
-
-		L("loop");
+		if (width == 8)
 		{
-			vmovd(xmm4, ptr[rcx]);
-			vmovd(xmm5, ptr[rax]);
-			vmovd(xmm6, ptr[rdi + rax]);
-			vmovd(xmm7, ptr[rsi + rax]);
-			vmovd(xmm8, ptr[r8 + rax]);
-			lea(rax, ptr[rax + r9]);
-			vpunpckldq(xmm4, ptr[rcx + rdx]);
-			vpunpckldq(xmm5, ptr[rax]);
-			vpunpckldq(xmm6, ptr[rdi + rax]);
-			vpunpckldq(xmm7, ptr[rsi + rax]);
-			vpunpckldq(xmm8, ptr[r8 + rax]);
-			lea(rax, ptr[rax + r9]);
-			lea(rcx, ptr[rcx + rdx * 2]);
-			vpsadbw(xmm5, xmm4);
-			vpsadbw(xmm6, xmm4);
-			vpsadbw(xmm7, xmm4);
-			vpsadbw(xmm8, xmm4);
-			vpunpckldq(xmm5, xmm6);
-			vpunpckldq(xmm7, xmm8);
-			vpaddd(xmm0, xmm5);
-			vpaddd(xmm2, xmm7);
-		}
-		dec(r11);
-		jg("loop");
+			auto &ref0 = getVar64();
+			auto &ref1 = getVar64();
+			auto &ref2 = getVar64();
+			auto &ref3 = ref;
 
-		vpslldq(xmm1, xmm1, 4);
-		vpslldq(xmm3, xmm3, 4);
-		vpor(xmm0, xmm1);
-		vpor(xmm2, xmm3);
-		vmovdqa(xmm1, xmm0);
-		vmovdqa(xmm3, xmm2);
-		vpunpcklqdq(xmm0, xmm2);
-		vpunpckhqdq(xmm1, xmm3);
-		vpaddd(xmm0, xmm1);
-		vmovdqu(ptr[r10], xmm0);
+			mov(ref0, ptr[ref]);
+			mov(ref1, ptr[ref + 0x8]);
+			mov(ref2, ptr[ref + 0x10]);
+			mov(ref3, ptr[ref + 0x18]);
+
+			and(rect, 0xff);
+			auto &n = rect;
+			shr(n, 1);
+
+			vmovq(xmm4, ptr[src]);
+			vmovq(xmm0, ptr[ref0]);
+			vmovq(xmm1, ptr[ref1]);
+			vmovq(xmm2, ptr[ref2]);
+			vmovq(xmm3, ptr[ref3]);
+
+			sub(ref1, ref0);
+			sub(ref2, ref0);
+			sub(ref3, ref0);
+			lea(ref0, ptr[ref0 + ref_stride]);
+
+			vmovhps(xmm4, ptr[src + src_stride]);
+			vmovhps(xmm0, ptr[ref0]);
+			vmovhps(xmm1, ptr[ref1 + ref0]);
+			vmovhps(xmm2, ptr[ref2 + ref0]);
+			vmovhps(xmm3, ptr[ref3 + ref0]);
+
+			lea(ref0, ptr[ref0 + ref_stride]);
+			lea(src, ptr[src + src_stride * 2]);
+
+			vpsadbw(xmm0, xmm4);
+			vpsadbw(xmm1, xmm4);
+			vpsadbw(xmm2, xmm4);
+			vpsadbw(xmm3, xmm4);
+
+			dec(n);
+
+			L("loop");
+			{
+				vmovq(xmm4, ptr[src]);
+				vmovq(xmm5, ptr[ref0]);
+				vmovq(xmm6, ptr[ref1 + ref0]);
+				vmovq(xmm7, ptr[ref2 + ref0]);
+				vmovq(xmm8, ptr[ref3 + ref0]);
+
+				lea(ref0, ptr[ref0 + ref_stride]);
+
+				vmovhps(xmm4, ptr[src + src_stride]);
+				vmovhps(xmm5, ptr[ref0]);
+				vmovhps(xmm6, ptr[ref1 + ref0]);
+				vmovhps(xmm7, ptr[ref2 + ref0]);
+				vmovhps(xmm8, ptr[ref3 + ref0]);
+
+				lea(ref0, ptr[ref0 + ref_stride]);
+				lea(src, ptr[src + src_stride * 2]);
+
+				vpsadbw(xmm5, xmm4);
+				vpsadbw(xmm6, xmm4);
+				vpsadbw(xmm7, xmm4);
+				vpsadbw(xmm8, xmm4);
+
+				vpaddd(xmm0, xmm5);
+				vpaddd(xmm1, xmm6);
+				vpaddd(xmm2, xmm7);
+				vpaddd(xmm3, xmm8);
+			}
+			dec(n);
+			jg("loop");
+
+			vpslldq(xmm1, 4);
+			vpslldq(xmm3, 4);
+			vpor(xmm0, xmm1);
+			vpor(xmm2, xmm3);
+			vmovdqa(xmm1, xmm0);
+			vmovdqa(xmm3, xmm2);
+			vpunpcklqdq(xmm0, xmm2);
+			vpunpckhqdq(xmm1, xmm3);
+			vpaddd(xmm0, xmm1);
+			vmovdqu(ptr[r10], xmm0);
+		}
+		else if (width == 4)
+		{
+			auto &ref0 = getVar64();
+			auto &ref1 = getVar64();
+			auto &ref2 = getVar64();
+			auto &ref3 = ref;
+
+			mov(ref0, ptr[ref]);
+			mov(ref1, ptr[ref + 0x8]);
+			mov(ref2, ptr[ref + 0x10]);
+			mov(ref3, ptr[ref + 0x18]);
+
+			vpxor(xmm0, xmm0);
+			vpxor(xmm1, xmm1);
+			vpxor(xmm2, xmm2);
+			vpxor(xmm3, xmm3);
+
+			sub(ref1, ref0);
+			sub(ref2, ref0);
+			sub(ref3, ref0);
+
+			and (rect, 0xFF);
+			auto &n = rect;
+			shr(n, 1);
+
+			L("loop");
+			{
+				vmovd(xmm4, ptr[src]);
+				vmovd(xmm5, ptr[ref0]);
+				vmovd(xmm6, ptr[ref1 + ref0]);
+				vmovd(xmm7, ptr[ref2 + ref0]);
+				vmovd(xmm8, ptr[ref3 + ref0]);
+				lea(ref0, ptr[ref0 + ref_stride]);
+				vpunpckldq(xmm4, ptr[src + src_stride]);
+				vpunpckldq(xmm5, ptr[ref0]);
+				vpunpckldq(xmm6, ptr[ref1 + ref0]);
+				vpunpckldq(xmm7, ptr[ref2 + ref0]);
+				vpunpckldq(xmm8, ptr[ref3 + ref0]);
+				lea(ref0, ptr[ref0 + ref_stride]);
+				lea(src, ptr[src + src_stride * 2]);
+				vpsadbw(xmm5, xmm4);
+				vpsadbw(xmm6, xmm4);
+				vpsadbw(xmm7, xmm4);
+				vpsadbw(xmm8, xmm4);
+				vpunpckldq(xmm5, xmm6);
+				vpunpckldq(xmm7, xmm8);
+				vpaddd(xmm0, xmm5);
+				vpaddd(xmm2, xmm7);
+			}
+			dec(n);
+			jg("loop");
+
+			vpslldq(xmm1, xmm1, 4);
+			vpslldq(xmm3, xmm3, 4);
+			vpor(xmm0, xmm1);
+			vpor(xmm2, xmm3);
+			vmovdqa(xmm1, xmm0);
+			vmovdqa(xmm3, xmm2);
+			vpunpcklqdq(xmm0, xmm2);
+			vpunpckhqdq(xmm1, xmm3);
+			vpaddd(xmm0, xmm1);
+			vmovdqu(ptr[sads], xmm0);
+		}
+		else/* if (width == 32 || width == 48 || width == 64)*/
+		{
+			auto &r0 = arg64(0);
+			auto &r1 = arg64(1);
+			auto &r2 = arg64(2);
+			auto &r3 = arg64(3);
+			auto &r4 = arg64(4);
+			auto &r5 = arg64(5);
+
+			auto &r6 = getVar64();
+			auto &r7 = getVar64();
+			auto &r8 = getVar64();
+
+
+			mov(r6, r1); //stride_src
+			mov(r7, r3); // stride_ref
+
+			and (rect, 0xFF);
+			auto &n = rect;
+
+			if (width <= 16)
+			{
+				shr(n, 1);
+			}
+
+			mov(r8, r4); // sad[]
+			
+			mov(r1, ptr[ref + 0 * 8]);
+			mov(r3, ptr[ref + 2 * 8]);
+			mov(r4, ptr[ref + 3 * 8]);
+			mov(r2, ptr[ref + 1 * 8]);
+
+			vpxor(ymm5, ymm5);
+			vpxor(ymm6, ymm6);
+			vpxor(ymm7, ymm7);
+			vpxor(ymm8, ymm8);
+
+			L("loop");
+			{
+				if (width <= 16)
+				{
+					vmovdqu(xmm0, ptr[r0]);
+					vmovdqu(xmm1, ptr[r1]);
+					vmovdqu(xmm2, ptr[r2]);
+					vmovdqu(xmm3, ptr[r3]);
+					vmovdqu(xmm4, ptr[r4]);
+
+					vinserti128(ymm0, ymm0, ptr[r0 + r6], 1);
+					vinserti128(ymm1, ymm1, ptr[r1 + r7], 1);
+					vinserti128(ymm2, ymm2, ptr[r2 + r7], 1);
+					vinserti128(ymm3, ymm3, ptr[r3 + r7], 1);
+					vinserti128(ymm4, ymm4, ptr[r4 + r7], 1);
+					
+					if (width == 12)
+					{
+						vpand(ymm0, ptr[rip + mask_12_16]);
+						vpand(ymm1, ptr[rip + mask_12_16]);
+						vpand(ymm2, ptr[rip + mask_12_16]);
+						vpand(ymm3, ptr[rip + mask_12_16]);
+						vpand(ymm4, ptr[rip + mask_12_16]);
+					}
+				}
+				else
+				{
+					vmovdqu(ymm0, ptr[r0]);
+					vmovdqu(ymm1, ptr[r1]);
+					vmovdqu(ymm2, ptr[r2]);
+					vmovdqu(ymm3, ptr[r3]);
+					vmovdqu(ymm4, ptr[r4]);
+				}
+
+				vpsadbw(ymm1, ymm0);
+				vpsadbw(ymm2, ymm0);
+				vpsadbw(ymm3, ymm0);
+				vpsadbw(ymm4, ymm0);
+
+				if (width == 24)
+				{
+					vpand(ymm1, ptr[rip + mask_24_32]);
+					vpand(ymm2, ptr[rip + mask_24_32]);
+					vpand(ymm3, ptr[rip + mask_24_32]);
+					vpand(ymm4, ptr[rip + mask_24_32]);
+				}
+				
+				vpaddd(ymm5, ymm1);
+				vpaddd(ymm6, ymm2);
+				vpaddd(ymm7, ymm3);
+				vpaddd(ymm8, ymm4);
+
+				if (width > 32)
+				{
+					vmovdqu(ymm0, ptr[r0 + 32]);
+					vmovdqu(ymm1, ptr[r1 + 32]);
+					vmovdqu(ymm2, ptr[r2 + 32]);
+					vmovdqu(ymm3, ptr[r3 + 32]);
+					vmovdqu(ymm4, ptr[r4 + 32]);
+
+					if (width == 48)
+					{
+						vpsadbw(xmm1, xmm0);
+						vpsadbw(xmm2, xmm0);
+						vpsadbw(xmm3, xmm0);
+						vpsadbw(xmm4, xmm0);
+					}
+					else
+					{
+						vpsadbw(ymm1, ymm0);
+						vpsadbw(ymm2, ymm0);
+						vpsadbw(ymm3, ymm0);
+						vpsadbw(ymm4, ymm0);
+					}
+					vpaddd(ymm5, ymm1);
+					vpaddd(ymm6, ymm2);
+					vpaddd(ymm7, ymm3);
+					vpaddd(ymm8, ymm4);
+				}
+				if (width <= 16)
+				{
+					lea(r0, ptr[r0 + r6 * 2]);
+					lea(r1, ptr[r1 + r7 * 2]);
+					lea(r2, ptr[r2 + r7 * 2]);
+					lea(r3, ptr[r3 + r7 * 2]);
+					lea(r4, ptr[r4 + r7 * 2]);
+				}
+				else
+				{
+					lea(r0, ptr[r0 + r6]);
+					lea(r1, ptr[r1 + r7]);
+					lea(r2, ptr[r2 + r7]);
+					lea(r3, ptr[r3 + r7]);
+					lea(r4, ptr[r4 + r7]);
+				}
+			}
+			dec(n);
+			jg("loop");
+
+			vextracti128(xmm0, ymm5, 1);
+			vextracti128(xmm1, ymm6, 1);
+			vextracti128(xmm2, ymm7, 1);
+			vextracti128(xmm3, ymm8, 1);
+			
+			vpaddd(xmm5, xmm0);
+			vpaddd(xmm6, xmm1);
+			vpaddd(xmm7, xmm2);
+			vpaddd(xmm8, xmm3);
+			
+			//; two different ways of achieving the same thing - both seem to take similar number of cycles
+			if (0)
+			{
+				//	pshufd xm0, xm5, ORDER(0, 0, 0, 2)
+				//	pshufd xm1, xm6, ORDER(0, 0, 0, 2)
+				//	pshufd xm2, xm7, ORDER(0, 0, 0, 2)
+				//	pshufd xm3, xm8, ORDER(0, 0, 0, 2)
+				//	paddd xm5, xm0
+				//	paddd xm6, xm1
+				//	paddd xm7, xm2
+				//	paddd xm8, xm3
+				//	movd[r8 + 0 * 4], xm5
+				//	movd[r8 + 1 * 4], xm6
+				//	movd[r8 + 2 * 4], xm7
+				//	movd[r8 + 3 * 4], xm8
+			}
+			else
+			{
+				vpslldq(xmm6, 4);
+				vpslldq(xmm8, 4);
+				vpor(xmm5, xmm6);
+				vpor(xmm7, xmm8);
+				vmovdqa(xmm6, xmm5);
+				vmovdqa(xmm8, xmm7);
+				vpunpcklqdq(xmm5, xmm7);
+				vpunpckhqdq(xmm6, xmm8);
+				vpaddd(xmm5, xmm6);
+				vmovdqu(ptr[r8], xmm5);
+			}
+		}
 	}
 };
 
