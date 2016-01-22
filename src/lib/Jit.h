@@ -40,6 +40,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <cstddef>
 #include <cassert>
+#include <iostream>
 
 
 namespace Jit {

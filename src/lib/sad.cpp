@@ -390,7 +390,7 @@ struct Sad4Avx2
 			vpunpcklqdq(xmm0, xmm2);
 			vpunpckhqdq(xmm1, xmm3);
 			vpaddd(xmm0, xmm1);
-			vmovdqu(ptr[r10], xmm0);
+			vmovdqu(ptr[sads], xmm0);
 		}
 		else if (width == 4)
 		{
@@ -870,6 +870,6 @@ void HEVCASM_API hevcasm_test_sad_multiref(int *error_count, hevcasm_instruction
 		b[0].width = partitions[i][0];
 		b[0].height = partitions[i][1];
 		b[1] = b[0];
-		*error_count += hevcasm_test(&b[0], &b[1], init_sad_multiref, invoke_sad_multiref, mismatch_sad_multiref, mask, 1);
+		*error_count += hevcasm_test(&b[0], &b[1], init_sad_multiref, invoke_sad_multiref, mismatch_sad_multiref, mask, 1000);
 	}
 }
