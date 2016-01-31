@@ -35,21 +35,26 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#define NOMINMAX 
+
 #include "xbyak/xbyak.h"
+#include "hevcasm.h"
 #include <vector>
 #include <cstdint>
 #include <cstddef>
 #include <cassert>
 #include <iostream>
+#include <algorithm>
 
 
 namespace Jit {
 
 struct Buffer
 {
-	Buffer(size_t n)
+	Buffer(size_t n, hevcasm_instruction_set isa=0)
 		:
-		buffer(n)
+		buffer(n),
+		isa(isa)
 	{
 		this->update(&this->buffer[0]);
 		Xbyak::CodeArray::protect(this->p, this->nRemainingBytes(), true);
@@ -76,6 +81,8 @@ struct Buffer
 		return this->p;
 	}
 
+	hevcasm_instruction_set const isa;
+
 private:
 	std::vector<uint8_t> buffer;
 	uint8_t *p;
@@ -93,92 +100,109 @@ struct CountArguments<R(Args...)>
 };
 
 
-template <class Derived, class FunctionType>
 struct Function
 	:
 	Xbyak::CodeGenerator
 {
-	Function(Buffer &buffer)
+	int nArguments;
+
+	Function(Buffer *buffer, int nArguments)
 		:
-		buffer(&buffer),
-		Xbyak::CodeGenerator(buffer.nRemainingBytes(), buffer.pointer())
+		buffer(buffer),
+		Xbyak::CodeGenerator(buffer ? buffer->nRemainingBytes() : 4096, buffer ? buffer->pointer() : 0),
+		nArguments(nArguments)
 	{
 	}
 
-	template<typename ... Types>
-	Function(Function *secondPass, Types ... config)
-		:
-		buffer(0)
-	{
-		static_cast<Derived *>(this)->assemble(config...);
-		static_cast<Derived *>(this)->data(config...);
-	}
+	int pass = 1;
 
-	template<typename ... Types>
-	Function(Buffer &buffer, Types ... config)
-		:
-		buffer(&buffer),
-		Xbyak::CodeGenerator(buffer.nRemainingBytes(), buffer.pointer())
-	{
-		Derived firstPass(this, config...);
-		if (firstPass.getSize() == 0) return;
+	virtual void assemble() = 0;
+	virtual void data() { };
 
-		if (firstPass.debug)
+	void build()
+	{
+		assert(pass == 1);
+
+		this->assemble();
+		this->data();
+
+		if (this->getSize() == 0) return;
+
+		if (this->debug)
 		{
 			std::cerr << "function has "
-				<< CountArguments<FunctionType>::value << " arguments, "
-				<< firstPass.variables << " variables and uses the first "
-				<< firstPass.mmRegisters << " XMM registers\n";
+				<< this->nArguments << " arguments, "
+				<< this->variables << " variables and uses the first "
+				<< this->mmRegisters << " XMM registers and requies " 
+				<< this->stackSize << " stack bytes\n";
 		}
 
-		this->prologue(firstPass.variables, firstPass.mmRegisters);
-		static_cast<Derived *>(this)->assemble(config...);
-		this->epilogue(firstPass.variables, firstPass.mmRegisters);
-		static_cast<Derived *>(this)->data(config...);
+		this->reset();
+		this->pass = 2;
+
+		this->prologue(this->variables, this->mmRegisters, this->stackSize);
+		this->variables = 0;
+		this->mmRegisters = 0;
+		this->stackSize = 0;
+		this->assemble();
+		this->epilogue(this->variables, this->mmRegisters, this->stackSize);
+		this->data();
 
 		this->buffer->increment(this->getSize());
 	}
 
-	FunctionType *function() const
+	void buildSinglePass(int variables, int mmRegisters, int stackSize)
+	{
+		this->pass = 0; // indicate special mode
+		this->prologue(variables, mmRegisters, stackSize);
+		this->variables = 0;
+		this->mmRegisters = 0;
+		this->stackSize = 0;
+		this->assemble();
+		this->epilogue(variables, mmRegisters, stackSize);
+		this->data();
+		this->buffer->increment(this->getSize());
+	}
+
+	template <typename F>
+	operator F *()
 	{
 		if (this->getSize() == 0) return 0;
-
-		return reinterpret_cast<FunctionType *>(this->getCode());
+		assert(CountArguments<F>::value == this->nArguments);
+		return reinterpret_cast<typename F *>(this->getCode());
 	}
 
 protected:
 	int frameSize;
-	int stackOffset;
+	int stackOffset = 0;
+	int stackSize = 0;
 
-	template<typename ... Types>
-	void data(Types ... config)
-	{
-	}
-
-	void prologue(int variables, int mmRegisters)
+	void prologue(int variables, int mmRegisters, int stack)
 	{
 #ifdef WIN32
+		this->stackOffset = 0x28;
 		this->frameSize = 0;
 
-		int registers = CountArguments<FunctionType>::value + variables;
+		int registers = nArguments + variables;
 		for (int i = 7; i < registers; ++i)
 		{
 			push(reg64(i));
 			this->frameSize += 8;
 		}
 
-		this->stackOffset = 0x28;
-
-		if (mmRegisters > 8)
+		if (mmRegisters > 8 || stack)
 		{
 			if (this->frameSize & 8) this->stackOffset += 8;
-			this->stackOffset += (mmRegisters - 8) * 16;
-		}
-
-		if (this->stackOffset)
-		{
+			if (mmRegisters > 8) this->stackOffset += (mmRegisters - 8) * 16;
+			this->stackOffset += stack;
 			this->frameSize += this->stackOffset;
+
+			// chkstk implementation
 			sub(rsp, this->stackOffset);
+			for (int d = this->stackOffset - 4096; d >= 0; d -= 4096)
+			{
+				mov(ptr[rsp + d], rsp);
+			}
 		}
 
 		// Store xmm6 and xmm7 in shadow space
@@ -187,38 +211,38 @@ protected:
 		// Store xmm8 and up in allocated stack
 		for (int i = 8; i < mmRegisters; ++i)
 		{
-			vmovaps(ptr[rsp + (i - 6) * 0x10], regXmm(i));
+			vmovaps(ptr[rsp + stack + (i - 6) * 0x10], regXmm(i));
 		}
 
-		for (int i = 4; i < CountArguments<FunctionType>::value; ++i)
+		for (int i = 4; i < nArguments; ++i)
 		{
 			mov(arg64(i), ptr[rsp + this->frameSize + 8 * (i + 1)]);
 		}
 
 #else
-		for (int i = 6; i < CountArguments<FunctionType>::value; ++i)
+		for (int i = 6; i < nArguments; ++i)
 		{
 			mov(arg64(i), ptr[rsp + 8 * (i - 5)]);
 		}
 #endif
 	}
 
-	void epilogue(int variables, int mmRegisters)
+	void epilogue(int variables, int mmRegisters, int stack)
 	{
 #ifdef WIN32
 		if (mmRegisters > 6) vmovaps(xmm6, ptr[rsp + this->frameSize + 8]);
 		if (mmRegisters > 7) vmovaps(xmm7, ptr[rsp + this->frameSize + 24]);
 		for (int i = 8; i < mmRegisters; ++i)
 		{
-			vmovaps(regXmm(i), ptr[rsp + (i - 6) * 0x10]);
+			vmovaps(regXmm(i), ptr[rsp + stack + (i - 6) * 0x10]);
 		}
 
-		if (this->stackOffset)
+		if (mmRegisters > 8 || stack)
 		{
 			add(rsp, this->stackOffset);
 		}
 
-		int registers = CountArguments<FunctionType>::value + variables;
+		int registers = nArguments + variables;
 		for (int i = registers - 1; i >= 7; --i)
 		{
 			pop(reg64(i));
@@ -227,6 +251,8 @@ protected:
 #endif
 		ret();
 	}
+
+	//virtual void appendix() { }
 
 	Xbyak::Reg64 const &reg64(size_t i)
 	{
@@ -238,35 +264,61 @@ protected:
 		return *lookup[i];
 	}
 
-	Xbyak::Reg64 const &arg64(size_t i)
+	Xbyak::Reg64 const &arg64(int i)
 	{
-		assert(i < CountArguments<FunctionType>::value);
+		assert(i < nArguments);
 		return reg64(i);
 	}
 
-	Xbyak::Reg64 const &var64(size_t i)
+	Xbyak::Reg64 const &var64(int i)
 	{
-		i += CountArguments<FunctionType>::value;
+		if (pass) this->variables = std::max(this->variables, i + 1);
+		i += this->nArguments;
 		return reg64(i);
 	}
 
-	Xbyak::Reg64 const &getVar64()
+	Xbyak::Xmm const &regXmm(int i)
 	{
-		return reg64(CountArguments<FunctionType>::value + this->variables++);
-	}
-
-	Xbyak::Xmm const &regXmm(size_t i)
-	{
+		if (pass) this->mmRegisters = std::max(this->mmRegisters, i + 1);
 		Xbyak::Xmm const *lookup[] = { &xmm0, &xmm1, &xmm2, &xmm3, &xmm4, &xmm5, &xmm6, &xmm7, &xmm8, &xmm9, &xmm10, &xmm11, &xmm12, &xmm13, &xmm14, &xmm15 };
 		return *lookup[i];
 	}
 
-	Xbyak::Xmm const &getXmm()
+	template <class T> void db(std::initializer_list<T> args, int times = 1)
 	{
-		return regXmm(this->mmRegisters++);
+		for (int i = 0; i < times; ++i)
+			for (auto arg : args)
+				Xbyak::CodeGenerator::db(arg);
 	}
 
+	template <class T> void dw(std::initializer_list<T> args, int times = 1)
+	{
+		for (int i = 0; i < times; ++i)
+			for (auto arg : args)
+				Xbyak::CodeGenerator::dw(arg);
+	}
+
+	template <class T> void dd(std::initializer_list<T> args, int times = 1)
+	{
+		for (int i = 0; i < times; ++i)
+			for (auto arg : args)
+				Xbyak::CodeGenerator::dd(arg);
+	}
+
+	template <class T> void dq(std::initializer_list<T> args, int times = 1)
+	{
+		for (int i = 0; i < times; ++i)
+			for (auto arg : args)
+				Xbyak::CodeGenerator::dq(arg);
+	}
+
+
 	bool debug = false;
+
+	hevcasm_instruction_set isa() const
+	{
+		return this->buffer->isa;
+	}
 
 private:
 	Buffer *buffer;
@@ -276,3 +328,42 @@ private:
 };
 
 }
+
+#define ORDER(a, b, c, d) ((a << 6) | (b << 4) | (c << 2) | d)
+
+
+//
+//namespace Jit2 {
+//
+//template <class T>
+//struct Function;
+//
+//struct Buffer
+//{
+//	Buffer(hevcasm_instruction_set isa, size_t size) { }
+//};
+//
+//
+//template <typename T>
+//struct Sad
+//{
+//	Sad(int bitDepth=8*sizeof(T), int width=0, int height=0) { }
+//	typedef int Type(T *p, ptrdiff_t stride);
+//	Type *make(Buffer &buffer)
+//	{
+//	}
+//};
+//
+//
+//struct Test
+//{
+//	Test()
+//	{
+//		Buffer buffer(HEVCASM_AVX2, 2000);
+//		Sad<uint16_t>::Type *function = Sad<uint16_t>(10, 32, 32).make(buffer);
+//	}
+//};
+//
+//static Test test;
+//
+//}

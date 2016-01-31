@@ -36,7 +36,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #include "quantize_a.h"
 #include "quantize.h"
 #include "hevcasm_test.h"
-
+#include <Jit.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -61,6 +61,114 @@ static void hevcasm_quantize_inverse_c_ref(int16_t *dst, const int16_t *src, int
 	}
 }
 
+struct InverseQuantise
+	:
+	Jit::Function
+{
+	InverseQuantise(Jit::Buffer *buffer)
+		:
+		Jit::Function(buffer, Jit::CountArguments<hevcasm_quantize_inverse>::value)
+	{
+		this->build();
+	}
+
+	Xbyak::Label ones_w;
+
+	void data()
+	{
+		align();
+		L(ones_w);
+		dw({ 1 }, 8);
+	}
+
+	void assemble()
+	{
+		auto &r0 = arg64(0);
+		auto &r1 = arg64(1);
+		auto &r2 = arg64(2);
+		auto &r3 = arg64(3);
+		auto &r4 = arg64(4);
+
+		auto &m0 = regXmm(0);
+		auto &m1 = regXmm(1);
+		auto &m2 = regXmm(2);
+		auto &m3 = regXmm(3);
+		auto &m4 = regXmm(4);
+		auto &m5 = regXmm(5);
+		auto &m6 = regXmm(6);
+		auto &m7 = regXmm(7);
+
+		movdqa(m0, ptr[rip + ones_w]);
+
+		Xbyak::Reg32 r2d(r2.getIdx());
+		Xbyak::Reg32 r3d(r3.getIdx());
+		Xbyak::Reg32 r4d(r4.getIdx());
+
+		movd(m1, r3d);
+		//  m1 = shift
+
+		Xbyak::Reg8 r3b(r3.getIdx());
+
+		add(r3b, 15);
+		bts(r2d, r3d);
+		// r2d = (0x10000 << (shift - 1)) + scale
+
+		movd(m2, r2d);
+		pshufd(m2, m2, 0);
+		// m2 = 1 << (shift - 1), scale, 1 << (shift - 1), scale, 1 << (shift - 1), scale, 1 << (shift - 1), scale
+
+		shr(r4d, 4);
+		// r4 = n / 16
+
+		L("loop");
+		{
+			for (int offset = 0; offset < 32; offset += 16)
+			{
+				movdqa(m4, ptr[r1 + offset]);
+				// m4 = src[7], src[6], src[5], src[4], src[3], src[2], src[1], src[0]
+
+				movdqa(m5, m4);
+
+				punpcklwd(m5, m0);
+				// m5 = 1, src[3], 1, src[2], 1, src[1], 1, src[0]
+
+				punpckhwd(m4, m0);
+				// m4 = 1, src[7], 1, src[6], 1, src[5], 1, src[4]
+
+				pmaddwd(m4, m2);
+				// m4 = (1 << (shift - 1)) + src[7] * scale, (1 << (shift - 1)) + src[6] * scale, (1 << (shift - 1)) + src[5] * scale, (1 << (shift - 1)) + src[4] * scale
+
+				pmaddwd(m5, m2);
+				// m5 = (1 << (shift - 1)) + src[3] * scale, (1 << (shift - 1)) + src[2] * scale, (1 << (shift - 1)) + src[1] * scale, (1 << (shift - 1)) + src[0] * scale
+
+				psrad(m4, m1);
+				// m4 = ((1 << (shift - 1)) + src[7] * scale) >> shift, ((1 << (shift - 1)) + src[6] * scale) >> shift, ((1 << (shift - 1)) + src[5] * scale) >> shift, ((1 << (shift - 1)) + src[4] * scale) >> shift
+
+				psrad(m5, m1);
+				// m5 = ((1 << (shift - 1)) + src[3] * scale) >> shift, ((1 << (shift - 1)) + src[2] * scale) >> shift, ((1 << (shift - 1)) + src[1] * scale) >> shift, ((1 << (shift - 1)) + src[0] * scale) >> shift
+
+				packssdw(m5, m4);
+				// m5 = ((1 << (shift - 1)) + src[7] * scale) >> shift, ((1 << (shift - 1)) + src[6] * scale) >> shift, ((1 << (shift - 1)) + src[5] * scale) >> shift, ((1 << (shift - 1)) + src[4] * scale) >> shift, ((1 << (shift - 1)) + src[3] * scale) >> shift, ((1 << (shift - 1)) + src[2] * scale) >> shift, ((1 << (shift - 1)) + src[1] * scale) >> shift, ((1 << (shift - 1)) + src[0] * scale) >> shift
+
+				movdqa(ptr[r0 + offset], m5);
+			}
+
+			add(r1, 32);
+			add(r0, 32);
+		}
+		dec(r4d);
+		jg("loop");
+	}
+};
+
+
+static void wrapwrap(int16_t *dst, const int16_t *src, int scale, int shift, int n)
+{
+	static Jit::Buffer buffer(1000);
+	static InverseQuantise inverseQuantise(&buffer);
+	hevcasm_quantize_inverse *a = inverseQuantise;
+	a(dst, src, scale, shift, n);
+}
 
 static hevcasm_quantize_inverse * get_quantize_inverse(hevcasm_instruction_set mask)
 {
@@ -68,8 +176,10 @@ static hevcasm_quantize_inverse * get_quantize_inverse(hevcasm_instruction_set m
 	
 	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT)) f = hevcasm_quantize_inverse_c_ref;
 
-	//if (mask & HEVCASM_SSE41) f = hevcasm_quantize_inverse_sse4;
-
+	if (mask & HEVCASM_SSE41)
+	{
+		f = wrapwrap;
+	}
 	return f;
 }
 
@@ -117,6 +227,7 @@ int init_quantize_inverse(void *p, hevcasm_instruction_set mask)
 void invoke_quantize_inverse(void *p, int count)
 {
 	hevcasm_bound_quantize_inverse *s = (hevcasm_bound_quantize_inverse *)p;
+	s->dst[0] = rand();
 	while (count--)
 	{
 		const int n = 1 << (2 * s->log2TrafoSize);
@@ -143,7 +254,7 @@ void HEVCASM_API hevcasm_test_quantize_inverse(int *error_count, hevcasm_instruc
 	HEVCASM_ALIGN(32, int16_t, src[32 * 32]);
 
 	for (int x = 0; x < 32 * 32; ++x) src[x] = (rand() & 0xff) - 0x100;
-
+		
 	hevcasm_bound_quantize_inverse b[2];
 	b[0].src = src;
 	b[0].scale = 51;
@@ -186,13 +297,138 @@ static int hevcasm_quantize_c_ref(int16_t *dst, const int16_t *src, int scale, i
 }
 
 
+struct Quantise
+	:
+	Jit::Function
+{
+	Quantise(Jit::Buffer *buffer)
+		:
+		Jit::Function(buffer, Jit::CountArguments<hevcasm_quantize>::value)
+	{
+		this->build();
+	}
+
+	void assemble()
+	{
+		auto &r0 = arg64(0);
+		auto &r1 = arg64(1);
+		auto &r2 = arg64(2);
+		auto &r3 = arg64(3);
+		auto &r4 = arg64(4);
+		auto &r5 = arg64(5);
+
+		auto &m0 = regXmm(0);
+		auto &m1 = regXmm(1);
+		auto &m2 = regXmm(2);
+		auto &m3 = regXmm(3);
+		auto &m4 = regXmm(4);
+		auto &m5 = regXmm(5);
+		auto &m6 = regXmm(6);
+		auto &m7 = regXmm(7);
+
+		Xbyak::Reg32 r2d(r2.getIdx());
+		Xbyak::Reg32 r3d(r3.getIdx());
+		Xbyak::Reg32 r4d(r4.getIdx());
+		Xbyak::Reg32 r5d(r5.getIdx());
+
+		movd(m1, r3d);
+		// m1 = shift
+
+		bts(r2d, r3d);
+		// r2d = (1 << shift) + scale
+			
+		movd(m2, r2d);
+		pshufd(m2, m2, 0);
+		// m2 = 1 << (shift - 16), scale, 1 << (shift - 16), scale, 1 << (shift - 16), scale, 1 << (shift - 16), scale
+
+		movd(m3, r4d);
+		pshuflw(m3, m3, 0);
+		pshufd(m3, m3, 0);
+		// m3 = offset, offset, offset, offset, offset, offset, offset, offset
+
+		pxor(m0, m0);
+		// m0 = 0
+
+		shr(r5d, 4);
+		// r5 = n / 16
+
+		L("loop");
+		{
+			for (int offset = 0; offset < 32; offset += 16)
+			{
+				movdqa(m4, ptr[r1 + offset]);
+				// m4 = src[7], src[6], src[5], src[4], src[3], src[2], src[1], src[0]
+
+				pabsw(m5, m4);
+				// m5 = abs(src[7]), abs(src[6]), abs(src[5]), abs(src[4]), abs(src[3]), abs(src[2]), abs(src[1]), abs(src[0])
+
+				movdqa(m6, m5);
+				punpcklwd(m6, m3);
+				// m6 = offset, abs(src[3]), offset, abs(src[2]), offset, abs(src[1]), offset, abs(src[0])
+
+				punpckhwd(m5, m3);
+				// m5 = offset, abs(src[7]), offset, abs(src[6]), offset, abs(src[5]), offset, abs(src[4])
+
+				pmaddwd(m6, m2);
+				// m6 = (offset << (shift - 16)) + abs(src[3])*scale, (offset << (shift - 16)) + abs(src[2])*scale, (offset << (shift - 16)) + abs(src[1])*scale, (offset << (shift - 16)) + abs(src[0])*scale
+
+				psrad(m6, m1);
+				// m6 = (offset << (shift - 16)) + abs(src[3])*scale >> shift, (offset << (shift - 16)) + abs(src[2])*scale >> shift, (offset << (shift - 16)) + abs(src[1])*scale >> shift, (offset << (shift - 16)) + abs(src[0])*scale >> shift
+
+				pmaddwd(m5, m2);
+				// m5 = (offset << (shift - 16)) + abs(src[7])*scale, (offset << (shift - 16)) + abs(src[6])*scale, (offset << (shift - 16)) + abs(src[5])*scale, (offset << (shift - 16)) + abs(src[4])*scale,
+
+				psrad(m5, m1);
+				// m5 = (offset << (shift - 16)) + abs(src[7])*scale >> shift, (offset << (shift - 16)) + abs(src[6])*scale >> shift, (offset << (shift - 16)) + abs(src[5])*scale >> shift, (offset << (shift - 16)) + abs(src[4])*scale >> shift
+
+				punpcklwd(m7, m4);
+				// m7 = (src[3] << 16) + 0x ? ? ? ? , (src[2] << 16) + 0x ? ? ? ? , (src[1] << 16) + 0x ? ? ? ? , (src[0] << 16) + 0x ? ? ? ?
+
+				psignd(m6, m7);
+				// m6 = ((offset << (shift - 16)) + abs(src[3])*scale >> shift)*sign(src[3]), ((offset << (shift - 16)) + abs(src[2])*scale >> shift)*sign(src[2]), ((offset << (shift - 16)) + abs(src[1])*scale >> shift)*sign(src[1]), ((offset << (shift - 16)) + abs(src[0])*scale >> shift)*sign(src[0])
+				// m6 = dst[3], dst[2], dst[1], dst[0]
+
+				punpckhwd(m4, m4);
+				// m4 = (src[7] << 16) + 0x ? ? ? ? , (src[6] << 16) + 0x ? ? ? ? , (src[5] << 16) + 0x ? ? ? ? , (src[4] << 16) + 0x ? ? ? ?
+
+				psignd(m5, m4);
+				// m5 = ((offset << (shift - 16)) + abs(src[7])*scale >> shift)*sign(src[7]), ((offset << (shift - 16)) + abs(src[6])*scale >> shift)*sign(src[6]), ((offset << (shift - 16)) + abs(src[5])*scale >> shift)*sign(src[5]), ((offset << (shift - 16)) + abs(src[4])*scale >> shift)*sign(src[4])
+				// m5 = dst[7], dst[6], dst[5], dst[4]
+
+				packssdw(m6, m5);
+				// m6 = dst[7], dst[6], dst[5], dst[4], dst[3], dst[2], dst[1], dst[0]
+
+				por(m0, m6);
+				// m0 is non - zero if we have seen any non - zero quantized coefficients
+
+				movdqa(ptr[r0 + offset], m6);
+			}
+
+			add(r1, 32);
+			add(r0, 32);
+		}
+		dec(r5d);
+		jg("loop");
+
+		// return zero only if m0 is zero - no non - zero quantized coefficients seen(cbf = 0)
+		packsswb(m0, m0);
+		packsswb(m0, m0);
+		movd(eax, m0);
+	}
+};
+
+
+
 static hevcasm_quantize * get_quantize(hevcasm_instruction_set mask)
 {
 	hevcasm_quantize *f = 0;
 
 	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT)) f = hevcasm_quantize_c_ref;
 
-	//if (mask & HEVCASM_SSE41) f = hevcasm_quantize_sse4;
+	static Jit::Buffer buffer(8000);
+	static Quantise quantise(&buffer);
+
+	if (mask & HEVCASM_SSE41) f = quantise;
 
 	return f;
 }
@@ -239,6 +475,7 @@ int init_quantize(void *p, hevcasm_instruction_set mask)
 void invoke_quantize(void *p, int iterations)
 {
 	hevcasm_bound_quantize *s = (hevcasm_bound_quantize *)p;
+	s->dst[0] = rand();
 	while (iterations--)
 	{
 		const int n = 1 << (2 * s->log2TrafoSize);
@@ -302,20 +539,125 @@ static void hevcasm_quantize_reconstruct_c_ref(uint8_t *rec, ptrdiff_t stride_re
 }
 
 
+#define ORDER(a, b, c, d) ((a << 6) | (b << 4) | (c << 2) | d)
+
+//struct QuantiseReconstruct
+//	:
+//	Jit::Function<QuantiseReconstruct, hevcasm_quantize_reconstruct>
+//{
+//	QuantiseReconstruct(Jit::Buffer *buffer, int nCbS)
+//		:
+//		Jit::Function<QuantiseReconstruct, hevcasm_quantize_reconstruct>(buffer)
+//	{
+//		this->build(nCbS);
+//	}
+//
+//	void assemble(int nCbS)
+//	{
+//		auto &r0 = arg64(0);
+//		auto &r1 = arg64(1);
+//		auto &r2 = arg64(2);
+//		auto &r3 = arg64(3);
+//		auto &r4 = arg64(4);
+//		auto &r5 = arg64(5);
+//
+//		auto &m0 = regXmm(asdf);
+//		auto &m1 = regXmm(asdf);
+//		auto &m2 = regXmm(asdf);
+//		auto &m3 = regXmm(asdf);
+//
+//		Xbyak::Reg32 r5d(r5.getIdx());
+//
+//		pxor(m0, m0);
+//
+//		if (nCbS == 4)
+//		{
+//			mov(r5d, 2);
+//
+//			L("loop");
+//			{
+//				movd(m1, ptr[r2]);
+//				movd(m2, ptr[r2 + r3]);
+//
+//				lea(r2, ptr[r2 + r3 * 2]);
+//
+//				punpckldq(m1, m2);
+//				punpcklbw(m1, m0);
+//
+//				movdqu(m3, ptr[r4]);
+//				paddw(m1, m3);
+//				lea(r4, ptr[r4 + 16]);
+//				packuswb(m1, m1);
+//
+//				movd(ptr[r0], m1);
+//				pshufd(m1, m1, ORDER(0, 0, 0, 1));
+//				movd(ptr[r0 + r1], m1);
+//				lea(r0, ptr[r0 + r1 * 2]);
+//			}
+//			dec(r5d);
+//			jg("loop");
+//		}
+//		else
+//		{
+//			mov(r5d, nCbS);
+//
+//			L("loop");
+//			{
+//				movq(m1, ptr[r2]);
+//				lea(r2, ptr[r2 + r3]);
+//				if (nCbS >= 16)
+//				{
+//					movdqa(m2, m1);
+//					punpckhbw(m2, m0);
+//				}
+//				punpcklbw(m1, m0);
+//
+//				paddw(m1, ptr[r4]);
+//				lea(r4, ptr[r4 + 2*nCbS]);
+//
+//				packuswb(m1, m1);
+//
+//				movq(ptr[r0], m1);
+//				lea(r0, ptr[r0 + r1]);
+//			}
+//			dec(r5d);
+//			jg("loop");
+//		}
+//	}
+//};
+
+
 hevcasm_quantize_reconstruct * HEVCASM_API get_quantize_reconstruct(int log2TrafoSize, hevcasm_instruction_set mask)
 {
 	hevcasm_quantize_reconstruct *f = 0;
 		
 	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT)) f = hevcasm_quantize_reconstruct_c_ref;
 
-	if (mask & HEVCASM_SSE41)
-	{
-		const int nCbS = 1 << log2TrafoSize;
-		//if (nCbS == 4) f = hevcasm_quantize_reconstruct_4x4_sse4;
-		//if (nCbS == 8) f = hevcasm_quantize_reconstruct_8x8_sse4;
-		//if (nCbS == 16) f = hevcasm_quantize_reconstruct_16x16_sse4;
-		//if (nCbS == 32) f = hevcasm_quantize_reconstruct_32x32_sse4;
-	}
+	//if (mask & HEVCASM_SSE41)
+	//{
+	//	static Jit::Buffer buffer(10000);
+	//	const int nCbS = 1 << log2TrafoSize;
+	//	if (nCbS == 4)
+	//	{
+	//		static QuantiseReconstruct qr(&buffer, nCbS);
+	//		f = qr.function();
+	//	}
+	//	if (nCbS == 8)
+	//	{
+	//		static QuantiseReconstruct qr(&buffer, nCbS);
+	//		f = qr.function();
+	//	}
+	//	if (nCbS == 16)
+	//	{
+	//		static QuantiseReconstruct qr(&buffer, nCbS);
+	//		f = qr.function();
+	//	}
+	//	if (nCbS == 32)
+	//	{
+	//		static QuantiseReconstruct qr(&buffer, nCbS);
+	//		f = qr.function();
+	//	}
+	//}
 
 	return f;
 }

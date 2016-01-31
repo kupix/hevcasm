@@ -45,11 +45,20 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 struct SadSse2
 	:
-	Jit::Function<SadSse2, hevcasm_sad>
+	Jit::Function
 {
-	using Jit::Function<SadSse2, hevcasm_sad>::Function;
+	SadSse2(Jit::Buffer *buffer, int width, int height)
+		:
+		Jit::Function(buffer, Jit::CountArguments<hevcasm_sad>::value),
+		width(width),
+		height(height)
+	{
+		this->build();
+	}
 
-	void assemble(int width, int height)
+	int width, height;
+
+	void assemble() override
 	{
 		if ((width % 16) && width != 8) return;
 
@@ -58,10 +67,10 @@ struct SadSse2
 		auto &ref = arg64(2);
 		auto &stride_ref = arg64(3);
 
-		auto &n = getVar64();
+		auto &n = var64(4);
 
-		const Xbyak::Reg64 *stride_ref_x3 = width == 16 ? &getVar64() : 0;
-		const Xbyak::Reg64 *stride_src_x3 = width == 16 ? &getVar64() : 0;
+		const Xbyak::Reg64 *stride_ref_x3 = width == 16 ? &var64(5) : 0;
+		const Xbyak::Reg64 *stride_src_x3 = width == 16 ? &var64(6) : 0;
 
 		if (width == 8)
 		{
@@ -82,11 +91,11 @@ struct SadSse2
 			mov(n, height);
 		}
 
-		auto &xmm0 = getXmm();
-		auto &xmm1 = getXmm();
-		auto &xmm2 = getXmm();
-		auto &xmm3 = getXmm();
-		auto &xmm4 = getXmm();
+		auto &xmm0 = regXmm(0);
+		auto &xmm1 = regXmm(1);
+		auto &xmm2 = regXmm(2);
+		auto &xmm3 = regXmm(3);
+		auto &xmm4 = regXmm(4);
 
 		pxor(xmm0, xmm0);
 		
@@ -199,10 +208,10 @@ hevcasm_sad* get_sad(int width, int height, hevcasm_instruction_set mask)
 	{
 #define X(w, h) \
 		{ \
-			static SadSse2 sadSse2(jitBuffer, w, h); \
+			static SadSse2 sadSse2(&jitBuffer, w, h); \
 			if (w==width && h==height) \
 			{ \
-				auto f = sadSse2.function(); \
+				hevcasm_sad *f = sadSse2; \
 				if (f) return f; \
 			} \
 		}
@@ -257,37 +266,44 @@ static void hevcasm_sad_multiref_4_c_ref(const uint8_t *src, ptrdiff_t stride_sr
 
 struct Sad4Avx2
 	:
-	Jit::Function<Sad4Avx2, hevcasm_sad_multiref>
+	Jit::Function
 {
-	using Jit::Function<Sad4Avx2, hevcasm_sad_multiref>::Function;
+	Sad4Avx2(Jit::Buffer *buffer, int width, int height)
+		:
+		Jit::Function(buffer, Jit::CountArguments<hevcasm_sad_multiref>::value),
+		width(width),
+		height(height)
+	{
+		this->build();
+	}
+
+	int width, height;
 
 	Xbyak::Label mask_24_32;
 	Xbyak::Label mask_12_16;
 
-	void data(int width, int height)
+	void data() override
 	{
 		align();
 
 		if (width == 24)
 		{
 			L(mask_24_32);
-			dq(0xffffffffffffffffull);
-			dq(0xffffffffffffffffull);
-			dq(0xffffffffffffffffull);
-			dq(0);
+			db({ 0xff }, 24);
+			db({ 0 }, 8);
 		}
 
 		if (width == 12)
 		{
 			L(mask_12_16);
-			dq(0xffffffffffffffffull);
-			dq(0x00000000ffffffffull);
-			dq(0xffffffffffffffffull);
-			dq(0x00000000ffffffffull);
+			db({ 0xff }, 12);
+			db({ 0 }, 4);			
+			db({ 0xff }, 12);
+			db({ 0 }, 4);
 		}
 	}
 		
-	void assemble(int width, int height)
+	void assemble() override
 	{
 		auto &src = arg64(0);
 		auto &src_stride = arg64(1);
@@ -296,21 +312,21 @@ struct Sad4Avx2
 		auto &sads = arg64(4);
 		auto &rect = arg64(5);
 
-		auto &xmm0 = getXmm();
-		auto &xmm1 = getXmm();
-		auto &xmm2 = getXmm();
-		auto &xmm3 = getXmm();
-		auto &xmm4 = getXmm();
-		auto &xmm5 = getXmm();
-		auto &xmm6 = getXmm();
-		auto &xmm7 = getXmm();
-		auto &xmm8 = getXmm();
+		auto &xmm0 = regXmm(0);
+		auto &xmm1 = regXmm(1);
+		auto &xmm2 = regXmm(2);
+		auto &xmm3 = regXmm(3);
+		auto &xmm4 = regXmm(4);
+		auto &xmm5 = regXmm(5);
+		auto &xmm6 = regXmm(6);
+		auto &xmm7 = regXmm(7);
+		auto &xmm8 = regXmm(8);
 
 		if (width == 8)
 		{
-			auto &ref0 = getVar64();
-			auto &ref1 = getVar64();
-			auto &ref2 = getVar64();
+			auto &ref0 = var64(6);
+			auto &ref1 = var64(7);
+			auto &ref2 = var64(8);
 			auto &ref3 = ref;
 
 			mov(ref0, ptr[ref]);
@@ -394,9 +410,9 @@ struct Sad4Avx2
 		}
 		else if (width == 4)
 		{
-			auto &ref0 = getVar64();
-			auto &ref1 = getVar64();
-			auto &ref2 = getVar64();
+			auto &ref0 = var64(6);
+			auto &ref1 = var64(7);
+			auto &ref2 = var64(8);
 			auto &ref3 = ref;
 
 			mov(ref0, ptr[ref]);
@@ -464,9 +480,9 @@ struct Sad4Avx2
 			auto &r4 = arg64(4);
 			auto &r5 = arg64(5);
 
-			auto &r6 = getVar64();
-			auto &r7 = getVar64();
-			auto &r8 = getVar64();
+			auto &r6 = var64(6);
+			auto &r7 = var64(7);
+			auto &r8 = var64(8);
 
 
 			mov(r6, r1); //stride_src
@@ -645,10 +661,10 @@ hevcasm_sad_multiref* get_sad_multiref(int ways, int width, int height, hevcasm_
 	{
 #define X(w, h) \
 		{ \
-			static Sad4Avx2 sad4Avx2(jitBuffer, w, h); \
+			static Sad4Avx2 sad4Avx2(&jitBuffer, w, h); \
 			if (w==width && h==height) \
 			{ \
-				auto f = sad4Avx2.function(); \
+				hevcasm_sad_multiref *f = sad4Avx2; \
 				if (f) return f; \
 			} \
 		}
@@ -656,34 +672,6 @@ hevcasm_sad_multiref* get_sad_multiref(int ways, int width, int height, hevcasm_
 		X_HEVC_PU_SIZES;
 #undef X
 	}
-
-
-	//if (mask & HEVCASM_SSE2) switch (HEVCASM_RECT(width, height))
-	//{
-	//case HEVCASM_RECT(64, 64): f = (hevcasm_sad_multiref*)&vp9_sad64x64x4d_sse2; break;
-	//case HEVCASM_RECT(64, 32): f = (hevcasm_sad_multiref*)&vp9_sad64x32x4d_sse2; break;
-	//case HEVCASM_RECT(32, 64): f = (hevcasm_sad_multiref*)&vp9_sad32x64x4d_sse2; break;
-	//case HEVCASM_RECT(32, 32): f = (hevcasm_sad_multiref*)&vp9_sad32x32x4d_sse2; break;
-	//case HEVCASM_RECT(32, 16): f = (hevcasm_sad_multiref*)&vp9_sad32x16x4d_sse2; break;
-	//case HEVCASM_RECT(16, 32): f = (hevcasm_sad_multiref*)&vp9_sad16x32x4d_sse2; break;
-	//case HEVCASM_RECT(16, 16): f = (hevcasm_sad_multiref*)&vp9_sad16x16x4d_sse2; break;
-	//case HEVCASM_RECT(16, 8): f = (hevcasm_sad_multiref*)&vp9_sad16x8x4d_sse2; break;
-	//case HEVCASM_RECT(8, 16): f = (hevcasm_sad_multiref*)&vp9_sad8x16x4d_sse2; break;
-	//case HEVCASM_RECT(8, 8): f = (hevcasm_sad_multiref*)&vp9_sad8x8x4d_sse2; break;
-	//case HEVCASM_RECT(8, 4): f = (hevcasm_sad_multiref*)&vp9_sad8x4x4d_sse2; break;
-	//}
-
-	//if (mask & HEVCASM_AVX2) switch (width)
-	//{
-	//case 64: f = hevcasm_sad_multiref_4_64xh_avx2; break;
-	//case 48: f = hevcasm_sad_multiref_4_48xh_avx2; break;
-	//case 32: f = hevcasm_sad_multiref_4_32xh_avx2; break;
-	//case 24: f = hevcasm_sad_multiref_4_24xh_avx2; break;
-	//case 16: f = hevcasm_sad_multiref_4_16xh_avx2; break;
-	//case 12: f = hevcasm_sad_multiref_4_12xh_avx2; break;
-	//case 8: if (!f) f = hevcasm_sad_multiref_4_8xh_avx2; break;
-	//case 4: f = hevcasm_sad_multiref_4_4xh_avx2; break;
-	//}
 
 	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
