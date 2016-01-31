@@ -1323,9 +1323,9 @@ struct InverseTransformAdd
 	void hevcasm_partial_butterfly_inverse_8h_ssse3()
 	{
 		// void transform_partial_butterfly_inverse_8h_ssse3(int16_t *dst, const int16_t *src, int shift);
-		auto &r0 = reg64(0);
-		auto &r1 = reg64(1);
-		auto &r4d = Xbyak::Reg32(reg64(4).getIdx());
+		auto r0 = reg64(0);
+		auto r1 = reg64(1);
+		auto r4d = Xbyak::Reg32(reg64(4).getIdx());
 
 		auto &m0 = regXmm(0);
 		auto &m1 = regXmm(1);
@@ -1416,8 +1416,8 @@ struct InverseTransformAdd
 		auto &r2 = reg64(2);
 		auto &r3 = reg64(3);
 		auto &r4 = reg64(4);
-		auto &r4d = Xbyak::Reg32(r4.getIdx());
-		auto &r5d = Xbyak::Reg32(reg64(5).getIdx());
+		auto r4d = Xbyak::Reg32(r4.getIdx());
+		auto r5d = Xbyak::Reg32(reg64(5).getIdx());
 
 		auto &m0 = regXmm(0);
 		auto &m1 = regXmm(1);
@@ -1712,7 +1712,7 @@ struct InverseTransformAdd
 		//cglobal partial_butterfly_inverse_16h, 3, 5, 16
 		auto &r0 = reg64(0);
 		auto &r1 = reg64(1);
-		auto &r4d = Xbyak::Reg32(reg64(4).getIdx());
+		auto r4d = Xbyak::Reg32(reg64(4).getIdx());
 		auto &m0 = regXmm(0);
 		auto &m1 = regXmm(1);
 		auto &m2 = regXmm(2);

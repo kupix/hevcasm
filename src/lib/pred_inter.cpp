@@ -248,7 +248,7 @@ struct PredUniCopy
 		auto &r1 = arg64(1);
 		auto &r2 = arg64(2);
 		auto &r3 = arg64(3);
-		auto &height = Xbyak::Reg32(arg64(5).getIdx());
+		auto height = Xbyak::Reg32(arg64(5).getIdx());
 
 		L("loop");
 		{
@@ -727,11 +727,11 @@ struct PredUni
 		auto &r4 = arg64(4); // stride_ref
 		auto &r5 = arg64(5); // width
 		auto &r6 = arg64(6); 
-		auto &r6d = Xbyak::Reg32(r6.getIdx()); // height
+		auto r6d = Xbyak::Reg32(r6.getIdx()); // height
 		auto &r7 = arg64(7);
-		auto &r7d = Xbyak::Reg32(r7.getIdx()); // yFracA
+		auto r7d = Xbyak::Reg32(r7.getIdx()); // yFracA
 		auto &r8 = arg64(8);
-		auto &r8d = Xbyak::Reg32(r8.getIdx()); // yFracB
+		auto r8d = Xbyak::Reg32(r8.getIdx()); // yFracB
 
 		auto &m0 = regXmm(0);
 		auto &m1 = regXmm(1);
@@ -1448,7 +1448,7 @@ struct PredBi
 		auto &r3 = arg64(3);
 		auto &r4 = arg64(4);
 		auto &r5 = arg64(5);
-		auto &r6d = Xbyak::Reg32(arg64(6).getIdx());
+		auto r6d = Xbyak::Reg32(arg64(6).getIdx());
 
 		auto &m0 = regXmm(0);
 		auto &m1 = regXmm(1);
@@ -1702,11 +1702,11 @@ struct PredBi
 		auto &r4 = arg64(4); // stride_ref
 		auto &r5 = arg64(5); // width
 		auto &r6 = arg64(6);
-		auto &r6d = Xbyak::Reg32(r6.getIdx()); // height
+		auto r6d = Xbyak::Reg32(r6.getIdx()); // height
 		auto &r7 = arg64(7);
-		auto &r7d = Xbyak::Reg32(r7.getIdx()); // yFracA
+		auto r7d = Xbyak::Reg32(r7.getIdx()); // yFracA
 		auto &r8 = arg64(8);
-		auto &r8d = Xbyak::Reg32(r8.getIdx()); // yFracB
+		auto r8d = Xbyak::Reg32(r8.getIdx()); // yFracB
 
 		auto &m0 = regXmm(0);
 		auto &m1 = regXmm(1);
