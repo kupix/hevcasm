@@ -3547,10 +3547,10 @@ struct ForwardDct16x16
 			// m10 = dstptr[14,12,10, 8, 6, 4, 2, 0]);
 
 			movdqa(m6, m10); punpcklwd(m6, m8);
-			movdqa(ptr[r0], m6);
+			movdqu(ptr[r0], m6);
 
 			punpckhwd(m10, m8);
-			movdqa(ptr[r0 + 16], m10);
+			movdqu(ptr[r0 + 16], m10);
 
 			lea(r0, ptr[r0 + 2 * 16]);
 			lea(r1, ptr[r1 + r2 * 2]);
