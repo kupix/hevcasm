@@ -220,6 +220,7 @@ protected:
 		}
 
 #else
+		// Registers RBP, RBX, and R12-R15 are callee-save registers; all others must be saved by the caller if it wishes to preserve their values.
 		for (int i = 6; i < nArguments; ++i)
 		{
 			mov(arg64(i), ptr[rsp + 8 * (i - 5)]);
@@ -254,8 +255,9 @@ protected:
 
 	//virtual void appendix() { }
 
-	Xbyak::Reg64 const &reg64(size_t i)
+	Xbyak::Reg64 const &reg64(int i)
 	{
+		if (pass) this->variables = std::max(this->variables, i - nArguments + 1);
 #ifdef WIN32
 		Xbyak::Reg64 const *lookup[15] = { &rcx, &rdx, &r8, &r9, &r10, &r11, &rax, &rdi, &rsi, &rbx, &rbp, &r12, &r13, &r14, &r15 };
 #else
@@ -267,13 +269,6 @@ protected:
 	Xbyak::Reg64 const &arg64(int i)
 	{
 		assert(i < nArguments);
-		return reg64(i);
-	}
-
-	Xbyak::Reg64 const &var64(int i)
-	{
-		if (pass) this->variables = std::max(this->variables, i + 1);
-		i += this->nArguments;
 		return reg64(i);
 	}
 

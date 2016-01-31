@@ -67,10 +67,10 @@ struct SadSse2
 		auto &ref = arg64(2);
 		auto &stride_ref = arg64(3);
 
-		auto &n = var64(4);
+		auto &n = reg64(4);
 
-		const Xbyak::Reg64 *stride_ref_x3 = width == 16 ? &var64(5) : 0;
-		const Xbyak::Reg64 *stride_src_x3 = width == 16 ? &var64(6) : 0;
+		const Xbyak::Reg64 *stride_ref_x3 = width == 16 ? &reg64(5) : 0;
+		const Xbyak::Reg64 *stride_src_x3 = width == 16 ? &reg64(6) : 0;
 
 		if (width == 8)
 		{
@@ -324,9 +324,9 @@ struct Sad4Avx2
 
 		if (width == 8)
 		{
-			auto &ref0 = var64(6);
-			auto &ref1 = var64(7);
-			auto &ref2 = var64(8);
+			auto &ref0 = reg64(6);
+			auto &ref1 = reg64(7);
+			auto &ref2 = reg64(8);
 			auto &ref3 = ref;
 
 			mov(ref0, ptr[ref]);
@@ -410,9 +410,9 @@ struct Sad4Avx2
 		}
 		else if (width == 4)
 		{
-			auto &ref0 = var64(6);
-			auto &ref1 = var64(7);
-			auto &ref2 = var64(8);
+			auto &ref0 = reg64(6);
+			auto &ref1 = reg64(7);
+			auto &ref2 = reg64(8);
 			auto &ref3 = ref;
 
 			mov(ref0, ptr[ref]);
@@ -480,10 +480,9 @@ struct Sad4Avx2
 			auto &r4 = arg64(4);
 			auto &r5 = arg64(5);
 
-			auto &r6 = var64(6);
-			auto &r7 = var64(7);
-			auto &r8 = var64(8);
-
+			auto &r6 = reg64(6);
+			auto &r7 = reg64(7);
+			auto &r8 = reg64(8);
 
 			mov(r6, r1); //stride_src
 			mov(r7, r3); // stride_ref
