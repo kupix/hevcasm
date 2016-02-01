@@ -2288,7 +2288,10 @@ void HEVCASM_API hevcasm_test_pred_bi(int *error_count, hevcasm_instruction_set 
 			b[0].xFracA = b[0].yFracA = b[0].xFracB = b[0].yFracB = 0;
 			test_partitions_bi(error_count, b, mask);
 
-			b[0].xFracA = b[0].yFracA = b[0].xFracB = b[0].yFracB = 1;
+			b[0].xFracA = 1;
+			b[0].yFracA = 2;
+			b[0].xFracB = 3;
+			b[0].yFracB = 0;
 			test_partitions_bi(error_count, b, mask);
 		}
 }
