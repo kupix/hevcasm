@@ -220,11 +220,13 @@ protected:
 		}
 
 #else
+db({0xcc});
 		// Registers RBP, RBX, and R12-R15 are callee-save registers; all others must be saved by the caller if it wishes to preserve their values.
 		for (int i = 6; i < nArguments; ++i)
 		{
 			mov(arg64(i), ptr[rsp + 8 * (i - 5)]);
 		}
+		sub(rsp, stack);
 #endif
 	}
 
@@ -249,6 +251,7 @@ protected:
 			pop(reg64(i));
 		}
 #else
+		add(rsp, stack);
 #endif
 		ret();
 	}

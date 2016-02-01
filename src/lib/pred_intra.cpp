@@ -123,7 +123,7 @@ struct IntraPredDc8
 
 	void data()
 	{
-		align();
+		align(32);
 
 		// from f265
 
@@ -149,6 +149,16 @@ struct IntraPredDc8
 
 	void assemble()
 	{
+		auto rcx = reg64(0);
+		auto rdx = reg64(1);
+		auto r8 = reg64(2);
+		auto r8d = Xbyak::Reg32(r8.getIdx());
+		auto r9 = reg64(3);
+		auto r9d = Xbyak::Reg32(r9.getIdx());
+
+		regXmm(16);
+		reg64(9);
+
 		// from f265
 
 		//Logic:
@@ -167,16 +177,16 @@ struct IntraPredDc8
 
 		vpalignr(ymm0, ymm0, ymm1, 4);
 		vpaddw(ymm1, ymm1, ymm0);
-		
+
 		vpalignr(ymm0, ymm0, ymm1, 2);
 		vpaddw(ymm1, ymm1, ymm0);
 
 		vmovd(xmm0, ptr[rip + pat_w_2048]);
 		vpmulhrsw(ymm1, ymm1, ymm0); // Round.
-		
+
 		vpbroadcastb(ymm1, xmm1); // Replicate the value.
 		vmovdqa(ymm0, ymm1);
-		
+
 		and(r9, 1);
 		je("skip filter", T_NEAR);
 		{

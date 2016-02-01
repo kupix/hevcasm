@@ -630,8 +630,8 @@ struct PredUni
 
 		if (outputTypeBits == 16)
 		{
-			movdqa(ptr[r0 + 2 * dx], m0);
-			movdqa(ptr[r0 + 2 * dx + 16], m2);
+			movdqu(ptr[r0 + 2 * dx], m0);
+			movdqu(ptr[r0 + 2 * dx + 16], m2);
 		}
 		else
 		{
@@ -640,7 +640,7 @@ struct PredUni
 			psraw(m0, 6);
 			psraw(m2, 6);
 			packuswb(m0, m2);
-			movdqa(ptr[r0 + dx], m0);
+			movdqu(ptr[r0 + dx], m0);
 		}
 	}
 
@@ -780,8 +780,8 @@ struct PredUni
 					// each iteration of this loop performs two filter taps
 
 					// reference picture A
-					movdqa(m0, ptr[r2]);
-					movdqa(m1, ptr[r2 + r4]);
+					movdqu(m0, ptr[r2]);
+					movdqu(m1, ptr[r2 + r4]);
 					movdqa(m2, m0);
 					punpckhwd(m2, m1);
 					punpcklwd(m0, m1);
@@ -792,8 +792,8 @@ struct PredUni
 					lea(r2, ptr[r2 + r4 * 2]);
 
 					// reference picture B
-					movdqa(m0, ptr[r3]);
-					movdqa(m1, ptr[r3 + r4]);
+					movdqu(m0, ptr[r3]);
+					movdqu(m1, ptr[r3 + r4]);
 					movdqa(m2, m0);
 					punpckhwd(m2, m1);
 					punpcklwd(m0, m1);
@@ -1436,7 +1436,8 @@ struct PredBi
 
 	void assemble() override
 	{
-		if (taps)
+//db({0xcc});
+if (0)		if (taps)
 		{
 			assembleInterp();
 			return;
@@ -1605,8 +1606,8 @@ struct PredBi
 
 		if (outputTypeBits == 16)
 		{
-			movdqa(ptr[r0 + 2 * dx], m0);
-			movdqa(ptr[r0 + 2 * dx + 16], m2);
+			movdqu(ptr[r0 + 2 * dx], m0);
+			movdqu(ptr[r0 + 2 * dx + 16], m2);
 		}
 		else
 		{
@@ -1615,7 +1616,7 @@ struct PredBi
 			psraw(m0, 6);
 			psraw(m2, 6);
 			packuswb(m0, m2);
-			movdqa(ptr[r0 + dx], m0);
+			movdqu(ptr[r0 + dx], m0);
 		}
 	}
 
@@ -1755,8 +1756,8 @@ struct PredBi
 					// each iteration of this loop performs two filter taps
 
 					// reference picture A
-					movdqa(m0, ptr[r2]);
-					movdqa(m1, ptr[r2 + r4]);
+					movdqu(m0, ptr[r2]);
+					movdqu(m1, ptr[r2 + r4]);
 					movdqa(m2, m0);
 					punpckhwd(m2, m1);
 					punpcklwd(m0, m1);
@@ -1767,8 +1768,8 @@ struct PredBi
 					lea(r2, ptr[r2 + r4 * 2]);
 
 					// reference picture B
-					movdqa(m0, ptr[r3]);
-					movdqa(m1, ptr[r3 + r4]);
+					movdqu(m0, ptr[r3]);
+					movdqu(m1, ptr[r3 + r4]);
 					movdqa(m2, m0);
 					punpckhwd(m2, m1);
 					punpcklwd(m0, m1);

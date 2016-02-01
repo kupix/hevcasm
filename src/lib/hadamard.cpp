@@ -316,7 +316,7 @@ struct Satd8
 
 	void data()
 	{
-		align();
+		align(32);
 		L(constant_010101010101010101ff01ff01ff01ff010101010101010101ff01ff01ff01ff);
 		db({ 1, 1 }, 4);
 		db({ 1, -1 }, 4);
