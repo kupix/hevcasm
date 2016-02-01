@@ -33,7 +33,6 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "residual_decode_a.h"
 #include "residual_decode.h"
 #include "hevcasm_test.h"
 #include "Jit.h"
@@ -2991,22 +2990,13 @@ static hevcasm_inverse_transform_add8* get_inverse_transform_add8(int trType, in
 			static InverseTransformAdd a(&buffer, trType, log2TrafoSize);
 			f = a;
 		}
-		if (nCbS == 32)
+		if (nCbS == 32 && encoder)
 		{
+			// The 32x32 idct from f265 is non-conforming. Suspect arithmetic overflow.
+			// This probem becomes apparent when decoding the DELTAQP_A conformance stream which has artificial, extreme coefficient values.
 			static InverseTransformAdd a(&buffer, trType, log2TrafoSize);
 			f = a;
 		}
-		//if (nCbS == 4 && trType) f =  hevcasm_idst_4x4_avx2;
-		//if (nCbS == 8) f = hevcasm_idct_8x8_avx2;
-		//if (nCbS == 16) f = hevcasm_idct_16x16_avx2;
-
-		//// The 32x32 idct from f265 is non-conforming. Suspect arithmetic overflow.
-		//// This probem becomes apparent when decoding the DELTAQP_A conformance stream which has artificial, extreme coefficient values.
-		//if (encoder)
-		//{
-		//	// If we are using this function inside an encoder with naturally occuring quantised input coefficients, it will not cause a problem.
-		//	if (nCbS == 32) f = hevcasm_idct_32x32_avx2;
-		//}
 	}
 #endif
 
