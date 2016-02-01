@@ -177,56 +177,74 @@ protected:
 	int stackOffset = 0;
 	int stackSize = 0;
 
+#ifdef WIN32
+	int const mmRegistersVolatile = 8;
+#else
+	int const mmRegistersVolatile = 16;
+#endif
+
+
 	void prologue(int variables, int mmRegisters, int stack)
 	{
+		assert(mmRegisters <= 16);
+
+		this->stackOffset = 0x8; // rbp
 #ifdef WIN32
-		this->stackOffset = 0x28;
+		this->stackOffset += 0x20;  // shadow space
+#endif
+
 		this->frameSize = 0;
 
 		int registers = nArguments + variables;
+#ifdef WIN32
 		for (int i = 7; i < registers; ++i)
+#else
+		for (int i = 9; i < registers; ++i)
+#endif
 		{
 			push(reg64(i));
 			this->frameSize += 8;
 		}
 
-		if (mmRegisters > 8 || stack)
+		if (mmRegisters > mmRegistersVolatile || stack)
 		{
 			if (this->frameSize & 8) this->stackOffset += 8;
-			if (mmRegisters > 8) this->stackOffset += (mmRegisters - 8) * 16;
+			if (mmRegisters > mmRegistersVolatile) this->stackOffset += (mmRegisters - mmRegistersVolatile) * 16;
 			this->stackOffset += stack;
 			this->frameSize += this->stackOffset;
 
+#ifdef WIN32
 			// chkstk implementation
 			sub(rsp, this->stackOffset);
 			for (int d = this->stackOffset - 4096; d >= 0; d -= 4096)
 			{
 				mov(ptr[rsp + d], rsp);
 			}
+#endif
 		}
 
+#ifdef WIN32
 		// Store xmm6 and xmm7 in shadow space
 		if (mmRegisters > 6) vmovaps(ptr[rsp + this->frameSize + 8], xmm6);
 		if (mmRegisters > 7) vmovaps(ptr[rsp + this->frameSize + 24], xmm7);
-		// Store xmm8 and up in allocated stack
-		for (int i = 8; i < mmRegisters; ++i)
+#endif
+
+		// Store callee-saved XMM registers in allocated stack
+		for (int i = mmRegistersVolatile; i < mmRegisters; ++i)
 		{
 			vmovaps(ptr[rsp + stack + (i - 6) * 0x10], regXmm(i));
 		}
 
+#ifdef WIN32
 		for (int i = 4; i < nArguments; ++i)
 		{
 			mov(arg64(i), ptr[rsp + this->frameSize + 8 * (i + 1)]);
 		}
-
 #else
-db({0xcc});
-		// Registers RBP, RBX, and R12-R15 are callee-save registers; all others must be saved by the caller if it wishes to preserve their values.
 		for (int i = 6; i < nArguments; ++i)
 		{
 			mov(arg64(i), ptr[rsp + 8 * (i - 5)]);
 		}
-		sub(rsp, stack);
 #endif
 	}
 
@@ -235,24 +253,27 @@ db({0xcc});
 #ifdef WIN32
 		if (mmRegisters > 6) vmovaps(xmm6, ptr[rsp + this->frameSize + 8]);
 		if (mmRegisters > 7) vmovaps(xmm7, ptr[rsp + this->frameSize + 24]);
-		for (int i = 8; i < mmRegisters; ++i)
+#endif
+		for (int i = mmRegistersVolatile; i < mmRegisters; ++i)
 		{
 			vmovaps(regXmm(i), ptr[rsp + stack + (i - 6) * 0x10]);
 		}
 
-		if (mmRegisters > 8 || stack)
+		if (mmRegisters > mmRegistersVolatile || stack)
 		{
 			add(rsp, this->stackOffset);
 		}
 
 		int registers = nArguments + variables;
+
+#ifdef WIN32
 		for (int i = registers - 1; i >= 7; --i)
+#else
+		for (int i = registers - 1; i >= 9; --i)
+#endif
 		{
 			pop(reg64(i));
 		}
-#else
-		add(rsp, stack);
-#endif
 		ret();
 	}
 
@@ -264,6 +285,8 @@ db({0xcc});
 #ifdef WIN32
 		Xbyak::Reg64 const *lookup[15] = { &rcx, &rdx, &r8, &r9, &r10, &r11, &rax, &rdi, &rsi, &rbx, &rbp, &r12, &r13, &r14, &r15 };
 #else
+		//  The first six integer or pointer arguments are passed in registers RDI, RSI, RDX, RCX, R8, and R9.
+		// Registers RBP, RBX, and R12-R15 are callee-save registers; all others must be saved by the caller if it wishes to preserve their values.
 		Xbyak::Reg64 const *lookup[15] = { &rdi, &rsi, &rdx, &rcx, &r8, &r9, &rax, &r10, &r11, &rbx, &rbp, &r12, &r13, &r14, &r15 };
 #endif
 		return *lookup[i];

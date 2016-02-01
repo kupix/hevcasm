@@ -156,7 +156,7 @@ struct IntraPredDc8
 		auto r9 = reg64(3);
 		auto r9d = Xbyak::Reg32(r9.getIdx());
 
-		regXmm(16);
+		regXmm(5);
 		reg64(9);
 
 		// from f265

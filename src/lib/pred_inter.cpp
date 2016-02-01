@@ -1436,8 +1436,7 @@ struct PredBi
 
 	void assemble() override
 	{
-//db({0xcc});
-if (0)		if (taps)
+		if (taps)
 		{
 			assembleInterp();
 			return;
