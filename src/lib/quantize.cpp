@@ -541,90 +541,93 @@ static void hevcasm_quantize_reconstruct_c_ref(uint8_t *rec, ptrdiff_t stride_re
 
 #define ORDER(a, b, c, d) ((a << 6) | (b << 4) | (c << 2) | d)
 
-//struct QuantiseReconstruct
-//	:
-//	Jit::Function<QuantiseReconstruct, hevcasm_quantize_reconstruct>
-//{
-//	QuantiseReconstruct(Jit::Buffer *buffer, int nCbS)
-//		:
-//		Jit::Function<QuantiseReconstruct, hevcasm_quantize_reconstruct>(buffer)
-//	{
-//		this->build(nCbS);
-//	}
-//
-//	void assemble(int nCbS)
-//	{
-//		auto &r0 = arg64(0);
-//		auto &r1 = arg64(1);
-//		auto &r2 = arg64(2);
-//		auto &r3 = arg64(3);
-//		auto &r4 = arg64(4);
-//		auto &r5 = arg64(5);
-//
-//		auto &m0 = regXmm(asdf);
-//		auto &m1 = regXmm(asdf);
-//		auto &m2 = regXmm(asdf);
-//		auto &m3 = regXmm(asdf);
-//
-//		Xbyak::Reg32 r5d(r5.getIdx());
-//
-//		pxor(m0, m0);
-//
-//		if (nCbS == 4)
-//		{
-//			mov(r5d, 2);
-//
-//			L("loop");
-//			{
-//				movd(m1, ptr[r2]);
-//				movd(m2, ptr[r2 + r3]);
-//
-//				lea(r2, ptr[r2 + r3 * 2]);
-//
-//				punpckldq(m1, m2);
-//				punpcklbw(m1, m0);
-//
-//				movdqu(m3, ptr[r4]);
-//				paddw(m1, m3);
-//				lea(r4, ptr[r4 + 16]);
-//				packuswb(m1, m1);
-//
-//				movd(ptr[r0], m1);
-//				pshufd(m1, m1, ORDER(0, 0, 0, 1));
-//				movd(ptr[r0 + r1], m1);
-//				lea(r0, ptr[r0 + r1 * 2]);
-//			}
-//			dec(r5d);
-//			jg("loop");
-//		}
-//		else
-//		{
-//			mov(r5d, nCbS);
-//
-//			L("loop");
-//			{
-//				movq(m1, ptr[r2]);
-//				lea(r2, ptr[r2 + r3]);
-//				if (nCbS >= 16)
-//				{
-//					movdqa(m2, m1);
-//					punpckhbw(m2, m0);
-//				}
-//				punpcklbw(m1, m0);
-//
-//				paddw(m1, ptr[r4]);
-//				lea(r4, ptr[r4 + 2*nCbS]);
-//
-//				packuswb(m1, m1);
-//
-//				movq(ptr[r0], m1);
-//				lea(r0, ptr[r0 + r1]);
-//			}
-//			dec(r5d);
-//			jg("loop");
-//		}
-//	}
-//};
+struct QuantiseReconstruct
+	:
+	Jit::Function
+{
+	QuantiseReconstruct(Jit::Buffer *buffer, int nCbS)
+		:
+		Jit::Function(buffer, 6),
+		nCbS(nCbS)
+	{
+		this->build();
+	}
+
+	int const nCbS;
+
+	void assemble()
+	{
+		auto &r0 = arg64(0);
+		auto &r1 = arg64(1);
+		auto &r2 = arg64(2);
+		auto &r3 = arg64(3);
+		auto &r4 = arg64(4);
+		auto &r5 = arg64(5);
+
+		auto &m0 = regXmm(0);
+		auto &m1 = regXmm(1);
+		auto &m2 = regXmm(2);
+		auto &m3 = regXmm(3);
+
+		Xbyak::Reg32 r5d(r5.getIdx());
+
+		pxor(m0, m0);
+
+		if (nCbS == 4)
+		{
+			mov(r5d, 2);
+
+			L("loop");
+			{
+				movd(m1, ptr[r2]);
+				movd(m2, ptr[r2 + r3]);
+
+				lea(r2, ptr[r2 + r3 * 2]);
+
+				punpckldq(m1, m2);
+				punpcklbw(m1, m0);
+
+				movdqu(m3, ptr[r4]);
+				paddw(m1, m3);
+				lea(r4, ptr[r4 + 16]);
+				packuswb(m1, m1);
+
+				movd(ptr[r0], m1);
+				pshufd(m1, m1, ORDER(0, 0, 0, 1));
+				movd(ptr[r0 + r1], m1);
+				lea(r0, ptr[r0 + r1 * 2]);
+			}
+			dec(r5d);
+			jg("loop");
+		}
+		else
+		{
+			mov(r5d, nCbS);
+
+			L("loop");
+			{
+				movq(m1, ptr[r2]);
+				lea(r2, ptr[r2 + r3]);
+				if (nCbS >= 16)
+				{
+					movdqa(m2, m1);
+					punpckhbw(m2, m0);
+				}
+				punpcklbw(m1, m0);
+
+				paddw(m1, ptr[r4]);
+				lea(r4, ptr[r4 + 2*nCbS]);
+
+				packuswb(m1, m1);
+
+				movq(ptr[r0], m1);
+				lea(r0, ptr[r0 + r1]);
+			}
+			dec(r5d);
+			jg("loop");
+		}
+	}
+};
 
 
 hevcasm_quantize_reconstruct * HEVCASM_API get_quantize_reconstruct(int log2TrafoSize, hevcasm_instruction_set mask)
@@ -633,31 +636,31 @@ hevcasm_quantize_reconstruct * HEVCASM_API get_quantize_reconstruct(int log2Traf
 		
 	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT)) f = hevcasm_quantize_reconstruct_c_ref;
 
-	//if (mask & HEVCASM_SSE41)
-	//{
-	//	static Jit::Buffer buffer(10000);
-	//	const int nCbS = 1 << log2TrafoSize;
-	//	if (nCbS == 4)
-	//	{
-	//		static QuantiseReconstruct qr(&buffer, nCbS);
-	//		f = qr.function();
-	//	}
-	//	if (nCbS == 8)
-	//	{
-	//		static QuantiseReconstruct qr(&buffer, nCbS);
-	//		f = qr.function();
-	//	}
-	//	if (nCbS == 16)
-	//	{
-	//		static QuantiseReconstruct qr(&buffer, nCbS);
-	//		f = qr.function();
-	//	}
-	//	if (nCbS == 32)
-	//	{
-	//		static QuantiseReconstruct qr(&buffer, nCbS);
-	//		f = qr.function();
-	//	}
-	//}
+	if (mask & HEVCASM_SSE41)
+	{
+		static Jit::Buffer buffer(10000);
+		const int nCbS = 1 << log2TrafoSize;
+		if (nCbS == 4)
+		{
+			static QuantiseReconstruct qr(&buffer, nCbS);
+			f = qr;
+		}
+		if (nCbS == 8)
+		{
+			static QuantiseReconstruct qr(&buffer, nCbS);
+			f = qr;
+		}
+		if (nCbS == 16)
+		{
+			static QuantiseReconstruct qr(&buffer, nCbS);
+			f = qr;
+		}
+		if (nCbS == 32)
+		{
+			static QuantiseReconstruct qr(&buffer, nCbS);
+			f = qr;
+		}
+	}
 
 	return f;
 }
