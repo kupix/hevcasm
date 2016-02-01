@@ -187,6 +187,9 @@ protected:
 	void prologue(int variables, int mmRegisters, int stack)
 	{
 		assert(mmRegisters <= 16);
+		//db({ 0xcc });
+		//nop();
+		//nop();
 
 		this->stackOffset = 0x8; // rbp
 #ifdef WIN32
@@ -194,6 +197,10 @@ protected:
 #endif
 
 		this->frameSize = 0;
+
+		//std::cout << "nArguments " << nArguments << "\n";
+		//std::cout << "variables " << variables << "\n";
+		//std::cout << "stack " << stack << "\n";
 
 		int registers = nArguments + variables;
 #ifdef WIN32
@@ -213,9 +220,9 @@ protected:
 			this->stackOffset += stack;
 			this->frameSize += this->stackOffset;
 
+			sub(rsp, this->stackOffset);
 #ifdef WIN32
 			// chkstk implementation
-			sub(rsp, this->stackOffset);
 			for (int d = this->stackOffset - 4096; d >= 0; d -= 4096)
 			{
 				mov(ptr[rsp + d], rsp);
@@ -243,7 +250,7 @@ protected:
 #else
 		for (int i = 6; i < nArguments; ++i)
 		{
-			mov(arg64(i), ptr[rsp + 8 * (i - 5)]);
+			mov(arg64(i), ptr[rsp + this->frameSize + 8 * (i - 6 + 1)]);
 		}
 #endif
 	}

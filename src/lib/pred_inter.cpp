@@ -397,6 +397,8 @@ struct PredUni
 		auto &r6 = arg64(6);
 		auto &r7 = arg64(7);
 
+//		db({ 0xcc });
+
 		if (xFrac && !yFrac)
 		{
 			this->PRED_UNI_H_16NxH(taps, outputBitDepth, width);
@@ -406,7 +408,6 @@ struct PredUni
 		if (xFrac && yFrac)
 		{
 			this->stackSize = 64 * (64 + taps - 1) * 2 + 16;
-
 
 			push(r0);
 			lea(r0, ptr[rsp + 8]);
@@ -452,7 +453,7 @@ struct PredUni
 
 		// adjust input pointer (subtract (taps/2-1) * stride)
 		for (int i = 0; i < taps / 2 - 1; ++i) sub(r2, r3);
-
+		//db({ 0xcc });
 		if (inputBitDepth == 16)
 		{
 			lea(r4, ptr[rip + coefficients16]);
@@ -1355,12 +1356,6 @@ struct PredBi
 
 		this->stackSize = (64 + taps - 1) * 64 * 2 * 2 + 12 * 8; 
 
-		// cautious __chkstk
-		for (int i = this->stackSize - 8; i > 8; i -= 2048)
-		{
-			mov(ptr[rsp + i], r0);
-		}
-
 		// save all arguments in allocated stack memory
 		for (int i = 0; i < 11; ++i)
 		{
@@ -2088,8 +2083,8 @@ void HEVCASM_API hevcasm_test_pred_bi(int *error_count, hevcasm_instruction_set 
 
 	for (b[0].taps = 8; b[0].taps >= 4; b[0].taps -= 4)
 	{
-		//b[0].xFracA = b[0].yFracA = b[0].xFracB = b[0].yFracB = 0;
-		//test_partitions_bi(error_count, b, mask);
+		b[0].xFracA = b[0].yFracA = b[0].xFracB = b[0].yFracB = 0;
+		test_partitions_bi(error_count, b, mask);
 
 		b[0].xFracA = b[0].yFracA = b[0].xFracB = b[0].yFracB = 1;
 		test_partitions_bi(error_count, b, mask);
