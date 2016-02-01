@@ -129,13 +129,11 @@ extern "C"
 {
 #endif
 
+typedef unsigned hevcasm_instruction_set;
 
-typedef enum {
-#define X(value, name, description) HEVCASM_ ## name = 1 << value,
+#define X(value, name, description) hevcasm_instruction_set const HEVCASM_ ## name = 1 << value;
 	HEVCASM_INSTRUCTION_SET_XMACRO
 #undef X
-} 
-hevcasm_instruction_set;
 
 
 /*

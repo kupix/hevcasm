@@ -5,7 +5,7 @@ and contributor rights, including patent rights, and no such rights are
 granted under this license.
 
 
-Copyright(c) 2011 - 2014, Parabola Research Limited
+Copyright(c) 2011 - 2016, Parabola Research Limited
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #define INCLUDED_sad_h
 
 #include "hevcasm.h"
+#include <functional>
 
 
 #ifdef __cplusplus
@@ -45,23 +46,49 @@ extern "C"
 {
 #endif
 
+#define X_HEVC_PU_SIZES \
+	X(64, 64); \
+	X(64, 48); \
+	X(64, 32); \
+	X(64, 16); \
+	X(48, 64); \
+	X(32, 64); \
+	X(32, 32); \
+	X(32, 24); \
+	X(32, 16); \
+	X(32, 8); \
+	X(24, 32); \
+	X(16, 64); \
+	X(16, 32); \
+	X(16, 16); \
+	X(16, 12); \
+	X(16, 8); \
+	X(16, 4); \
+	X(12, 16); \
+	X(8, 32); \
+	X(8, 16); \
+	X(8, 8); \
+	X(8, 4); \
+	X(4, 8); \
+
+
+//typedef std::function<int(const uint8_t * /*src*/, ptrdiff_t /*stride_src*/, const uint8_t * /*ref*/, ptrdiff_t /*stride_ref*/, uint32_t /*rect*/)> hevcasm_sad;
 
 /* Rectangular SAD (Sum of Absolute Differences) with single reference */
 typedef int hevcasm_sad(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref, ptrdiff_t stride_ref, uint32_t rect);
 
+
+
+
+
 typedef struct
 {
-	hevcasm_sad *sad64x64;
-	hevcasm_sad *sad64x32;
-	hevcasm_sad *sad32x64;
-	hevcasm_sad *sad32x32;
-	hevcasm_sad *sad32x16;
-	hevcasm_sad *sad16x32;
-	hevcasm_sad *sad16x16;
-	hevcasm_sad *sad16x8;
-	hevcasm_sad *sad8x16;
-	hevcasm_sad *sad8x8;
-	hevcasm_sad *sad8x4;
+#define X(w, h) \
+	hevcasm_sad *sad ## w ## x ## h;
+	
+	X_HEVC_PU_SIZES
+#undef X
+
 	hevcasm_sad *sadGeneric;
 }
 hevcasm_table_sad;
@@ -70,17 +97,11 @@ static hevcasm_sad** hevcasm_get_sad(hevcasm_table_sad *table, int width, int he
 {
 	switch (HEVCASM_RECT(width, height))
 	{
-	case HEVCASM_RECT(64, 64): return &table->sad64x64;
-	case HEVCASM_RECT(64, 32): return &table->sad64x32;
-	case HEVCASM_RECT(32, 64): return &table->sad32x64;
-	case HEVCASM_RECT(32, 32): return &table->sad32x32;
-	case HEVCASM_RECT(32, 16): return &table->sad32x16;
-	case HEVCASM_RECT(16, 32): return &table->sad16x32;
-	case HEVCASM_RECT(16, 16): return &table->sad16x16;
-	case HEVCASM_RECT(16, 8): return &table->sad16x8;
-	case HEVCASM_RECT(8, 16): return &table->sad8x16;
-	case HEVCASM_RECT(8, 8): return &table->sad8x8;
-	case HEVCASM_RECT(8, 4): return &table->sad8x4;
+#define X(w, h) \
+	case HEVCASM_RECT(w, h): return &table->sad ## w ## x ## h;
+
+	X_HEVC_PU_SIZES
+#undef X
 	default:;
 	}
 	return &table->sadGeneric;

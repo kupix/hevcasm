@@ -35,7 +35,7 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ssd.h"
 #include "hevcasm_test.h"
-
+#include "Jit.h"
 #include <stdlib.h>
 #include <assert.h>
 
@@ -59,6 +59,78 @@ hevcasm_ssd hevcasm_ssd_16x16_avx;
 hevcasm_ssd hevcasm_ssd_32x32_avx;
 hevcasm_ssd hevcasm_ssd_64x64_avx;
 
+#define ORDER(a, b, c, d) ((a << 6) | (b << 4) | (c << 2) | d)
+
+
+struct Ssd
+	:
+	Jit::Function
+{
+	Ssd(Jit::Buffer *buffer, int width, int height)
+		:
+		Jit::Function(buffer, Jit::CountArguments<hevcasm_ssd>::value),
+		width(width),
+		height(height)
+	{
+		this->build();
+	}
+
+	int width, height;
+
+	void assemble() override
+	{
+		auto &r0 = arg64(0);
+		auto &r1 = arg64(1);
+		auto &r2 = arg64(2);
+		auto &r3 = arg64(3);
+		auto &r4 = arg64(4);
+		auto &r5 = arg64(5);
+
+		if (width % 16 == 0)
+		{
+			auto &m0 = regXmm(0);
+			auto &m1 = regXmm(1);
+			auto &m2 = regXmm(2);
+			auto &m3 = regXmm(3);
+			auto &m4 = regXmm(4);
+			auto &m5 = regXmm(5);
+
+			vpxor(m0, m0);
+			vpxor(m5, m5);
+
+			L("loop");
+			{
+				for (int x = 0; x < width; x += 16)
+				{
+					vmovdqa(m1, ptr[r0 + x]);
+					vmovdqa(m2, ptr[r2 + x]);
+					vpunpckhbw(m3, m1, m5);
+					vpunpckhbw(m4, m2, m5);
+					vpunpcklbw(m1, m5);
+					vpunpcklbw(m2, m5);
+					vpsubw(m1, m2);
+					vpsubw(m3, m4);
+					vpmaddwd(m1, m1);
+					vpmaddwd(m3, m3);
+					vpaddd(m0, m1);
+					vpaddd(m0, m3);
+				}
+				lea(r0, ptr[r0 + r1]);
+				lea(r2, ptr[r2 + r3]);
+			}
+			dec(Xbyak::Reg32(r5.getIdx()));
+			jg("loop");
+
+			vpshufd(m1, m0, ORDER(3, 2, 3, 2));
+			vpaddd(m0, m1); // Review: phaddd might be better here
+			vpshufd(m1, m0, ORDER(3, 2, 0, 1));
+			vpaddd(m0, m1);
+			vmovd(eax, m0);
+		}
+	}
+};
+
+
 
 void HEVCASM_API hevcasm_populate_ssd(hevcasm_table_ssd *table, hevcasm_instruction_set mask)
 {
@@ -77,11 +149,22 @@ void HEVCASM_API hevcasm_populate_ssd(hevcasm_table_ssd *table, hevcasm_instruct
 		*hevcasm_get_ssd(table, 6) = hevcasm_ssd_c_ref;
 	}
 
+	static Jit::Buffer jitBuffer(100000);
+
 	if (mask & HEVCASM_AVX)
 	{
-		*hevcasm_get_ssd(table, 4) = hevcasm_ssd_16x16_avx;
-		*hevcasm_get_ssd(table, 5) = hevcasm_ssd_32x32_avx;
-		*hevcasm_get_ssd(table, 6) = hevcasm_ssd_64x64_avx;
+		{
+			static Ssd ssd(&jitBuffer, 16, 16);
+			*hevcasm_get_ssd(table, 4) = ssd;
+		}
+		{
+			static Ssd ssd(&jitBuffer, 32, 32);
+			*hevcasm_get_ssd(table, 5) = ssd;
+		}
+		{
+			static Ssd ssd(&jitBuffer, 64, 64);
+			*hevcasm_get_ssd(table, 6) = ssd;
+		}
 	}
 }
 
@@ -98,7 +181,7 @@ bound_ssd;
 
 int init_ssd(void *p, hevcasm_instruction_set mask)
 {
-	bound_ssd *s = p;
+	bound_ssd *s = (bound_ssd *)p;
 
 	hevcasm_table_ssd table;
 
@@ -118,7 +201,7 @@ int init_ssd(void *p, hevcasm_instruction_set mask)
 
 void invoke_ssd(void *p, int n)
 {
-	bound_ssd *s = p;
+	bound_ssd *s = (bound_ssd *)p;
 	const int nCbS = 1 << s->log2TrafoSize;
 	while (n--)
 	{
@@ -129,8 +212,8 @@ void invoke_ssd(void *p, int n)
 
 int mismatch_ssd(void *boundRef, void *boundTest)
 {
-	bound_ssd *ref = boundRef;
-	bound_ssd *test = boundTest;
+	bound_ssd *ref = (bound_ssd *)boundRef;
+	bound_ssd *test = (bound_ssd *)boundTest;
 
 	return ref->ssd != test->ssd;
 }
