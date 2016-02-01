@@ -8,10 +8,7 @@ addons:
       - ubuntu-toolchain-r-test
     packages:
       - gcc-4.8
-
-cache:
-  directories:
-    - $HOME/sde-external-7.31.0-2015-09-25-lin
+      - g++-4.8
 
 cache:
   directories:
