@@ -1453,12 +1453,17 @@ void hevcasm_pred_bi_ ## taps ## tap_ ## bits ## to ## bits ## _c_ref(uint ## bi
 	 \
 	/* Combine two references for bi pred */ \
 	hevcasm_pred_bi_mean_32and32to ## bits ##_c_ref(dst, stride_dst, intermediate[0], intermediate[1], 64, nPbW, nPbH, bitDepth, shift3 + 1); \
+	\
+	uint8_t test[(64 + taps - 1) * 64]; \
+	Jit::Buffer buffer(10000); \
+	PredBi a(&buffer, nPbW, (xFrac0|yFrac0|xFrac1|yFrac1) ? taps : 0); \
+	hevcasm_pred_bi_8to8 *p = a; \
+	p(test, 64, (const uint8_t*)ref0, (const uint8_t*)ref1, stride_ref, nPbW, nPbH, xFrac0, yFrac0, xFrac1, yFrac1, bitDepth); \
+	for (int y=0; y<nPbH; ++y) \
+		for (int x=0; x<nPbW; ++x) \
+			assert(test[x+y*64] == dst[x+y*stride_dst]); \
 } \
 
-MAKE_hevcasm_pred_bi(8, 8)
-MAKE_hevcasm_pred_bi(8, 4)
-MAKE_hevcasm_pred_bi(16, 8)
-MAKE_hevcasm_pred_bi(16, 4)
 
 
 
@@ -1473,6 +1478,8 @@ struct PredBi
 		width(width),
 		taps(taps)
 	{
+		static int n = 0;
+		//std::cout << ++n << " taps=" << taps << " width=" << width << "\n";
 		this->build();
 	}
 
@@ -1564,6 +1571,8 @@ struct PredBi
 		lea(r2, ptr[rsp + 12 * 8]); // refAtop
 		lea(r3, ptr[rsp + 12 * 8 + (64 + taps - 1) * 64 * 2]); // refBtop
 		mov(r4, 64); // stride_ref
+		mov(r7, r8); //yFrac0
+		mov(r8, r10); //yFrac1
 
 		// inline "function"
 		// void hevcasm_pred_bi_v_%1tap_16to16_%3xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, ptrdiff_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB)//
@@ -1812,7 +1821,7 @@ struct PredBi
 
 		L("loopHH");
 		{
-			for (int i = 0; i < width / 16; ++i)
+			for (int i = 0; i < (width + 15) / 16; ++i)
 			{
 				int const dx = 16 * i;
 				PRED_UNI_H_16x1(taps, outputTypeBits, dx);
@@ -1883,7 +1892,8 @@ struct PredBi
 #endif
 			L("loopBiV");
 		{
-			for (int i = 0; i < width / 8; ++i)
+			int offset = 0;
+			for (int i = 0; i < (width + 7) / 8; ++i)
 			{
 				// each iteration of this loop operates on a row of 8-samples
 
@@ -1951,10 +1961,12 @@ struct PredBi
 				lea(r2, ptr[r2 + 16]);
 				lea(r3, ptr[r3 + 16]);
 				lea(r0, ptr[r0 + 8]);
+
+				offset += 8;
 			}
-			sub(r2, 2 * width);
-			sub(r3, 2 * width);
-			sub(r0, width);
+			sub(r2, 2 * offset);
+			sub(r3, 2 * offset);
+			sub(r0, offset);
 
 			add(r2, r4);
 			add(r3, r4);
@@ -1969,47 +1981,11 @@ struct PredBi
 
 };
 
+MAKE_hevcasm_pred_bi(8, 8)
+MAKE_hevcasm_pred_bi(8, 4)
+MAKE_hevcasm_pred_bi(16, 8)
+MAKE_hevcasm_pred_bi(16, 4)
 
-
-#define MAKE_hevcasm_pred_bi_xtap_8to8_sse4(taps, width) \
-	\
-	void hevcasm_pred_bi_ ## taps ## tap_8to8_ ## width ## xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref0, const uint8_t *ref1, ptrdiff_t stride_ref, int w, int h, int xFrac0, int yFrac0, int xFrac1, int yFrac1, int bitDepth) \
-{ \
-	HEVCASM_ALIGN(32, int16_t, intermediate[4][(64 + taps - 1) * 64]); /* todo: can reduce stack usage here by making array size function of width */ \
-	\
-	const int nPbW = w; \
-	const int nPbH = h; \
-	 \
-	/* Horizontal filter */ \
-	 \
-	static Jit::Buffer buffer(20000); \
-	hevcasm_pred_uni_8to16 *p16=0; \
-	static PredUni a(&buffer, p16, taps, width, 1, 0, 8); \
-	p16 = a; \
-	p16(intermediate[2], 64, ref0 - (taps/2-1) * stride_ref, stride_ref, w, h + taps - 1, xFrac0, 0); \
-	p16(intermediate[3], 64, ref1 - (taps/2-1) * stride_ref, stride_ref, w, h + taps - 1, xFrac1, 0); \
-	\
-	hevcasm_pred_bi_v_16to16 *p=0; \
-	static PredUni predUni(&buffer, p, taps, width, 1, 1, 16); \
-	p = predUni; \
-	\
-	/* Two vertical filters and combine their output for bi pred */ \
-	if (0) p(dst, stride_dst, intermediate[2], intermediate[3], 64, w, h, yFrac0, yFrac1); \
-	\
-	hevcasm_pred_bi_8to8 *pp = 0; \
-	static PredBi ab(&buffer, width, taps); \
-	hevcasm_pred_bi_8to8 *pb = ab; \
-	pb(dst, stride_dst, ref0, ref1, stride_ref, w, h, xFrac0, xFrac1, xFrac1, yFrac1, 8); \
-} \
-
-
-MAKE_hevcasm_pred_bi_xtap_8to8_sse4(8, 16)
-MAKE_hevcasm_pred_bi_xtap_8to8_sse4(8, 32)
-MAKE_hevcasm_pred_bi_xtap_8to8_sse4(8, 48)
-MAKE_hevcasm_pred_bi_xtap_8to8_sse4(8, 64)
-
-MAKE_hevcasm_pred_bi_xtap_8to8_sse4(4, 16)
-MAKE_hevcasm_pred_bi_xtap_8to8_sse4(4, 32)
 
 hevcasm_pred_bi_8to8* get_pred_bi_8to8(int taps, int w, int h, int xFracA, int yFracA, int xFracB, int yFracB, hevcasm_instruction_set mask)
 {
