@@ -60,7 +60,8 @@ hevcasm_ssd_linear * HEVCASM_API hevcasm_get_ssd_linear(int size, hevcasm_instru
 	
 	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT)) f = hevcasm_ssd_linear_c_ref;
 
-	if (mask & HEVCASM_AVX) f = hevcasm_ssd_linear_avx;
+	// review:
+	//if (mask & HEVCASM_AVX) f = hevcasm_ssd_linear_avx;
 
 	return f;
 }
