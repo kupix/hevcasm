@@ -1,37 +1,10 @@
-/*
-The copyright in this software is being made available under the BSD
-License, included below. This software may be subject to other third party
-and contributor rights, including patent rights, and no such rights are
-granted under this license.
-
-
-Copyright(c) 2011 - 2014, Parabola Research Limited
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met :
-
-* Redistributions of source code must retain the above copyright notice,
-this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright notice,
-this list of conditions and the following disclaimer in the documentation
-and / or other materials provided with the distribution.
-* Neither the name of the copyright holder nor the names of its contributors may
-be used to endorse or promote products derived from this software without
-specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED.IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
-BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-CONTRACT, STRICT LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
-THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// Copyright (C) 2016 Parabola Research Limited
+//
+// Use of this source code is governed by a BSD-style license that
+// can be found in the COPYING file in the root of the source tree.
+//
+// Portions marked "f265" defrived from the f265 project also
+// governed by a BSD-style licenseincluded in the COPYING file.
 
 #include "residual_decode.h"
 #include "hevcasm_test.h"
@@ -45,16 +18,6 @@ THE POSSIBILITY OF SUCH DAMAGE.
 #else
 #define FASTCALL
 #endif
-
-
-// Declaration for f265 function (note: suspect idst function may not be bit accurate with large coefficients)
-void FASTCALL f265_lbd_idct_dst_avx2(uint8_t *dst, int dst_stride, const uint8_t *pred, int pred_stride, const int16_t coeffs[4 * 4], uint8_t *spill);
-#define f265_lbd_idst_4_avx2 f265_lbd_idct_dst_avx2
-void FASTCALL f265_lbd_idct_4_avx2(uint8_t *dst, int dst_stride, const uint8_t *pred, int pred_stride, const int16_t coeffs[4 * 4], uint8_t *spill);
-void FASTCALL f265_lbd_idct_8_avx2(uint8_t *dst, int dst_stride, const uint8_t *pred, int pred_stride, const int16_t coeffs[8 * 8], uint8_t *spill);
-void FASTCALL f265_lbd_idct_16_avx2(uint8_t *dst, int dst_stride, const uint8_t *pred, int pred_stride, const int16_t coeffs[16 * 16], uint8_t *spill);
-void FASTCALL f265_lbd_idct_32_avx2(uint8_t *dst, int dst_stride, const uint8_t *pred, int pred_stride, const int16_t coeffs[32 * 32], uint8_t *spill);
-
 
 
 static int Clip3(int min, int max, int x)
@@ -468,51 +431,6 @@ void hevcasm_idct_32x32_16_c_opt(uint16_t *dst, ptrdiff_t stride_dst, const uint
 }
 
 
-/* hevcasm_idct_8x8_ssse3 uses too many xmm registers for a 32-bit build */
-#ifdef HEVCASM_X64
-//void hevcasm_idct_8x8_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[8 * 8])
-//{
-//	HEVCASM_ALIGN(32, int16_t, temp[2][8 * 8]);
-//	hevcasm_partial_butterfly_inverse_8v_ssse3(temp[0], coeffs, 7);
-//	hevcasm_partial_butterfly_inverse_8h_ssse3(temp[1], temp[0], 12);
-//	hevcasm_add_residual(8, dst, stride_dst, pred, stride_pred, temp[1]);
-//}
-#endif
-
-
-/* hevcasm_idct_16x16_ssse3 uses too many xmm registers for a 32-bit build */
-#ifdef HEVCASM_X64
-//void hevcasm_idct_16x16_ssse3(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[16 * 16])
-//{
-//	HEVCASM_ALIGN(32, int16_t, temp[2][16 * 16]);
-//	hevcasm_partial_butterfly_inverse_16v_ssse3(temp[0], coeffs, 7);
-//	hevcasm_partial_butterfly_inverse_16h_ssse3(temp[1], temp[0], 12);
-//	hevcasm_add_residual(16, dst, stride_dst, pred, stride_pred, temp[1]);
-//}
-#endif
-
-
-#ifdef HEVCASM_X64
-
-/* these functions only assemble for 64-bit */
-
-#define F265_IDCT_WRAPPER_FUNCTION(op, size) \
-void hevcasm_##op##_##size##x##size##_avx2(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[size * size], int bitDepth) \
-{ \
-	HEVCASM_ALIGN(32, uint8_t, spill[16 * size * size]); \
-	\
-	f265_lbd_##op##_##size##_avx2(dst, (int)stride_dst, pred, (int)stride_pred, coeffs, &spill[8 * size * size]); \
-} \
-
-//F265_IDCT_WRAPPER_FUNCTION(idst, 4)
-//F265_IDCT_WRAPPER_FUNCTION(idct, 4)
-//F265_IDCT_WRAPPER_FUNCTION(idct, 8)
-//F265_IDCT_WRAPPER_FUNCTION(idct, 16)
-//F265_IDCT_WRAPPER_FUNCTION(idct, 32)
-
-#endif
-
-
 struct InverseTransformAdd
 	:
 	Jit::Function
@@ -577,6 +495,9 @@ struct InverseTransformAdd
 	Xbyak::Label loop_idct32_pass2_combine2;
 	Xbyak::Label loop_idct32_pass2_odd;
 
+#if USE_F265_DERIVED
+	void dataAvx2()
+	{
 	// ---------------------- DCT/IDCT 32 macros ---------------------
 	// Load 4 rows of 32-bit data from consecutive memory locations.
 	// a1: base address, a2: data location index.
@@ -619,8 +540,6 @@ struct InverseTransformAdd
 
 
 
-	void dataAvx2()
-	{
 		align(32);
 
 		// from f265
@@ -1034,14 +953,17 @@ struct InverseTransformAdd
 			ret();
 		}
 	}
+#endif
 
 	void data()
 	{
+#if USE_F265_DERIVED
 		if (this->isa() & HEVCASM_AVX2)
 		{
 			this->dataAvx2();
 			return;
 		}
+#endif
 
 		align();
 
@@ -1921,6 +1843,7 @@ struct InverseTransformAdd
 
 	void assemble() override
 	{
+#if USE_F265_DERIVED
 		if (this->isa() & HEVCASM_AVX2)
 		{
 			if (this->log2TrafoSize == 2) this->assemble4x4Avx2();
@@ -1929,7 +1852,7 @@ struct InverseTransformAdd
 			if (this->log2TrafoSize == 5) this->assemble32x32Avx2();
 			return;
 		}
-
+#endif
 		// void hevcasm_inverse_transform_add(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t *coeffs);
 
 		auto &r0 = arg64(0);
@@ -2015,6 +1938,8 @@ struct InverseTransformAdd
 		//	hevcasm_add_residual(8, dst, stride_dst, pred, stride_pred, temp[1]);
 		//this->hevcasm_add_residual();
 	}
+
+#if USE_F265_DERIVED
 
 	// Interleave two registers.
 	// a1: lower output, a2 : higher output, a3 : input 0, a4 : input 1.
@@ -2401,6 +2326,8 @@ struct InverseTransformAdd
 
 	void assemble16x16Avx2()
 	{
+		// from f265
+
 		// IDCT 16x16.
 		// DEFFUN(f265_lbd_idct_16_avx2, ia=6, at=848488, fa=0, ti=3, tv=16, ym=1
 
@@ -2598,6 +2525,8 @@ struct InverseTransformAdd
 
 	void assemble8x8Avx2()
 	{
+		// from f265
+
 // IDCT 8x8.
 //
 // Input parameters:
@@ -2931,6 +2860,8 @@ struct InverseTransformAdd
 		for (auto reg : regs) vpmaddwd(reg, multiplier, reg);
 	}
 
+#endif
+
 	int trType;
 	int log2TrafoSize;
 };
@@ -2966,6 +2897,7 @@ static hevcasm_inverse_transform_add8* get_inverse_transform_add8(int trType, in
 		}
 	}
 
+#if USE_F265_DERIVED
 	if (mask & HEVCASM_AVX2)
 	{
 		static Jit::Buffer buffer(20000, HEVCASM_AVX2);
@@ -2998,6 +2930,8 @@ static hevcasm_inverse_transform_add8* get_inverse_transform_add8(int trType, in
 			f = a;
 		}
 	}
+#endif
+
 #endif
 
 	return f;
@@ -4031,7 +3965,7 @@ int init_transform(void *p, hevcasm_instruction_set mask)
 		printf("\t%s %dx%d : ", s->trType ? "sine" : "cosine", nCbS, nCbS);
 	}
 
-	for (int x = 0; x < 32 * 32; x++) s->dst[x] = 0xabcd;
+	for (int x = 0; x < 32 * 32; x++) s->dst[x] = 0xab;
 
 	return !!s->f;
 }

@@ -2,7 +2,9 @@
 
 ## Introduction
 
-HEVCasm is a collection of permissively-licensed optimised DSP functions for video coding. Instead of using intrinsics or a build-time assembler, HEVCasm makes use of [Xbyak](https://github.com/herumi/xbyak), a just-in-time (JIT) assembler. 
+HEVCasm is a collection of permissively-licensed optimised DSP functions for video coding. Instead of using intrinsics or a build-time assembler, HEVCasm makes use of a just-in-time (JIT) assembler. 
+
+HEVCasm has a C-language API and makes use of C++11 internally.
 
 
 ## Clone and build
@@ -35,9 +37,16 @@ Download the CMake GUI for Windows and start it.  Enter your HEVCasm working cop
 Click "Configure" and select your version of Visual Studio - be sure to select a "Win64" generator - and click Finish. Click "Generate" to create Visual Studio project and solution files that can be opened in your IDE.
 
 
+## API
+
+The following files form the project's API:
+* [hevcasm.h](src/lib/hevcasm.h) CPU capabilities flags and detection, library self-test function
+
+
+
 ## Just-in-Time assembler
 
-HEVCasm uses a just-in-time assembler. This means that the executable code is assembled at runtime, just before it runs. JIT assembly has the following advantages:
+HEVCasm uses just-in-time assembler [Xbyak](https://github.com/herumi/xbyak), . This means that the executable code is assembled at runtime, just before it runs. JIT assembly has the following advantages:
 
 * All sorts of interesting optimisations and adaptations are possible. For example, video-stream-specific parameters could be embedded in the code and code could be tuned for a specific machine's measured characteristics.
 * No special tool (assembler) is needed to build the project. That means one less dependency to find, version and install.
