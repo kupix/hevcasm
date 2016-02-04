@@ -94,7 +94,8 @@ int hevcasm_test(
 		invoke(ref, 1);
 
 		double first_result = 0.0;
-		for (hevcasm_instruction_set set = HEVCASM_C_OPT; set; set <<= 1)
+		hevcasm_instruction_set set;
+		for (set = HEVCASM_C_OPT; set; set <<= 1)
 		{
 			if (get(test, set & mask))
 			{
