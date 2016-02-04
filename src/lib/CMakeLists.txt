@@ -14,7 +14,29 @@ foreach(flag_var CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE C
 endforeach(flag_var)
 endif(MSVC)
 
-add_library (libhevcasm diff.cpp hadamard.cpp hevcasm.cpp hevcasm_test.cpp pred_inter.cpp pred_intra.cpp quantize.cpp residual_decode.cpp sad.cpp ssd.cpp)
+add_library (libhevcasm 
+	diff.h
+	hadamard.h
+	hevcasm.h
+	hevcasm_test.h
+	Jit.h
+	pred_inter.h
+	pred_intra.h
+	quantize.h
+	residual_decode.h
+	sad.h
+	ssd.h
+	hevcasm.c 
+	hevcasm_test.c 
+	diff.cpp 
+	hadamard.cpp 
+	pred_inter.cpp 
+	pred_intra.cpp 
+	quantize.cpp 
+	residual_decode.cpp 
+	sad.cpp 
+	ssd.cpp)
+
 target_link_libraries(libhevcasm)
 target_include_directories (libhevcasm PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 

@@ -22,7 +22,7 @@ namespace Jit {
 
 struct Buffer
 {
-	Buffer(size_t n, hevcasm_instruction_set isa=0)
+	Buffer(size_t n, hevcasm_instruction_set isa= HEVCASM_NONE)
 		:
 		buffer(n),
 		isa(isa)

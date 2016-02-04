@@ -8,7 +8,6 @@
 #define INCLUDED_sad_h
 
 #include "hevcasm.h"
-#include <functional>
 
 
 #ifdef __cplusplus
@@ -17,29 +16,29 @@ extern "C"
 #endif
 
 #define X_HEVC_PU_SIZES \
-	X(64, 64); \
-	X(64, 48); \
-	X(64, 32); \
-	X(64, 16); \
-	X(48, 64); \
-	X(32, 64); \
-	X(32, 32); \
-	X(32, 24); \
-	X(32, 16); \
-	X(32, 8); \
-	X(24, 32); \
-	X(16, 64); \
-	X(16, 32); \
-	X(16, 16); \
-	X(16, 12); \
-	X(16, 8); \
-	X(16, 4); \
-	X(12, 16); \
-	X(8, 32); \
-	X(8, 16); \
-	X(8, 8); \
-	X(8, 4); \
-	X(4, 8); \
+	X(64, 64) \
+	X(64, 48) \
+	X(64, 32) \
+	X(64, 16) \
+	X(48, 64) \
+	X(32, 64) \
+	X(32, 32) \
+	X(32, 24) \
+	X(32, 16) \
+	X(32, 8) \
+	X(24, 32) \
+	X(16, 64) \
+	X(16, 32) \
+	X(16, 16) \
+	X(16, 12) \
+	X(16, 8) \
+	X(16, 4) \
+	X(12, 16) \
+	X(8, 32) \
+	X(8, 16) \
+	X(8, 8) \
+	X(8, 4) \
+	X(4, 8) \
 
 
 //typedef std::function<int(const uint8_t * /*src*/, ptrdiff_t /*stride_src*/, const uint8_t * /*ref*/, ptrdiff_t /*stride_ref*/, uint32_t /*rect*/)> hevcasm_sad;

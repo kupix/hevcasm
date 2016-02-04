@@ -11,6 +11,9 @@
 
 #include <inttypes.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 static const char *hevcasm_instruction_set_as_text(hevcasm_instruction_set set)
@@ -18,7 +21,7 @@ static const char *hevcasm_instruction_set_as_text(hevcasm_instruction_set set)
 #define X(value, name, description) if (set == (1 << value)) return #name;
 	HEVCASM_INSTRUCTION_SET_XMACRO
 #undef X
-	return 0;
+		return 0;
 }
 
 typedef void hevcasm_bound_invoke(void *bound, int n);
@@ -45,6 +48,11 @@ int hevcasm_test(
 	hevcasm_bound_mismatch *mismatch,
 	hevcasm_instruction_set mask,
 	int iterations);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif
