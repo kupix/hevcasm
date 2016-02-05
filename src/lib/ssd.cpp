@@ -103,15 +103,17 @@ struct Ssd
 
 
 
-void HEVCASM_API hevcasm_populate_ssd(hevcasm_table_ssd *table, hevcasm_instruction_set mask)
+void HEVCASM_API hevcasm_populate_ssd(hevcasm_table_ssd *table, hevcasm_code code)
 {
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+
 	*hevcasm_get_ssd(table, 2) = 0;
 	*hevcasm_get_ssd(table, 3) = 0;
 	*hevcasm_get_ssd(table, 4) = 0;
 	*hevcasm_get_ssd(table, 5) = 0;
 	*hevcasm_get_ssd(table, 6) = 0;
 
-	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
+	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
 		*hevcasm_get_ssd(table, 2) = hevcasm_ssd_c_ref;
 		*hevcasm_get_ssd(table, 3) = hevcasm_ssd_c_ref;
@@ -120,20 +122,18 @@ void HEVCASM_API hevcasm_populate_ssd(hevcasm_table_ssd *table, hevcasm_instruct
 		*hevcasm_get_ssd(table, 6) = hevcasm_ssd_c_ref;
 	}
 
-	static Jit::Buffer jitBuffer(100000);
-
-	if (mask & HEVCASM_AVX)
+	if (buffer.isa & HEVCASM_AVX)
 	{
 		{
-			static Ssd ssd(&jitBuffer, 16, 16);
+			Ssd ssd(&buffer, 16, 16);
 			*hevcasm_get_ssd(table, 4) = ssd;
 		}
 		{
-			static Ssd ssd(&jitBuffer, 32, 32);
+			Ssd ssd(&buffer, 32, 32);
 			*hevcasm_get_ssd(table, 5) = ssd;
 		}
 		{
-			static Ssd ssd(&jitBuffer, 64, 64);
+			Ssd ssd(&buffer, 64, 64);
 			*hevcasm_get_ssd(table, 6) = ssd;
 		}
 	}
@@ -150,17 +150,19 @@ typedef struct
 bound_ssd;
 
 
-int init_ssd(void *p, hevcasm_instruction_set mask)
+int init_ssd(void *p, hevcasm_code code)
 {
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+
 	bound_ssd *s = (bound_ssd *)p;
 
 	hevcasm_table_ssd table;
 
-	hevcasm_populate_ssd(&table, mask);
+	hevcasm_populate_ssd(&table, code);
 
 	s->f = *hevcasm_get_ssd(&table, s->log2TrafoSize);
 
-	if (mask == HEVCASM_C_REF)
+	if (buffer.isa == HEVCASM_C_REF)
 	{
 		const int nCbS = 1 << s->log2TrafoSize;
 		printf("\t%dx%d : ", nCbS, nCbS);

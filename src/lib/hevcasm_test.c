@@ -89,7 +89,10 @@ int hevcasm_test(
 {
 	int error_count = 0;
 
-	if (get(ref, HEVCASM_C_REF))
+	hevcasm_code code_ref;
+	code_ref = hevcasm_new_code(HEVCASM_C_REF, 1000000);
+
+	if (get(ref, code_ref))
 	{
 		invoke(ref, 1);
 
@@ -97,13 +100,17 @@ int hevcasm_test(
 		hevcasm_instruction_set set;
 		for (set = HEVCASM_C_OPT; set; set <<= 1)
 		{
-			if (get(test, set & mask))
+			hevcasm_code code_test = hevcasm_new_code(set & mask, 2000000);
+			if (get(test, code_test))
 			{
 				error_count += hevcasm_count_average_cycles(ref, test, invoke, mismatch, &first_result, set, iterations);
 			}
+			hevcasm_delete_code(code_test);
 		}
 		printf("\n");
 	}
+
+	hevcasm_delete_code(code_ref);
 
 	return error_count;
 }

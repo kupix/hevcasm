@@ -76,7 +76,7 @@ static hevcasm_sad** hevcasm_get_sad(hevcasm_table_sad *table, int width, int he
 	return &table->sadGeneric;
 }
 
-void HEVCASM_API hevcasm_populate_sad(hevcasm_table_sad *table, hevcasm_instruction_set mask);
+void HEVCASM_API hevcasm_populate_sad(hevcasm_table_sad *table, hevcasm_code code);
 
 hevcasm_test_function hevcasm_test_sad;
 
@@ -97,7 +97,7 @@ static hevcasm_sad_multiref** hevcasm_get_sad_multiref(hevcasm_table_sad_multire
 	return &table->lookup[(width>>2)-1][(height>>2)-1];
 }
 
-void HEVCASM_API hevcasm_populate_sad_multiref(hevcasm_table_sad_multiref *table, hevcasm_instruction_set mask);
+void HEVCASM_API hevcasm_populate_sad_multiref(hevcasm_table_sad_multiref *table, hevcasm_code code);
 
 hevcasm_test_function hevcasm_test_sad_multiref;
 

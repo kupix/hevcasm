@@ -169,16 +169,14 @@ static int hevcasm_sad_c_ref(const uint8_t *src, ptrdiff_t stride_src, const uin
 }
 
 
-static Jit::Buffer jitBuffer(100000);
-
-
-hevcasm_sad* get_sad(int width, int height, hevcasm_instruction_set mask)
+hevcasm_sad* get_sad(int width, int height, hevcasm_code code)
 {
-	if (mask & HEVCASM_SSE2)
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+	if (buffer.isa & HEVCASM_SSE2)
 	{
 #define X(w, h) \
 		{ \
-			static SadSse2 sadSse2(&jitBuffer, w, h); \
+			SadSse2 sadSse2(&buffer, w, h); \
 			if (w==width && h==height) \
 			{ \
 				hevcasm_sad *f = sadSse2; \
@@ -190,7 +188,7 @@ hevcasm_sad* get_sad(int width, int height, hevcasm_instruction_set mask)
 #undef X
 	}
 
-	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
+	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
 		return (hevcasm_sad*)&hevcasm_sad_c_ref;
 	}
@@ -199,13 +197,13 @@ hevcasm_sad* get_sad(int width, int height, hevcasm_instruction_set mask)
 }
 
 
-void HEVCASM_API hevcasm_populate_sad(hevcasm_table_sad *table, hevcasm_instruction_set mask)
+void HEVCASM_API hevcasm_populate_sad(hevcasm_table_sad *table, hevcasm_code code)
 {
 	for (int height = 4; height <= 64; height += 4)
 	{
 		for (int width = 4; width <= 64; width += 4)
 		{
-			*hevcasm_get_sad(table, width, height) = get_sad(width, height, mask);
+			*hevcasm_get_sad(table, width, height) = get_sad(width, height, code);
 		}
 	}
 }
@@ -623,18 +621,19 @@ struct Sad4Avx2
 #endif
 
 
-hevcasm_sad_multiref* get_sad_multiref(int ways, int width, int height, hevcasm_instruction_set mask)
+hevcasm_sad_multiref* get_sad_multiref(int ways, int width, int height, hevcasm_code code)
 {
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
 	hevcasm_sad_multiref* f = 0;
 
 	if (ways != 4) return 0;
 
 #if USE_WEBM_DERIVED
-	if (mask & HEVCASM_AVX2)
+	if (buffer.isa & HEVCASM_AVX2)
 	{
 #define X(w, h) \
 		{ \
-			static Sad4Avx2 sad4Avx2(&jitBuffer, w, h); \
+			Sad4Avx2 sad4Avx2(&buffer, w, h); \
 			if (w==width && h==height) \
 			{ \
 				hevcasm_sad_multiref *f = sad4Avx2; \
@@ -647,7 +646,7 @@ hevcasm_sad_multiref* get_sad_multiref(int ways, int width, int height, hevcasm_
 	}
 #endif
 
-	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
+	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
 		if (!f) f = &hevcasm_sad_multiref_4_c_ref;
 	}
@@ -656,13 +655,13 @@ hevcasm_sad_multiref* get_sad_multiref(int ways, int width, int height, hevcasm_
 }
 
 
-void HEVCASM_API hevcasm_populate_sad_multiref(hevcasm_table_sad_multiref *table, hevcasm_instruction_set mask)
+void HEVCASM_API hevcasm_populate_sad_multiref(hevcasm_table_sad_multiref *table, hevcasm_code code)
 {
 	for (int height = 4; height <= 64; height += 4)
 	{
 		for (int width = 4; width <= 64; width += 4)
 		{
-			*hevcasm_get_sad_multiref(table, 4, width, height) = get_sad_multiref(4, width, height, mask);
+			*hevcasm_get_sad_multiref(table, 4, width, height) = get_sad_multiref(4, width, height, code);
 		}
 	}
 
@@ -682,16 +681,17 @@ typedef struct
 bound_sad;
 
 
-int init_sad(void *p, hevcasm_instruction_set mask)
+int init_sad(void *p, hevcasm_code code)
 {
 	bound_sad *s = (bound_sad *)p;
 
 	hevcasm_table_sad table;
-	hevcasm_populate_sad(&table, mask);
+	hevcasm_populate_sad(&table, code);
 
 	s->f = *hevcasm_get_sad(&table, s->width, s->height);
 
-	if (mask == HEVCASM_C_REF) printf("\t%dx%d:", s->width, s->height);
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+	if (buffer.isa == HEVCASM_C_REF) printf("\t%dx%d:", s->width, s->height);
 
 	return !!s->f;
 }
@@ -762,15 +762,16 @@ typedef struct
 bound_sad_multiref;
 
 
-int init_sad_multiref(void *p, hevcasm_instruction_set mask)
+int init_sad_multiref(void *p, hevcasm_code code)
 {
 	bound_sad_multiref *s = (bound_sad_multiref *)p;
 
 	hevcasm_table_sad_multiref table;
-	hevcasm_populate_sad_multiref(&table, mask);
+	hevcasm_populate_sad_multiref(&table, code);
 	s->f = *hevcasm_get_sad_multiref(&table, s->ways, s->width, s->height);
 
-	if (s->f && mask == HEVCASM_C_REF)
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+	if (s->f && buffer.isa == HEVCASM_C_REF)
 	{
 		printf("\t%d-way %dx%d : ", s->ways, s->width, s->height);
 	}

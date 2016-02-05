@@ -35,7 +35,7 @@ static hevcasm_ssd** hevcasm_get_ssd(hevcasm_table_ssd *table, int log2TrafoSize
 	return &table->satd[log2TrafoSize - 2];
 }
 
-void HEVCASM_API hevcasm_populate_ssd(hevcasm_table_ssd *table, hevcasm_instruction_set mask);
+void HEVCASM_API hevcasm_populate_ssd(hevcasm_table_ssd *table, hevcasm_code code);
 
 void HEVCASM_API hevcasm_test_ssd(int *error_count, hevcasm_instruction_set mask);
 

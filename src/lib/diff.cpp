@@ -6,7 +6,7 @@
 
 #include "diff.h"
 #include "hevcasm_test.h"
-
+#include "Jit.h"
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -24,11 +24,14 @@ static int hevcasm_ssd_linear_c_ref(const uint8_t *p1, const uint8_t *p2, int n)
 }
 
 
-hevcasm_ssd_linear * HEVCASM_API hevcasm_get_ssd_linear(int size, hevcasm_instruction_set mask)
+hevcasm_ssd_linear * HEVCASM_API hevcasm_get_ssd_linear(int size, hevcasm_code code)
 {
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+
 	hevcasm_ssd_linear *f = 0;
-	
-	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT)) f = hevcasm_ssd_linear_c_ref;
+
+
+	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT)) f = hevcasm_ssd_linear_c_ref;
 
 	// review:
 	//if (mask & HEVCASM_AVX) f = hevcasm_ssd_linear_avx;
@@ -49,13 +52,14 @@ typedef struct
 bound_ssd_linear;
 
 
-int get_ssd_linear(void *p, hevcasm_instruction_set mask)
+int get_ssd_linear(void *p, hevcasm_code code)
 {
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
 	bound_ssd_linear *s = (bound_ssd_linear *)p;
 
-	s->f = hevcasm_get_ssd_linear(BLOCK_SIZE, mask);
+	s->f = hevcasm_get_ssd_linear(BLOCK_SIZE, code);
 
-	if (mask == HEVCASM_C_REF) printf("\t%d:", BLOCK_SIZE);
+	if (buffer.isa == HEVCASM_C_REF) printf("\t%d:", BLOCK_SIZE);
 
 	return !!s->f;
 }
@@ -80,6 +84,7 @@ int mismatch_ssd_linear(void *boundRef, void *boundTest)
 }
 
 
+// review: not called
 void HEVCASM_API hevcasm_test_ssd_linear(int *error_count, hevcasm_instruction_set mask)
 {
 	printf("\nhevcasm_ssd_linear - Linear Sum of Square Differences\n");

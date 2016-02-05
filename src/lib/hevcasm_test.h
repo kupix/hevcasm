@@ -28,7 +28,7 @@ typedef void hevcasm_bound_invoke(void *bound, int n);
 
 typedef int hevcasm_bound_mismatch(void *boundRef, void *boundTest);
 
-typedef int hevcasm_bound_get(void *bound, hevcasm_instruction_set set);
+typedef int hevcasm_bound_get(void *bound, hevcasm_code code);
 
 
 int hevcasm_count_average_cycles(

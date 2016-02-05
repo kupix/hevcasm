@@ -34,7 +34,7 @@ static hevcasm_hadamard_satd** hevcasm_get_hadamard_satd(hevcasm_table_hadamard_
 	return &table->satd[log2TrafoSize - 1];
 }
 
-void HEVCASM_API hevcasm_populate_hadamard_satd(hevcasm_table_hadamard_satd *table, hevcasm_instruction_set mask);
+void HEVCASM_API hevcasm_populate_hadamard_satd(hevcasm_table_hadamard_satd *table, hevcasm_code code);
 
 void HEVCASM_API hevcasm_test_hadamard_satd(int *error_count, hevcasm_instruction_set mask);
 

@@ -19,7 +19,7 @@ extern "C"
 /* Linear SSD (Sum of Squared Differences) */
 typedef int hevcasm_ssd_linear(const uint8_t *src0, const uint8_t *src1, int size);
 
-hevcasm_ssd_linear* HEVCASM_API hevcasm_get_ssd_linear(int size, hevcasm_instruction_set mask);
+hevcasm_ssd_linear* HEVCASM_API hevcasm_get_ssd_linear(int size, hevcasm_code code);
 
 hevcasm_test_function hevcasm_test_ssd_linear;
 

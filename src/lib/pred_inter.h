@@ -48,8 +48,8 @@ static hevcasm_pred_uni_16to16** hevcasm_get_pred_uni_16to16(hevcasm_table_pred_
 	return &table->p[taps / 4 - 1][(w + taps - 1) / taps][xFrac ? 1 : 0][yFrac ? 1 : 0];
 }
 
-void HEVCASM_API hevcasm_populate_pred_uni_8to8(hevcasm_table_pred_uni_8to8 *table, hevcasm_instruction_set mask);
-void HEVCASM_API hevcasm_populate_pred_uni_16to16(hevcasm_table_pred_uni_16to16 *table, hevcasm_instruction_set mask);
+void HEVCASM_API hevcasm_populate_pred_uni_8to8(hevcasm_table_pred_uni_8to8 *table, hevcasm_code code);
+void HEVCASM_API hevcasm_populate_pred_uni_16to16(hevcasm_table_pred_uni_16to16 *table, hevcasm_code code);
 
 hevcasm_test_function hevcasm_test_pred_uni;
 
@@ -83,8 +83,8 @@ static hevcasm_pred_bi_16to16** hevcasm_get_pred_bi_16to16(hevcasm_table_pred_bi
 	return &table->p[taps / 4 - 1][(w + 2 * taps - 1) / (2 * taps)][frac];
 }
 
-void HEVCASM_API hevcasm_populate_pred_bi_8to8(hevcasm_table_pred_bi_8to8 *table, hevcasm_instruction_set mask);
-void HEVCASM_API hevcasm_populate_pred_bi_16to16(hevcasm_table_pred_bi_16to16 *table, hevcasm_instruction_set mask);
+void HEVCASM_API hevcasm_populate_pred_bi_8to8(hevcasm_table_pred_bi_8to8 *table, hevcasm_code code);
+void HEVCASM_API hevcasm_populate_pred_bi_16to16(hevcasm_table_pred_bi_16to16 *table, hevcasm_code code);
 
 hevcasm_test_function hevcasm_test_pred_bi;
 

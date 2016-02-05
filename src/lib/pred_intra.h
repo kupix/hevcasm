@@ -54,7 +54,7 @@ static __inline hevcasm_pred_intra** hevcasm_get_pred_intra(hevcasm_table_pred_i
 	}
 }
 
-void HEVCASM_API hevcasm_populate_pred_intra(hevcasm_table_pred_intra *table, hevcasm_instruction_set mask);
+void HEVCASM_API hevcasm_populate_pred_intra(hevcasm_table_pred_intra *table, hevcasm_code code);
 
 hevcasm_test_function hevcasm_test_pred_intra;
 

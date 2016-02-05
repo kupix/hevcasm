@@ -2866,8 +2866,10 @@ struct InverseTransformAdd
 	int log2TrafoSize;
 };
 
-static hevcasm_inverse_transform_add8* get_inverse_transform_add8(int trType, int log2TrafoSize, hevcasm_instruction_set mask, int encoder)
+static hevcasm_inverse_transform_add8* get_inverse_transform_add8(int trType, int log2TrafoSize, hevcasm_code code, int encoder)
 {
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+	auto mask = buffer.isa;
 	const int nCbS = 1 << log2TrafoSize;
 
 	hevcasm_inverse_transform_add8 *f = 0;
@@ -2880,19 +2882,16 @@ static hevcasm_inverse_transform_add8* get_inverse_transform_add8(int trType, in
 		if (nCbS == 32) f = hevcasm_idct_32x32_c_opt;
 	}
 
-	static Jit::Buffer buffer(20000);
-
-#ifdef HEVCASM_X64
 	if (mask & HEVCASM_SSSE3)
 	{
 		if (nCbS == 8)
 		{
-			static InverseTransformAdd a(&buffer, trType, log2TrafoSize);
+			InverseTransformAdd a(&buffer, trType, log2TrafoSize);
 			f = a;
 		}
 		if (nCbS == 16)
 		{
-			static InverseTransformAdd a(&buffer, trType, log2TrafoSize);
+			InverseTransformAdd a(&buffer, trType, log2TrafoSize);
 			f = a;
 		}
 	}
@@ -2900,45 +2899,44 @@ static hevcasm_inverse_transform_add8* get_inverse_transform_add8(int trType, in
 #if USE_F265_DERIVED
 	if (mask & HEVCASM_AVX2)
 	{
-		static Jit::Buffer buffer(20000, HEVCASM_AVX2);
-
 		if (nCbS == 4 && !trType)
 		{
-			static InverseTransformAdd a(&buffer, trType, log2TrafoSize);
+			InverseTransformAdd a(&buffer, trType, log2TrafoSize);
 			f = a;
 		}
 		if (nCbS == 4 && trType)
 		{
-			static InverseTransformAdd a(&buffer, trType, log2TrafoSize);
+			InverseTransformAdd a(&buffer, trType, log2TrafoSize);
 			f = a;
 		}
 		if (nCbS == 8)
 		{
-			static InverseTransformAdd a(&buffer, trType, log2TrafoSize);
+			InverseTransformAdd a(&buffer, trType, log2TrafoSize);
 			f = a;
 		}
 		if (nCbS == 16)
 		{
-			static InverseTransformAdd a(&buffer, trType, log2TrafoSize);
+			InverseTransformAdd a(&buffer, trType, log2TrafoSize);
 			f = a;
 		}
 		if (nCbS == 32 && encoder)
 		{
 			// The 32x32 idct from f265 is non-conforming. Suspect arithmetic overflow.
 			// This probem becomes apparent when decoding the DELTAQP_A conformance stream which has artificial, extreme coefficient values.
-			static InverseTransformAdd a(&buffer, trType, log2TrafoSize);
+			InverseTransformAdd a(&buffer, trType, log2TrafoSize);
 			f = a;
 		}
 	}
 #endif
 
-#endif
-
 	return f;
 }
 
-static hevcasm_inverse_transform_add16* get_inverse_transform_add16(int trType, int log2TrafoSize, hevcasm_instruction_set mask, int encoder)
+static hevcasm_inverse_transform_add16* get_inverse_transform_add16(int trType, int log2TrafoSize, hevcasm_code code, int encoder)
 {
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+	auto mask = buffer.isa;
+
 	const int nCbS = 1 << log2TrafoSize;
 
 	hevcasm_inverse_transform_add16 *f = 0;
@@ -2955,22 +2953,22 @@ static hevcasm_inverse_transform_add16* get_inverse_transform_add16(int trType, 
 }
 
 
-void HEVCASM_API hevcasm_populate_inverse_transform_add8(hevcasm_table_inverse_transform_add8 *table, hevcasm_instruction_set mask, int encoder)
+void HEVCASM_API hevcasm_populate_inverse_transform_add8(hevcasm_table_inverse_transform_add8 *table, hevcasm_code code, int encoder)
 {
-	*hevcasm_get_inverse_transform_add8(table, 1, 2) = get_inverse_transform_add8(1, 2, mask, encoder);
+	*hevcasm_get_inverse_transform_add8(table, 1, 2) = get_inverse_transform_add8(1, 2, code, encoder);
 	for (int log2TrafoSize = 2; log2TrafoSize <= 5; ++log2TrafoSize)
 	{
-		*hevcasm_get_inverse_transform_add8(table, 0, log2TrafoSize) = get_inverse_transform_add8(0, log2TrafoSize, mask, encoder);
+		*hevcasm_get_inverse_transform_add8(table, 0, log2TrafoSize) = get_inverse_transform_add8(0, log2TrafoSize, code, encoder);
 	}
 }
 
 
-void HEVCASM_API hevcasm_populate_inverse_transform_add16(hevcasm_table_inverse_transform_add16 *table, hevcasm_instruction_set mask, int encoder)
+void HEVCASM_API hevcasm_populate_inverse_transform_add16(hevcasm_table_inverse_transform_add16 *table, hevcasm_code code, int encoder)
 {
-	*hevcasm_get_inverse_transform_add16(table, 1, 2) = get_inverse_transform_add16(1, 2, mask, encoder);
+	*hevcasm_get_inverse_transform_add16(table, 1, 2) = get_inverse_transform_add16(1, 2, code, encoder);
 	for (int log2TrafoSize = 2; log2TrafoSize <= 5; ++log2TrafoSize)
 	{
-		*hevcasm_get_inverse_transform_add16(table, 0, log2TrafoSize) = get_inverse_transform_add16(0, log2TrafoSize, mask, encoder);
+		*hevcasm_get_inverse_transform_add16(table, 0, log2TrafoSize) = get_inverse_transform_add16(0, log2TrafoSize, code, encoder);
 	}
 }
 
@@ -2987,19 +2985,21 @@ typedef struct
 bind_inverse_transform_add8;
 
 
-int init_inverse_transform_add8(void *p, hevcasm_instruction_set mask)
+int init_inverse_transform_add8(void *p, hevcasm_code code)
 {
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+
 	bind_inverse_transform_add8 *s = (bind_inverse_transform_add8 *)p;
 
 	hevcasm_table_inverse_transform_add8 table;
 
-	hevcasm_populate_inverse_transform_add8(&table, mask, 1);
+	hevcasm_populate_inverse_transform_add8(&table, code, 1);
 
 	s->f = *hevcasm_get_inverse_transform_add8(&table, s->trType, s->log2TrafoSize);
 
 	if (s->f) for (int i = 0; i < 32 * 32; ++i) s->dst[i] = 0xaa;
 
-	if (s->f && mask == HEVCASM_C_REF)
+	if (s->f && buffer.isa == HEVCASM_C_REF)
 	{
 		const int nCbS = 1 << s->log2TrafoSize;
 		printf("\t%s %dx%d : ", s->trType ? "sine" : "cosine", nCbS, nCbS);
@@ -3764,145 +3764,18 @@ struct ForwardDct16x16
 			dec(r5d);
 		}
 		jg("loop_left_right");
-
-		//mov(r0, ptr[rsp]);
-		//lea(r1, ptr[rsp + 32]);
-		//mov(r2, 32);
-
-		//db({ 0xcc });
-
-		////void transform_partial_butterfly_16h_ssse3(int16_t *dst, const int16_t *src, std::ptrdiff_t, srcStride, int shift);
-		////shift parameter ignored (r3)
-		////INIT_XMM ssse3
-		////cglobal partial_butterfly_16h, 4, 7, 16
-		//movdqa(m3, ptr[rip + shuffle_efcdab8967452301]);
-		//movdqa(m4, ptr[rip + const_00000004000000040000000400000004]);
-		//mov(r4d, 16);
-		//L("looph");
-		//{
-		//	movdqa(m0, ptr[r1]);
-		//	movdqa(m1, ptr[r1 + 16]);
-		//	pshufb(m1, m3);
-		//
-		//	movdqa(m2, m0);
-		//	paddw(m2, m1);
-		//	// m2 = E[7:0]
-		//
-		//	psubw(m0, m1);
-		//	// m0 = O[7:0]
-		//
-		//	movdqa(m8, m0);
-		//	pmaddwd(m8, ptr[rip + cosine_8_h + 0 * 16]);
-		//	movdqa(m9, m0);
-		//	pmaddwd(m9, ptr[rip + cosine_8_h + 1 * 16]);
-		//	movdqa(m10, m0);
-		//	pmaddwd(m10, ptr[rip + cosine_8_h + 2 * 16]);
-		//	movdqa(m11, m0);
-		//	pmaddwd(m11, ptr[rip + cosine_8_h + 3 * 16]);
-		//	movdqa(m12, m0);
-		//	pmaddwd(m12, ptr[rip + cosine_8_h + 4 * 16]);
-		//	movdqa(m13, m0);
-		//	pmaddwd(m13, ptr[rip + cosine_8_h + 5 * 16]);
-		//	movdqa(m14, m0);
-		//	pmaddwd(m14, ptr[rip + cosine_8_h + 6 * 16]);
-		//	movdqa(m15, m0);
-		//	pmaddwd(m15, ptr[rip + cosine_8_h + 7 * 16]);
-
-		//	phaddd(m8, m9);
-		//	phaddd(m10, m11);
-		//	phaddd(m12, m13);
-		//	phaddd(m14, m15);
-
-		//	phaddd(m8, m10);
-		//	phaddd(m12, m14);
-	
-		//	paddd(m8, m4);
-		//	psrad(m8, 3);
-		//	paddd(m12, m4);
-		//	psrad(m12, 3);
-
-		//	packssdw(m8, m12);
-		//	// m8 = dst[15,13,11, 9, 7, 5, 3, 1]
-
-		//	movdqa(m5, m2);
-		//	pshufb(m5, m3);
-		//	// m5 = E[0:7]
-
-		//	movdqa(m7, m2);
-		//	psubw(m7, m5);
-		//	// m7 = -EO[0:3], EO[3:0]
-
-		//	movdqa(m6, m7);
-		//	pmaddwd(m6, ptr[rip + cosine_4_h]);
-		//	pmaddwd(m7, ptr[rip + cosine_4_h + 16]);
-		//	phaddd(m6, m7);
-		//	paddd(m6, m4);
-		//	psrad(m6, 3);
-		//	// dst[14, 10, 6, 2]
-
-		//	pslld(m6, 16);
-		//	// m6 = dst[14], 0, dst[10], 0, dst[6], 0, dst[2], 0
-
-		//	paddw(m2, m5);
-		//	// m12 = EE[0,1,2,3,3,2,1,0]
-	
-		//	pshufd(m11, m2, ORDER(3, 2, 3, 2));
-		//	// m11 = EE[0,1,2,3,0,1,2,3]
-
-		//	movdqa(m10, m11);
-		//	paddw(m10, m2);
-		//	// m10 = 2*EE[0,1,2,3], EEE[0,1,1,0]
-
-		//	psubw(m11, m2);
-		//	// m11= 0,0,0,0,EEO[0,1],-EEO[1,0]
-
-		//	punpckldq(m10, m11);
-		//	// m10 = EEO[0,1], EEE[0,1], -EEO[1,0], EEE[1,0]
-
-		//	pmaddwd(m10, ptr[rip + cosine_1_h]);
-
-		//	paddd(m10, m4);
-		//	pslld(m10, 16 - 3);
-		//	// m10 = dst[12, 8, 4, 0] << 16
-		//	//  m10 = dst[12], 0, dst[8], 0, dst[4], 0, dst[0], 0
-		//	psrld(m10, 16);
-
-		//	por(m10, m6);
-		//	// m10 = dst[14,12,10, 8, 6, 4, 2, 0]
-
-		//	movdqu(m6, m10);
-		//	punpcklwd(m6, m8);
-		//	movdqu(ptr[r0], m6);
-
-		//	punpckhwd(m10, m8);
-		//	movdqu(ptr[r0 + 16], m10);
-
-		//	lea(r0, ptr[r0 + 2 * 16]);
-		//	lea(r1, ptr[r1 + r2 * 2]);
-		//	dec(r4d);
-		//}
-		//jg("looph");
 	}
 };
 
-/* hevcasm_dct_16x16_ssse3 uses too many xmm registers for a 32-bit build */
-#ifdef HEVCASM_X64
-//void hevcasm_dct_16x16_ssse3(int16_t *coeffs, const int16_t *src, ptrdiff_t src_stride)
-//{
-//	HEVCASM_ALIGN(32, int16_t, temp[16 * 16]);
-//	hevcasm_partial_butterfly_16h_ssse3(temp, src, src_stride, 3);
-//	hevcasm_partial_butterfly_16v_ssse3(coeffs, temp, 10);
-//}
-#endif
 
-
-hevcasm_transform* HEVCASM_API get_transform(int trType, int log2TrafoSize, hevcasm_instruction_set mask)
+hevcasm_transform* HEVCASM_API get_transform(int trType, int log2TrafoSize, hevcasm_code code)
 {
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
 	const int nCbS = 1 << log2TrafoSize;
 
 	hevcasm_transform *f = 0;
 
-	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
+	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
 		if (nCbS == 4) f = trType ? hevcasm_dst_4x4_c_opt : hevcasm_dct_4x4_c_opt;
 		if (nCbS == 8) f = hevcasm_dct_8x8_c_opt;
@@ -3910,29 +3783,25 @@ hevcasm_transform* HEVCASM_API get_transform(int trType, int log2TrafoSize, hevc
 		if (nCbS == 32) f = hevcasm_dct_32x32_c_opt;
 	}
 
-#ifdef HEVCASM_X64
-	if (mask & HEVCASM_SSSE3)
+	if (buffer.isa & HEVCASM_SSSE3)
 	{
 		if (nCbS == 16)
 		{
-			//f = hevcasm_dct_16x16_ssse3;
-			static Jit::Buffer buffer(10000, HEVCASM_SSSE3);
-			static ForwardDct16x16 a(&buffer);
+			ForwardDct16x16 a(&buffer);
 			f = a;
 		}
 	}
-#endif
 
 	return f;
 }
 
 
-void HEVCASM_API hevcasm_populate_transform(hevcasm_table_transform *table, hevcasm_instruction_set mask)
+void HEVCASM_API hevcasm_populate_transform(hevcasm_table_transform *table, hevcasm_code code)
 {
-	*hevcasm_get_transform(table, 1, 2) = get_transform(1, 2, mask);
+	*hevcasm_get_transform(table, 1, 2) = get_transform(1, 2, code);
 	for (int log2TrafoSize = 2; log2TrafoSize <= 5; ++log2TrafoSize)
 	{
-		*hevcasm_get_transform(table, 0, log2TrafoSize) = get_transform(0, log2TrafoSize, mask);
+		*hevcasm_get_transform(table, 0, log2TrafoSize) = get_transform(0, log2TrafoSize, code);
 	}
 }
 
@@ -3949,17 +3818,18 @@ typedef struct
 bound_transform;
 
 
-int init_transform(void *p, hevcasm_instruction_set mask)
+int init_transform(void *p, hevcasm_code code)
 {
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+
 	bound_transform *s = (bound_transform *)p;
 
 	hevcasm_table_transform table;
-	hevcasm_populate_transform(&table, mask);
+	hevcasm_populate_transform(&table, code);
 
 	s->f = *hevcasm_get_transform(&table, s->trType, s->log2TrafoSize);
-	assert(s->f == get_transform(s->trType, s->log2TrafoSize, mask));
 
-	if (s->f && mask == HEVCASM_C_REF)
+	if (s->f && buffer.isa == HEVCASM_C_REF)
 	{
 		const int nCbS = 1 << s->log2TrafoSize;
 		printf("\t%s %dx%d : ", s->trType ? "sine" : "cosine", nCbS, nCbS);

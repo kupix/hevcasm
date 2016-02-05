@@ -875,21 +875,12 @@ struct PredUni
 };
 
 
-void wrap(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
-{
-	static Jit::Buffer buffer(100000);
-	hevcasm_pred_uni_8to8 *f=0;
-	static PredUni a(&buffer, f, 8, 16, xFrac, yFrac, 8);
-	f = a;
-	f(dst, stride_dst, ref, stride_ref, w, h, xFrac, yFrac, bitDepth);
-}
-
-
-
-static hevcasm_pred_uni_8to8* get_pred_uni_8to8(int taps, int w, int h, int xFrac, int yFrac, hevcasm_instruction_set mask)
+static hevcasm_pred_uni_8to8* get_pred_uni_8to8(int taps, int w, int h, int xFrac, int yFrac, hevcasm_code code)
 {
 	hevcasm_pred_uni_8to8 *f = 0;
-	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+
+	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
 		if (taps == 8)
 		{
@@ -948,36 +939,34 @@ static hevcasm_pred_uni_8to8* get_pred_uni_8to8(int taps, int w, int h, int xFra
 		}
 	}
 	
-	static Jit::Buffer buffer(100000);
-
-	if (mask & HEVCASM_SSE2)
+	if (buffer.isa & HEVCASM_SSE2)
 	{
 		if (!xFrac && !yFrac)
 		{
 			if (w <= 64)
 			{
-				static PredUniCopy a(&buffer, 64);
+				PredUniCopy a(&buffer, 64);
 				f = a;
 			}
 			if (w <= 48)
 			{
-				static PredUniCopy a(&buffer, 48);
+				PredUniCopy a(&buffer, 48);
 				f = a;
 			}
 			if (w <= 32)
 			{
-				static PredUniCopy a(&buffer, 32);
+				PredUniCopy a(&buffer, 32);
 				f = a;
 			}
 			if (w <= 16)
 			{
-				static PredUniCopy a(&buffer, 16);
+				PredUniCopy a(&buffer, 16);
 				f = a;
 			}
 		}
 	}
 
-	if (mask & HEVCASM_SSE41)
+	if (buffer.isa & HEVCASM_SSE41)
 	{
 		if (xFrac && !yFrac)
 		{
@@ -985,45 +974,45 @@ static hevcasm_pred_uni_8to8* get_pred_uni_8to8(int taps, int w, int h, int xFra
 			{
 				if (w <= 64)
 				{
-					static PredUni a(&buffer, f, taps, 64, xFrac, yFrac, 8);
-					f = a;
-		}
-				if (w <= 48)
-		{
-					static PredUni a(&buffer, f,  taps, 48, xFrac, yFrac, 8);
-					f = a;
-		}
-				if (w <= 32)
-		{
-					static PredUni a(&buffer, f, taps, 32, xFrac, yFrac, 8);
-					f = a;
-		}
-				if (w <= 16)
-		{
-					static PredUni a(&buffer, f, taps, 16, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 64, xFrac, yFrac, 8);
 					f = a;
 				}
-		}
+				if (w <= 48)
+				{
+					PredUni a(&buffer, f, taps, 48, xFrac, yFrac, 8);
+					f = a;
+				}
+				if (w <= 32)
+				{
+					PredUni a(&buffer, f, taps, 32, xFrac, yFrac, 8);
+					f = a;
+				}
+				if (w <= 16)
+				{
+					PredUni a(&buffer, f, taps, 16, xFrac, yFrac, 8);
+					f = a;
+				}
+			}
 			if (taps == 4)
-		{
+			{
 				if (w <= 64)
 				{
-					static PredUni a(&buffer, f, taps, 64, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 64, xFrac, yFrac, 8);
 					f = a;
-		}
+				}
 				if (w <= 48)
-		{
-					static PredUni a(&buffer, f, taps, 48, xFrac, yFrac, 8);
+				{
+					PredUni a(&buffer, f, taps, 48, xFrac, yFrac, 8);
 					f = a;
 				}
 				if (w <= 32)
 				{
-					static PredUni a(&buffer, f, taps, 32, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 32, xFrac, yFrac, 8);
 					f = a;
 				}
 				if (w <= 16)
 				{
-					static PredUni a(&buffer, f, taps, 16, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 16, xFrac, yFrac, 8);
 					f = a;
 				}
 			}
@@ -1034,32 +1023,32 @@ static hevcasm_pred_uni_8to8* get_pred_uni_8to8(int taps, int w, int h, int xFra
 			{
 				if (w <= 64)
 				{
-					static PredUni a(&buffer, f, taps, 64, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 64, xFrac, yFrac, 8);
 					f = a;
 				}
 				if (w <= 48)
 				{
-					static PredUni a(&buffer, f, taps, 48, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 48, xFrac, yFrac, 8);
 					f = a;
 				}
 				if (w <= 32)
 				{
-					static PredUni a(&buffer, f, taps, 32, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 32, xFrac, yFrac, 8);
 					f = a;
 				}
 				if (w <= 24)
 				{
-					static PredUni a(&buffer, f, taps, 24, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 24, xFrac, yFrac, 8);
 					f = a;
 				}
 				if (w <= 16)
 				{
-					static PredUni a(&buffer, f, taps, 16, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 16, xFrac, yFrac, 8);
 					f = a;
 				}
 				if (w <= 8)
 				{
-					static PredUni a(&buffer, f, taps, 8, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 8, xFrac, yFrac, 8);
 					f = a;
 				}
 			}
@@ -1067,32 +1056,32 @@ static hevcasm_pred_uni_8to8* get_pred_uni_8to8(int taps, int w, int h, int xFra
 			{
 				if (w <= 64)
 				{
-					static PredUni a(&buffer, f, taps, 64, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 64, xFrac, yFrac, 8);
 					f = a;
 				}
 				if (w <= 48)
 				{
-					static PredUni a(&buffer, f, taps, 48, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 48, xFrac, yFrac, 8);
 					f = a;
 				}
 				if (w <= 32)
 				{
-					static PredUni a(&buffer, f, taps, 32, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 32, xFrac, yFrac, 8);
 					f = a;
 				}
 				if (w <= 24)
 				{
-					static PredUni a(&buffer, f, taps, 24, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 24, xFrac, yFrac, 8);
 					f = a;
 				}
 				if (w <= 16)
 				{
-					static PredUni a(&buffer, f, taps, 16, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 16, xFrac, yFrac, 8);
 					f = a;
 				}
 				if (w <= 8)
 				{
-					static PredUni a(&buffer, f, taps, 8, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 8, xFrac, yFrac, 8);
 					f = a;
 				}
 			}
@@ -1103,46 +1092,45 @@ static hevcasm_pred_uni_8to8* get_pred_uni_8to8(int taps, int w, int h, int xFra
 			{
 				if (w <= 64)
 				{
-					static PredUni a(&buffer, f, taps, 64, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 64, xFrac, yFrac, 8);
 					f = a;
 				}
 				if (w <= 48)
 				{
-					static PredUni a(&buffer, f, taps, 48, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 48, xFrac, yFrac, 8);
 					f = a;
 				}
 				if (w <= 32)
 				{
-					static PredUni a(&buffer, f, taps, 32, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 32, xFrac, yFrac, 8);
 					f = a;
 				}
 				if (w <= 16)
 				{
-					f = wrap;
-					//static PredUni a(&buffer, f,  taps, 16, xFrac, yFrac, 8);
-					//f = a;
+					PredUni a(&buffer, f,  taps, 16, xFrac, yFrac, 8);
+					f = a;
 				}
 			}
 			if (taps == 4)
 			{
 				if (w <= 64)
 				{
-					static PredUni a(&buffer, f, taps, 64, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 64, xFrac, yFrac, 8);
 					f = a;
 				}
 				if (w <= 48)
 				{
-					static PredUni a(&buffer, f, taps, 48, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 48, xFrac, yFrac, 8);
 					f = a;
 				}
 				if (w <= 32)
 				{
-					static PredUni a(&buffer, f, taps, 32, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 32, xFrac, yFrac, 8);
 					f = a;
 				}
 				if (w <= 16)
 				{
-					static PredUni a(&buffer, f, taps, 16, xFrac, yFrac, 8);
+					PredUni a(&buffer, f, taps, 16, xFrac, yFrac, 8);
 					f = a;
 				}
 			}
@@ -1151,16 +1139,17 @@ static hevcasm_pred_uni_8to8* get_pred_uni_8to8(int taps, int w, int h, int xFra
 	return f;
 }
 
-static hevcasm_pred_uni_16to16* get_pred_uni_16to16(int taps, int w, int h, int xFrac, int yFrac, hevcasm_instruction_set mask)
+static hevcasm_pred_uni_16to16* get_pred_uni_16to16(int taps, int w, int h, int xFrac, int yFrac, hevcasm_code code)
 {
 	hevcasm_pred_uni_16to16 *f = 0;
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
 
-	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
+	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
 		f = taps == 8 ? hevcasm_pred_uni_8tap_16to16_hv : hevcasm_pred_uni_4tap_16to16_hv;
 	}
 
-	if (mask & HEVCASM_SSE2)
+	if (buffer.isa & HEVCASM_SSE2)
 	{
 		if (!xFrac && !yFrac)
 		{
@@ -1178,18 +1167,18 @@ static hevcasm_pred_uni_16to16* get_pred_uni_16to16(int taps, int w, int h, int 
 
 
 
-void hevcasm_populate_pred_uni_8to8(hevcasm_table_pred_uni_8to8 *table, hevcasm_instruction_set mask)
+void hevcasm_populate_pred_uni_8to8(hevcasm_table_pred_uni_8to8 *table, hevcasm_code code)
 {
 	for (int taps = 4; taps <= 8; taps += 4)
 	{
-		for (int w = 0; w <= 8 * taps; w += taps)
+		for (int w = taps; w <= 8 * taps; w += taps)
 		{
 			for (int xFrac = 0; xFrac < 2; ++xFrac)
 			{
 				for (int yFrac = 0; yFrac < 2; ++yFrac)
 				{
 					*hevcasm_get_pred_uni_8to8(table, taps, w, 0, xFrac, yFrac)
-						= get_pred_uni_8to8(taps, w, 0, xFrac, yFrac, mask);
+						= get_pred_uni_8to8(taps, w, 0, xFrac, yFrac, code);
 				}
 			}
 		}
@@ -1197,7 +1186,7 @@ void hevcasm_populate_pred_uni_8to8(hevcasm_table_pred_uni_8to8 *table, hevcasm_
 }
 
 
-void hevcasm_populate_pred_uni_16to16(hevcasm_table_pred_uni_16to16 *table, hevcasm_instruction_set mask)
+void hevcasm_populate_pred_uni_16to16(hevcasm_table_pred_uni_16to16 *table, hevcasm_code code)
 {
 	for (int taps = 4; taps <= 8; taps += 4)
 	{
@@ -1208,7 +1197,7 @@ void hevcasm_populate_pred_uni_16to16(hevcasm_table_pred_uni_16to16 *table, hevc
 				for (int yFrac = 0; yFrac < 2; ++yFrac)
 				{
 					*hevcasm_get_pred_uni_16to16(table, taps, w, 0, xFrac, yFrac)
-						= get_pred_uni_16to16(taps, w, 0, xFrac, yFrac, mask);
+						= get_pred_uni_16to16(taps, w, 0, xFrac, yFrac, code);
 				}
 			}
 		}
@@ -1239,9 +1228,10 @@ typedef struct
 bound_pred_uni;
 
 
-static int get_pred_uni(void *p, hevcasm_instruction_set mask)
+static int get_pred_uni(void *p, hevcasm_code code)
 {
 	bound_pred_uni *s = (bound_pred_uni *)p;
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
 
 	s->f8 = 0;
 	s->f16 = 0;
@@ -1249,19 +1239,19 @@ static int get_pred_uni(void *p, hevcasm_instruction_set mask)
 	if (s->bitDepth > 8)
 	{
 		hevcasm_table_pred_uni_16to16 table;
-		hevcasm_populate_pred_uni_16to16(&table, mask);
+		hevcasm_populate_pred_uni_16to16(&table, code);
 		s->f16 = *hevcasm_get_pred_uni_16to16(&table, s->taps, s->w, s->h, s->xFrac, s->yFrac);
 		memset(s->dst16, 0, 2 * 64 * s->stride_dst);
 	}
 	else
 	{
 		hevcasm_table_pred_uni_8to8 table;
-		hevcasm_populate_pred_uni_8to8(&table, mask);
+		hevcasm_populate_pred_uni_8to8(&table, code);
 		s->f8 = *hevcasm_get_pred_uni_8to8(&table, s->taps, s->w, s->h, s->xFrac, s->yFrac);
 		memset(s->dst8, 0, 64 * s->stride_dst);
 	}
 
-	if ((s->f8 || s->f16) && mask == HEVCASM_C_REF)
+	if ((s->f8 || s->f16) && buffer.isa == HEVCASM_C_REF)
 	{
 		printf("\t%d-bit %dx%d %d-tap %s%s : ", s->bitDepth, s->w, s->h, s->taps, s->xFrac ? "H" : "", s->yFrac ? "V" : "");
 	}
@@ -1953,68 +1943,66 @@ MAKE_hevcasm_pred_bi(16, 8)
 MAKE_hevcasm_pred_bi(16, 4)
 
 
-hevcasm_pred_bi_8to8* get_pred_bi_8to8(int taps, int w, int h, int xFracA, int yFracA, int xFracB, int yFracB, hevcasm_instruction_set mask)
+hevcasm_pred_bi_8to8* get_pred_bi_8to8(int taps, int w, int h, int xFracA, int yFracA, int xFracB, int yFracB, Jit::Buffer &buffer)
 {
 	hevcasm_pred_bi_8to8 *f = 0;
 	
-	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
+	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
 		if (taps == 8) f = hevcasm_pred_bi_8tap_8to8_c_ref;
 		if (taps == 4) f = hevcasm_pred_bi_4tap_8to8_c_ref;
 	}
 
-	if (mask & HEVCASM_SSE2)
+	if (buffer.isa & HEVCASM_SSE2)
 	{
 		if (!xFracA && !yFracA && !xFracB && !yFracB)
 		{
-			static Jit::Buffer buffer(10000);
 			if (w <= 64)
 			{
-				static PredBi a(&buffer, 64);
+				PredBi a(&buffer, 64);
 				f = a;
 			}
 			if (w <= 48)
 			{
-				static PredBi a(&buffer, 48);
+				PredBi a(&buffer, 48);
 				f = a;
 			}
 			if (w <= 32)
 			{
-				static PredBi a(&buffer, 32);
+				PredBi a(&buffer, 32);
 				f = a;
 			}
 			if (w <= 16)
 			{
-				static PredBi a(&buffer, 16);
+				PredBi a(&buffer, 16);
 				f = a;
 			}
 
 		}
 	}
 
-	if (mask & HEVCASM_SSE41)
+	if (buffer.isa & HEVCASM_SSE41)
 	{
-		static Jit::Buffer buffer(40000);
 		if (taps == 8 && (xFracA || yFracA || xFracB || yFracB))
 		{
 			if (w <= 64)
 			{
-				static PredBi a(&buffer, 64, taps);
+				PredBi a(&buffer, 64, taps);
 				f = a;
 			}
 			if (w <= 48)
 			{
-				static PredBi a(&buffer, 48, taps);
+				PredBi a(&buffer, 48, taps);
 				f = a;
 			}
 			if (w <= 32)
 			{
-				static PredBi a(&buffer, 32, taps);
+				PredBi a(&buffer, 32, taps);
 				f = a;
 			}
 			if (w <= 16)
 			{
-				static PredBi a(&buffer, 16, taps);
+				PredBi a(&buffer, 16, taps);
 				f = a;
 			}
 		}
@@ -2022,12 +2010,12 @@ hevcasm_pred_bi_8to8* get_pred_bi_8to8(int taps, int w, int h, int xFracA, int y
 		{
 			if (w <= 32)
 			{
-				static PredBi a(&buffer, 32, taps);
+				PredBi a(&buffer, 32, taps);
 				f = a;
 			}
 			if (w <= 16)
 			{
-				static PredBi a(&buffer, 16, taps);
+				PredBi a(&buffer, 16, taps);
 				f = a;
 			}
 		}
@@ -2037,11 +2025,11 @@ hevcasm_pred_bi_8to8* get_pred_bi_8to8(int taps, int w, int h, int xFracA, int y
 }
 
 
-hevcasm_pred_bi_16to16* get_pred_bi_16to16(int taps, int w, int h, int xFracA, int yFracA, int xFracB, int yFracB, hevcasm_instruction_set mask)
+hevcasm_pred_bi_16to16* get_pred_bi_16to16(int taps, int w, int h, int xFracA, int yFracA, int xFracB, int yFracB, Jit::Buffer &buffer)
 {
 	hevcasm_pred_bi_16to16 *f = 0;
 
-	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
+	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
 		if (taps == 8) f = hevcasm_pred_bi_8tap_16to16_c_ref;
 		if (taps == 4) f = hevcasm_pred_bi_4tap_16to16_c_ref;
@@ -2050,8 +2038,9 @@ hevcasm_pred_bi_16to16* get_pred_bi_16to16(int taps, int w, int h, int xFracA, i
 	return f;
 }
 
-void hevcasm_populate_pred_bi_8to8(hevcasm_table_pred_bi_8to8 *table, hevcasm_instruction_set mask)
+void hevcasm_populate_pred_bi_8to8(hevcasm_table_pred_bi_8to8 *table, hevcasm_code code)
 {
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
 	for (int taps = 4; taps <= 8; taps += 4)
 	{
 		for (int w = 0; w <= 8 * taps; w += 2 * taps)
@@ -2059,14 +2048,15 @@ void hevcasm_populate_pred_bi_8to8(hevcasm_table_pred_bi_8to8 *table, hevcasm_in
 			for (int frac = 0; frac < 2; ++frac)
 			{
 				*hevcasm_get_pred_bi_8to8(table, taps, w, 0, frac, frac, frac, frac)
-					= get_pred_bi_8to8(taps, w, 0, frac, frac, frac, frac, mask);
+					= get_pred_bi_8to8(taps, w, 0, frac, frac, frac, frac, buffer);
 			}
 		}
 	}
 }
 
-void hevcasm_populate_pred_bi_16to16(hevcasm_table_pred_bi_16to16 *table, hevcasm_instruction_set mask)
+void hevcasm_populate_pred_bi_16to16(hevcasm_table_pred_bi_16to16 *table, hevcasm_code code)
 {
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
 	for (int taps = 4; taps <= 8; taps += 4)
 	{
 		for (int w = 0; w <= 8 * taps; w += 2 * taps)
@@ -2074,7 +2064,7 @@ void hevcasm_populate_pred_bi_16to16(hevcasm_table_pred_bi_16to16 *table, hevcas
 			for (int frac = 0; frac < 2; ++frac)
 			{
 				*hevcasm_get_pred_bi_16to16(table, taps, w, 0, frac, frac, frac, frac)
-					= get_pred_bi_16to16(taps, w, 0, frac, frac, frac, frac, mask);
+					= get_pred_bi_16to16(taps, w, 0, frac, frac, frac, frac, buffer);
 			}
 		}
 	}
@@ -2106,7 +2096,7 @@ typedef struct
 bound_pred_bi;
 
 
-int init_pred_bi(void *p, hevcasm_instruction_set mask)
+int init_pred_bi(void *p, hevcasm_code code)
 {
 	bound_pred_bi *s = (bound_pred_bi *)p;
 
@@ -2116,19 +2106,21 @@ int init_pred_bi(void *p, hevcasm_instruction_set mask)
 	if (s->bitDepth > 8)
 	{
 		hevcasm_table_pred_bi_16to16 table;
-		hevcasm_populate_pred_bi_16to16(&table, mask);
+		hevcasm_populate_pred_bi_16to16(&table, code);
 		s->f16 = *hevcasm_get_pred_bi_16to16(&table, s->taps, s->w, s->h, s->xFracA, s->yFracA, s->xFracB, s->yFracB);
 		memset(s->dst16, 0, 2 * 64 * s->stride_dst);
 	}
 	else
 	{
 		hevcasm_table_pred_bi_8to8 table;
-		hevcasm_populate_pred_bi_8to8(&table, mask);
+		hevcasm_populate_pred_bi_8to8(&table, code);
 		s->f8 = *hevcasm_get_pred_bi_8to8(&table, s->taps, s->w, s->h, s->xFracA, s->yFracA, s->xFracB, s->yFracB);
 		memset(s->dst8, 0, 64 * s->stride_dst);
 	}
 
-	if ((s->f8 || s->f16) && mask == HEVCASM_C_REF)
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+
+	if ((s->f8 || s->f16) && buffer.isa == HEVCASM_C_REF)
 	{
 		printf("\t%d-bit %dx%d %d-tap %s%s %s%s : ", s->bitDepth, s->w, s->h, s->taps, s->xFracA ? "H" : "", s->yFracA ? "V" : "", s->xFracB ? "H" : "", s->yFracB ? "V" : "");
 	}

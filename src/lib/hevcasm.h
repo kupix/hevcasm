@@ -12,17 +12,19 @@
 #include <stdio.h>
 
 
-// Macro used to ringfence code derived from the f265 project
+/* macro used to ringfence code derived from the f265 project */
 #ifndef USE_F265_DERIVED
 #define USE_F265_DERIVED 1
 #endif
 
-// Macro used to ringfence code derived from the WebM project
+/* macro used to ringfence code derived from the WebM project */
 #ifndef USE_WEBM_DERIVED
 #define USE_WEBM_DERIVED 1
 #endif
 
 
+
+/* compiler-specific inline timestamp function and alignment macro */
 #ifdef WIN32
 
 #include <intrin.h>
@@ -55,6 +57,7 @@ static hevcasm_timestamp hevcasm_get_timestamp()
 
 #endif
 
+/* compiler-specific inline timestamp function and alignment macro */
 #ifdef __GNUC__
 
 #if __x86_64__
@@ -91,6 +94,10 @@ static hevcasm_timestamp hevcasm_get_timestamp(void)
 #endif
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 #define HEVCASM_INSTRUCTION_SET_XMACRO \
 	X(0, C_REF, "C - reference; may be slow") \
@@ -103,14 +110,8 @@ static hevcasm_timestamp hevcasm_get_timestamp(void)
 	X(7, AVX, "AVX") \
 	X(8, AVX2, "AVX2")
 
-#define HEVCASM_INSTRUCTION_SET_COUNT 9
 
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
+/* bitmask type for describing instruction sets */
 typedef enum 
 {
 	HEVCASM_NONE = 0,
@@ -120,19 +121,28 @@ typedef enum
 } hevcasm_instruction_set;
 
 
-
-/*
-Queries processor via cpuid instruction and returns a bitmask representing supported instruction sets.
-*/
+/* queries processor via cpuid instruction and returns a bitmask representing supported instruction sets */
 hevcasm_instruction_set HEVCASM_API hevcasm_instruction_set_support();
 
 
 void HEVCASM_API hevcasm_print_instruction_set_support(FILE *f, hevcasm_instruction_set mask);
 
 
-/*
-Library self-test entry point.
-*/
+typedef struct
+{
+	void *implementation;
+} hevcasm_code;
+
+
+/* create a new buffer for JIT assembler emitted object code */
+hevcasm_code hevcasm_new_code(hevcasm_instruction_set mask, int size);
+
+
+/* must be called to free resources used by a code buffer created by hevcasm_new_code() */
+void hevcasm_delete_code(hevcasm_code);
+
+
+/* library self-test entry point */
 int HEVCASM_API hevcasm_main(int argc, const char *argv[]);
 
 
@@ -142,10 +152,8 @@ int HEVCASM_API hevcasm_main(int argc, const char *argv[]);
 typedef void HEVCASM_API hevcasm_test_function(int *error_count, hevcasm_instruction_set mask);
 
 
-
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif

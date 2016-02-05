@@ -3,7 +3,6 @@
 // Use of this source code is governed by a BSD-style license that
 // can be found in the COPYING file in the root of the source tree.
 
-
 #include "pred_inter.h"
 #include "pred_intra.h"
 #include "residual_decode.h"
@@ -13,15 +12,12 @@
 #include "quantize.h"
 #include "hadamard.h"
 #include "hevcasm.h"
-
-
+#include "Jit.h"
 #ifdef WIN32
 #include <Windows.h>
 #endif
-
 #include <stdint.h>
-
-
+#include <type_traits>
 #ifdef _MSC_VER
 #include <intrin.h>
 #endif
@@ -68,7 +64,7 @@ static int bit_is_set(int value, int n)
 
 hevcasm_instruction_set hevcasm_instruction_set_support()
 {
-	hevcasm_instruction_set mask = HEVCASM_C_REF | HEVCASM_C_OPT;
+	std::underlying_type<hevcasm_instruction_set>::type mask = HEVCASM_C_REF | HEVCASM_C_OPT;
 
 	enum { eax = 0, ebx = 1, ecx = 2, edx = 3 };
 
@@ -78,7 +74,7 @@ hevcasm_instruction_set hevcasm_instruction_set_support()
 
 	const int max_standard_level = cpuInfo[0];
 
-	if (max_standard_level == 0) return mask;
+	if (max_standard_level == 0) return (hevcasm_instruction_set)mask;
 
 	__cpuidex(cpuInfo, 1, 0);
 
@@ -104,7 +100,7 @@ hevcasm_instruction_set hevcasm_instruction_set_support()
 		}
 	}
 
-	return mask;
+	return (hevcasm_instruction_set)mask;
 }
 
 
@@ -116,6 +112,20 @@ void hevcasm_print_instruction_set_support(FILE *f, hevcasm_instruction_set mask
 	HEVCASM_INSTRUCTION_SET_XMACRO
 #undef X
 	fprintf(f, "\n");
+}
+
+
+hevcasm_code hevcasm_new_code(hevcasm_instruction_set mask, int size)
+{
+	hevcasm_code code;
+	code.implementation = new Jit::Buffer(size, mask);
+	return code;
+}
+
+
+void hevcasm_delete_code(hevcasm_code code)
+{
+	delete (Jit::Buffer *)code.implementation;
 }
 
 

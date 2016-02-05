@@ -212,31 +212,12 @@ struct IntraPredDc8
 		vzeroupper();
 	}
 };
-
 #endif
 
 
-#ifdef WIN32
-#define FASTCALL __fastcall
-#else
-#define FASTCALL
-#endif
-
-
-void wrap(uint8_t *dst, const uint8_t *neighbours, int intraPredMode, hevcasm_pred_intra_packed packed)
+void hevcasm_populate_pred_intra(hevcasm_table_pred_intra *table, hevcasm_code code)
 {
-	static Jit::Buffer buffer(1000);
-	static IntraPredDc8 intraPredDc8(&buffer);
-	hevcasm_pred_intra *f = intraPredDc8;
-	f(dst, neighbours, intraPredMode, packed);
-}
-
-
-void FASTCALL f265_lbd_predict_intra_dc_8_avx2(uint8_t *dst, const uint8_t *neighbours, int intraPredMode, hevcasm_pred_intra_packed packed);
-
-
-void hevcasm_populate_pred_intra(hevcasm_table_pred_intra *table, hevcasm_instruction_set mask)
-{
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
 	for (int k = 2; k <= 5; ++k)
 	{
 		for (int intraPredModeY = 0; intraPredModeY < 35; ++intraPredModeY)
@@ -249,21 +230,21 @@ void hevcasm_populate_pred_intra(hevcasm_table_pred_intra *table, hevcasm_instru
 		{
 			hevcasm_pred_intra **entry = hevcasm_get_pred_intra(table, 1, hevcasm_pred_intra_pack(cIdx, k));
 			*entry = 0;
-			if (mask & HEVCASM_C_REF) *entry = hevcasm_pred_intra_dc_ref;
-			if (mask & HEVCASM_C_OPT) *entry = hevcasm_pred_intra_dc_ref;
+			if (buffer.isa & HEVCASM_C_REF) *entry = hevcasm_pred_intra_dc_ref;
+			if (buffer.isa & HEVCASM_C_OPT) *entry = hevcasm_pred_intra_dc_ref;
 		}
 	}
 
 #if USE_F265_DERIVED
-#if !defined(WIN32) || defined(_M_X64) 
-	if (mask & HEVCASM_AVX2)
+	if (buffer.isa & HEVCASM_AVX2)
 	{
+		IntraPredDc8 intraPredDc8(&buffer);
+		
 		hevcasm_pred_intra **entry = hevcasm_get_pred_intra(table, 1, hevcasm_pred_intra_pack(1, 3));
-		*entry = wrap;
+		*entry = intraPredDc8;
 		entry = hevcasm_get_pred_intra(table, 1, hevcasm_pred_intra_pack(0, 3));
-		*entry = wrap;
+		*entry = intraPredDc8;
 	}
-#endif
 #endif
 }
 
@@ -279,8 +260,9 @@ typedef struct
 bound_pred_intra;
 
 
-static int get_pred_intra(void *p, hevcasm_instruction_set mask)
+static int get_pred_intra(void *p, hevcasm_code code)
 {
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
 	bound_pred_intra *s = (bound_pred_intra *)p;
 
 	const char *lookup[35] = { 0, "DC", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -290,11 +272,11 @@ static int get_pred_intra(void *p, hevcasm_instruction_set mask)
 		
 	hevcasm_table_pred_intra table;
 
-	hevcasm_populate_pred_intra(&table, mask);
+	hevcasm_populate_pred_intra(&table, code);
 
 	s->f = *hevcasm_get_pred_intra(&table, s->intraPredMode, s->packed);
 
-	if (s->f && mask == HEVCASM_C_REF)
+	if (s->f && buffer.isa == HEVCASM_C_REF)
 	{
 		const int k = (s->packed >> 1) & 0x7f;
 		const int nTbS = 1 << k;

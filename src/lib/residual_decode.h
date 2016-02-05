@@ -65,8 +65,8 @@ static hevcasm_inverse_transform_add16** hevcasm_get_inverse_transform_add16(hev
 	}
 }
 
-void HEVCASM_API hevcasm_populate_inverse_transform_add8(hevcasm_table_inverse_transform_add8 *table, hevcasm_instruction_set mask, int encoder);
-void HEVCASM_API hevcasm_populate_inverse_transform_add16(hevcasm_table_inverse_transform_add16 *table, hevcasm_instruction_set mask, int encoder);
+void HEVCASM_API hevcasm_populate_inverse_transform_add8(hevcasm_table_inverse_transform_add8 *table, hevcasm_code code, int encoder);
+void HEVCASM_API hevcasm_populate_inverse_transform_add16(hevcasm_table_inverse_transform_add16 *table, hevcasm_code code, int encoder);
 
 void HEVCASM_API hevcasm_test_inverse_transform_add8(int *error_count, hevcasm_instruction_set mask);
 void HEVCASM_API hevcasm_test_inverse_transform_add16(int *error_count, hevcasm_instruction_set mask);
@@ -95,7 +95,7 @@ static hevcasm_transform** hevcasm_get_transform(hevcasm_table_transform *table,
 	}
 }
 
-void HEVCASM_API hevcasm_populate_transform(hevcasm_table_transform *table, hevcasm_instruction_set mask);
+void HEVCASM_API hevcasm_populate_transform(hevcasm_table_transform *table, hevcasm_code code);
 
 void HEVCASM_API hevcasm_test_transform(int *error_count, hevcasm_instruction_set mask);
 

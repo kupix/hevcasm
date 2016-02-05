@@ -410,13 +410,15 @@ int wrap(const uint8_t *srcA, ptrdiff_t stride_srcA, const uint8_t *srcB, ptrdif
 	return f(srcA, stride_srcA, srcB, stride_srcB);
 }
 
-void HEVCASM_API hevcasm_populate_hadamard_satd(hevcasm_table_hadamard_satd *table, hevcasm_instruction_set mask)
+void HEVCASM_API hevcasm_populate_hadamard_satd(hevcasm_table_hadamard_satd *table, hevcasm_code code)
 {
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+
 	*hevcasm_get_hadamard_satd(table, 1) = 0;
 	*hevcasm_get_hadamard_satd(table, 2) = 0;
 	*hevcasm_get_hadamard_satd(table, 3) = 0;
 
-	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
+	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
 		*hevcasm_get_hadamard_satd(table, 1) = compute_satd_2x2;
 		*hevcasm_get_hadamard_satd(table, 2) = compute_satd_4x4;
@@ -424,15 +426,15 @@ void HEVCASM_API hevcasm_populate_hadamard_satd(hevcasm_table_hadamard_satd *tab
 	}
 
 #ifdef HEVCASM_X64
-	if (mask & HEVCASM_SSE2)
+	if (buffer.isa & HEVCASM_SSE2)
 	{
-		static Jit::Buffer buffer(8000);
-		static Satd4 satd4(&buffer);
+		Satd4 satd4(&buffer);
 		*hevcasm_get_hadamard_satd(table, 2) = satd4;
 	}
-	if (mask & HEVCASM_AVX2)
+	if (buffer.isa & HEVCASM_AVX2)
 	{
-		*hevcasm_get_hadamard_satd(table, 3) = &wrap;//satd8.function();;
+		Satd8 satd8(&buffer);
+		*hevcasm_get_hadamard_satd(table, 3) = satd8;
 	}
 #endif
 }
@@ -448,17 +450,19 @@ typedef struct
 bound_hadamard_satd;
 
 
-int init_hadamard_satd(void *p, hevcasm_instruction_set mask)
+int init_hadamard_satd(void *p, hevcasm_code code)
 {
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+
 	bound_hadamard_satd *s = (bound_hadamard_satd *)p;
 
 	hevcasm_table_hadamard_satd table;
 
-	hevcasm_populate_hadamard_satd(&table, mask);
+	hevcasm_populate_hadamard_satd(&table, code);
 
 	s->f = *hevcasm_get_hadamard_satd(&table, s->log2TrafoSize);
 
-	if (mask == HEVCASM_C_REF)
+	if (buffer.isa == HEVCASM_C_REF)
 	{
 		const int nCbS = 1 << s->log2TrafoSize;
 		printf("\t%dx%d : ", nCbS, nCbS);

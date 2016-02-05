@@ -37,7 +37,7 @@ static hevcasm_quantize_inverse** hevcasm_get_quantize_inverse(hevcasm_table_qua
 	return &table->p;
 }
 
-void HEVCASM_API hevcasm_populate_quantize_inverse(hevcasm_table_quantize_inverse *table, hevcasm_instruction_set mask);
+void HEVCASM_API hevcasm_populate_quantize_inverse(hevcasm_table_quantize_inverse *table, hevcasm_code code);
 
 void HEVCASM_API hevcasm_test_quantize_inverse(int *error_count, hevcasm_instruction_set mask);
 
@@ -58,7 +58,7 @@ static hevcasm_quantize** hevcasm_get_quantize(hevcasm_table_quantize *table)
 	return &table->p;
 }
 
-void HEVCASM_API hevcasm_populate_quantize(hevcasm_table_quantize *table, hevcasm_instruction_set mask);
+void HEVCASM_API hevcasm_populate_quantize(hevcasm_table_quantize *table, hevcasm_code code);
 
 void HEVCASM_API hevcasm_test_quantize(int *error_count, hevcasm_instruction_set mask);
 
@@ -79,7 +79,7 @@ static hevcasm_quantize_reconstruct** hevcasm_get_quantize_reconstruct(hevcasm_t
 	return &table->p[log2TrafoSize - 2];
 }
 
-void HEVCASM_API hevcasm_populate_quantize_reconstruct(hevcasm_table_quantize_reconstruct *table, hevcasm_instruction_set mask);
+void HEVCASM_API hevcasm_populate_quantize_reconstruct(hevcasm_table_quantize_reconstruct *table, hevcasm_code code);
 
 void HEVCASM_API hevcasm_test_quantize_reconstruct(int *error_count, hevcasm_instruction_set mask);
 

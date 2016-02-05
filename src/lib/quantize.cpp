@@ -132,32 +132,27 @@ struct InverseQuantise
 };
 
 
-static void wrapwrap(int16_t *dst, const int16_t *src, int scale, int shift, int n)
+static hevcasm_quantize_inverse * get_quantize_inverse(hevcasm_code code)
 {
-	static Jit::Buffer buffer(1000);
-	static InverseQuantise inverseQuantise(&buffer);
-	hevcasm_quantize_inverse *a = inverseQuantise;
-	a(dst, src, scale, shift, n);
-}
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
 
-static hevcasm_quantize_inverse * get_quantize_inverse(hevcasm_instruction_set mask)
-{
 	hevcasm_quantize_inverse *f = 0;
 	
-	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT)) f = hevcasm_quantize_inverse_c_ref;
+	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT)) f = hevcasm_quantize_inverse_c_ref;
 
-	if (mask & HEVCASM_SSE41)
+	if (buffer.isa & HEVCASM_SSE41)
 	{
-		f = wrapwrap;
+		InverseQuantise inverseQuantise(&buffer);
+		f = inverseQuantise;
 	}
 	return f;
 }
 
-void hevcasm_populate_quantize_inverse(hevcasm_table_quantize_inverse *table, hevcasm_instruction_set mask)
-{
-	table->p = get_quantize_inverse(mask);
-}
 
+void hevcasm_populate_quantize_inverse(hevcasm_table_quantize_inverse *table, hevcasm_code code)
+{
+	table->p = get_quantize_inverse(code);
+}
 
 
 typedef struct
@@ -172,19 +167,19 @@ typedef struct
 hevcasm_bound_quantize_inverse;
 
 
-int init_quantize_inverse(void *p, hevcasm_instruction_set mask)
+int init_quantize_inverse(void *p, hevcasm_code code)
 {
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+
 	hevcasm_bound_quantize_inverse *s = (hevcasm_bound_quantize_inverse *)p;
 
 	hevcasm_table_quantize_inverse table;
 
-	hevcasm_populate_quantize_inverse(&table, mask);
+	hevcasm_populate_quantize_inverse(&table, code);
 
 	s->f = *hevcasm_get_quantize_inverse(&table);
 	
-	assert(s->f == get_quantize_inverse(mask));
-
-	if (s->f && mask == HEVCASM_C_REF)
+	if (s->f && buffer.isa == HEVCASM_C_REF)
 	{
 		const int nCbS = 1 << s->log2TrafoSize;
 		printf("\t%dx%d : ", nCbS, nCbS);
@@ -389,24 +384,25 @@ struct Quantise
 
 
 
-static hevcasm_quantize * get_quantize(hevcasm_instruction_set mask)
+static hevcasm_quantize * get_quantize(hevcasm_code code)
 {
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+
 	hevcasm_quantize *f = 0;
 
-	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT)) f = hevcasm_quantize_c_ref;
+	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT)) f = hevcasm_quantize_c_ref;
 
-	static Jit::Buffer buffer(8000);
-	static Quantise quantise(&buffer);
+	Quantise quantise(&buffer);
 
-	if (mask & HEVCASM_SSE41) f = quantise;
+	if (buffer.isa & HEVCASM_SSE41) f = quantise;
 
 	return f;
 }
 
 
-void hevcasm_populate_quantize(hevcasm_table_quantize *table, hevcasm_instruction_set mask)
+void hevcasm_populate_quantize(hevcasm_table_quantize *table, hevcasm_code code)
 {
-	table->p = get_quantize(mask);
+	table->p = get_quantize(code);
 }
 
 
@@ -426,14 +422,17 @@ typedef struct
 hevcasm_bound_quantize;
 
 
-int init_quantize(void *p, hevcasm_instruction_set mask)
+int init_quantize(void *p, hevcasm_code code)
 {
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+	auto mask = buffer.isa;
+
 	hevcasm_bound_quantize *s = (hevcasm_bound_quantize *)p;
 	hevcasm_table_quantize table;
-	hevcasm_populate_quantize(&table, mask);
+	hevcasm_populate_quantize(&table, code);
 	s->f = *hevcasm_get_quantize(&table);
-	assert(s->f == get_quantize(mask));
-	if (mask == HEVCASM_C_REF)
+
+	if (buffer.isa == HEVCASM_C_REF)
 	{
 		const int nCbS = 1 << s->log2TrafoSize;
 		printf("\t%dx%d : ", nCbS, nCbS);
@@ -600,34 +599,36 @@ struct QuantiseReconstruct
 };
 
 
-hevcasm_quantize_reconstruct * HEVCASM_API get_quantize_reconstruct(int log2TrafoSize, hevcasm_instruction_set mask)
+hevcasm_quantize_reconstruct * HEVCASM_API get_quantize_reconstruct(int log2TrafoSize, hevcasm_code code)
 {
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+	auto mask = buffer.isa;
+
 	hevcasm_quantize_reconstruct *f = 0;
 		
 	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT)) f = hevcasm_quantize_reconstruct_c_ref;
 
 	if (mask & HEVCASM_SSE41)
 	{
-		static Jit::Buffer buffer(10000);
 		const int nCbS = 1 << log2TrafoSize;
 		if (nCbS == 4)
 		{
-			static QuantiseReconstruct qr(&buffer, nCbS);
+			QuantiseReconstruct qr(&buffer, nCbS);
 			f = qr;
 		}
 		if (nCbS == 8)
 		{
-			static QuantiseReconstruct qr(&buffer, nCbS);
+			QuantiseReconstruct qr(&buffer, nCbS);
 			f = qr;
 		}
 		if (nCbS == 16)
 		{
-			static QuantiseReconstruct qr(&buffer, nCbS);
+			QuantiseReconstruct qr(&buffer, nCbS);
 			f = qr;
 		}
 		if (nCbS == 32)
 		{
-			static QuantiseReconstruct qr(&buffer, nCbS);
+			QuantiseReconstruct qr(&buffer, nCbS);
 			f = qr;
 		}
 	}
@@ -636,11 +637,11 @@ hevcasm_quantize_reconstruct * HEVCASM_API get_quantize_reconstruct(int log2Traf
 }
 
 
-void HEVCASM_API hevcasm_populate_quantize_reconstruct(hevcasm_table_quantize_reconstruct *table, hevcasm_instruction_set mask)
+void HEVCASM_API hevcasm_populate_quantize_reconstruct(hevcasm_table_quantize_reconstruct *table, hevcasm_code code)
 {
 	for (int log2TrafoSize = 2; log2TrafoSize < 6; ++log2TrafoSize)
 	{
-		*hevcasm_get_quantize_reconstruct(table, log2TrafoSize) = get_quantize_reconstruct(log2TrafoSize, mask);
+		*hevcasm_get_quantize_reconstruct(table, log2TrafoSize) = get_quantize_reconstruct(log2TrafoSize, code);
 	}
 }
 
@@ -658,19 +659,19 @@ typedef struct
 bound_quantize_reconstruct;
 
 
-int init_quantize_reconstruct(void *p, hevcasm_instruction_set mask)
+int init_quantize_reconstruct(void *p, hevcasm_code code)
 {
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+
 	bound_quantize_reconstruct *s = (bound_quantize_reconstruct *)p;
 
 	hevcasm_table_quantize_reconstruct table;
 
-	hevcasm_populate_quantize_reconstruct(&table, mask);
+	hevcasm_populate_quantize_reconstruct(&table, code);
 
 	s->f = *hevcasm_get_quantize_reconstruct(&table, s->log2TrafoSize);
 
-	assert(s->f == get_quantize_reconstruct(s->log2TrafoSize, mask));
-
-	if (mask == HEVCASM_C_REF)
+	if (buffer.isa == HEVCASM_C_REF)
 	{
 		const int nCbS = 1 << s->log2TrafoSize;
 		printf("\t%dx%d : ", nCbS, nCbS);
