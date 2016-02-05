@@ -17,7 +17,6 @@ endif (MSVC)
 if (CMAKE_COMPILER_IS_GNUCC)
 	set(GCC_COMPILE_FLAGS "-fno-operator-names -std=c++0x -O3")
 	set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${GCC_COMPILE_FLAGS}")
-	set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} ${GCC_COMPILE_FLAGS}")
 endif (CMAKE_COMPILER_IS_GNUCC	)
 
 add_library (libhevcasm 
