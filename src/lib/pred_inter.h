@@ -91,6 +91,28 @@ hevcasm_test_function hevcasm_test_pred_bi;
 
 #ifdef __cplusplus
 }
+
+
+// review: rename, look for generic solution
+template <typename Sample> struct Lookup;
+
+template <> struct Lookup<uint8_t>
+{
+	typedef hevcasm_table_pred_uni_8to8 TablePredUni;
+	constexpr static decltype(&hevcasm_get_pred_uni_8to8) getPredUni() { return &hevcasm_get_pred_uni_8to8; }
+	typedef hevcasm_table_pred_bi_8to8 TablePredBi;
+	constexpr static decltype(&hevcasm_get_pred_bi_8to8) getPredBi() { return &hevcasm_get_pred_bi_8to8; }
+};
+
+template <> struct Lookup<uint16_t>
+{
+	typedef hevcasm_table_pred_uni_16to16 TablePredUni;
+	constexpr static decltype(&hevcasm_get_pred_uni_16to16) getPredUni() { return &hevcasm_get_pred_uni_16to16; }
+	typedef hevcasm_table_pred_bi_16to16 TablePredBi;
+	constexpr static decltype(&hevcasm_get_pred_bi_16to16) getPredBi() { return &hevcasm_get_pred_bi_16to16; }
+};
+
+
 #endif
 
 #endif
