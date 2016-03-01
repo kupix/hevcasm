@@ -103,6 +103,33 @@ void HEVCASM_API hevcasm_test_transform(int *error_count, hevcasm_instruction_se
 
 #ifdef __cplusplus
 }
+
+template <typename Sample>
+struct HevcasmInverseTransformAdd;
+
+template <>
+struct HevcasmInverseTransformAdd<uint8_t>
+{
+	typedef hevcasm_inverse_transform_add8 Function;
+	typedef hevcasm_table_inverse_transform_add8 Table;
+	static Function** get(Table *table, int trType, int log2TrafoSize)
+	{
+		return hevcasm_get_inverse_transform_add8(table, trType, log2TrafoSize);
+	}
+};
+
+template <>
+struct HevcasmInverseTransformAdd<uint16_t>
+{
+	typedef hevcasm_inverse_transform_add16 Function;
+	typedef hevcasm_table_inverse_transform_add16 Table;
+	static Function** get(Table *table, int trType, int log2TrafoSize)
+	{
+		return hevcasm_get_inverse_transform_add16(table, trType, log2TrafoSize);
+	}
+};
+
+
 #endif
 
 #endif

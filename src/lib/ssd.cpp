@@ -11,7 +11,8 @@
 #include <assert.h>
 
 
-static int hevcasm_ssd_c_ref(const uint8_t *pA, ptrdiff_t strideA, const uint8_t *pB, ptrdiff_t strideB, int w, int h)
+template <typename Sample>
+static int hevcasm_ssd_c_ref(const Sample *pA, ptrdiff_t strideA, const Sample *pB, ptrdiff_t strideB, int w, int h)
 {
 	int ssd = 0;
 	for (int y = 0; y < h; ++y)
@@ -115,11 +116,11 @@ void HEVCASM_API hevcasm_populate_ssd(hevcasm_table_ssd *table, hevcasm_code cod
 
 	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
-		*hevcasm_get_ssd(table, 2) = hevcasm_ssd_c_ref;
-		*hevcasm_get_ssd(table, 3) = hevcasm_ssd_c_ref;
-		*hevcasm_get_ssd(table, 4) = hevcasm_ssd_c_ref;
-		*hevcasm_get_ssd(table, 5) = hevcasm_ssd_c_ref;
-		*hevcasm_get_ssd(table, 6) = hevcasm_ssd_c_ref;
+		*hevcasm_get_ssd(table, 2) = hevcasm_ssd_c_ref<uint8_t>;
+		*hevcasm_get_ssd(table, 3) = hevcasm_ssd_c_ref<uint8_t>;
+		*hevcasm_get_ssd(table, 4) = hevcasm_ssd_c_ref<uint8_t>;
+		*hevcasm_get_ssd(table, 5) = hevcasm_ssd_c_ref<uint8_t>;
+		*hevcasm_get_ssd(table, 6) = hevcasm_ssd_c_ref<uint8_t>;
 	}
 
 	if (buffer.isa & HEVCASM_AVX)
@@ -136,6 +137,27 @@ void HEVCASM_API hevcasm_populate_ssd(hevcasm_table_ssd *table, hevcasm_code cod
 			Ssd ssd(&buffer, 64, 64);
 			*hevcasm_get_ssd(table, 6) = ssd;
 		}
+	}
+}
+
+
+void HEVCASM_API hevcasm_populate_ssd16(hevcasm_table_ssd16 *table, hevcasm_code code)
+{
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+
+	*hevcasm_get_ssd16(table, 2) = 0;
+	*hevcasm_get_ssd16(table, 3) = 0;
+	*hevcasm_get_ssd16(table, 4) = 0;
+	*hevcasm_get_ssd16(table, 5) = 0;
+	*hevcasm_get_ssd16(table, 6) = 0;
+
+	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
+	{
+		*hevcasm_get_ssd16(table, 2) = hevcasm_ssd_c_ref<uint16_t>;
+		*hevcasm_get_ssd16(table, 3) = hevcasm_ssd_c_ref<uint16_t>;
+		*hevcasm_get_ssd16(table, 4) = hevcasm_ssd_c_ref<uint16_t>;
+		*hevcasm_get_ssd16(table, 5) = hevcasm_ssd_c_ref<uint16_t>;
+		*hevcasm_get_ssd16(table, 6) = hevcasm_ssd_c_ref<uint16_t>;
 	}
 }
 

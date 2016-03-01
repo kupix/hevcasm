@@ -43,7 +43,8 @@ static void hadamard_transform(int m, int n, int *dst, int *src, ptrdiff_t strid
 }
 
 
-static int compute_satd(int n, const uint8_t *pA, ptrdiff_t strideA, const uint8_t *pB, ptrdiff_t strideB)
+template <int n, typename Sample>
+static int compute_satd(const Sample *pA, ptrdiff_t strideA, const Sample *pB, ptrdiff_t strideB)
 {
 	assert(n <= 8);
 
@@ -81,23 +82,6 @@ static int compute_satd(int n, const uint8_t *pA, ptrdiff_t strideA, const uint8
 	return sad / (n / 2);
 }
 
-
-static int compute_satd_2x2(const uint8_t *pA, ptrdiff_t strideA, const uint8_t *pB, ptrdiff_t strideB)
-{
-	return compute_satd(2, pA, strideA, pB, strideB);
-}
-
-
-static int compute_satd_4x4(const uint8_t *pA, ptrdiff_t strideA, const uint8_t *pB, ptrdiff_t strideB)
-{
-	return compute_satd(4, pA, strideA, pB, strideB);
-}
-
-
-static int compute_satd_8x8(const uint8_t *pA, ptrdiff_t strideA, const uint8_t *pB, ptrdiff_t strideB)
-{
-	return compute_satd(8, pA, strideA, pB, strideB);
-}
 
 #define ORDER(a, b, c, d) ((a << 6) | (b << 4) | (c << 2) | d)
 
@@ -420,9 +404,9 @@ void HEVCASM_API hevcasm_populate_hadamard_satd(hevcasm_table_hadamard_satd *tab
 
 	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
-		*hevcasm_get_hadamard_satd(table, 1) = compute_satd_2x2;
-		*hevcasm_get_hadamard_satd(table, 2) = compute_satd_4x4;
-		*hevcasm_get_hadamard_satd(table, 3) = compute_satd_8x8;
+		*hevcasm_get_hadamard_satd(table, 1) = compute_satd<2, uint8_t>;
+		*hevcasm_get_hadamard_satd(table, 2) = compute_satd<4, uint8_t>;
+		*hevcasm_get_hadamard_satd(table, 3) = compute_satd<8, uint8_t>;
 	}
 
 #ifdef HEVCASM_X64
@@ -437,6 +421,23 @@ void HEVCASM_API hevcasm_populate_hadamard_satd(hevcasm_table_hadamard_satd *tab
 		*hevcasm_get_hadamard_satd(table, 3) = satd8;
 	}
 #endif
+}
+
+
+void HEVCASM_API hevcasm_populate_hadamard_satd16(hevcasm_table_hadamard_satd16 *table, hevcasm_code code)
+{
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+
+	*hevcasm_get_hadamard_satd16(table, 1) = 0;
+	*hevcasm_get_hadamard_satd16(table, 2) = 0;
+	*hevcasm_get_hadamard_satd16(table, 3) = 0;
+
+	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
+	{
+		*hevcasm_get_hadamard_satd16(table, 1) = compute_satd<2, uint16_t>;
+		*hevcasm_get_hadamard_satd16(table, 2) = compute_satd<4, uint16_t>;
+		*hevcasm_get_hadamard_satd16(table, 3) = compute_satd<8, uint16_t>;
+	}
 }
 
 

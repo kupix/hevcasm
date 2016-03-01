@@ -153,7 +153,8 @@ struct SadSse2
 
 
 
-static int hevcasm_sad_c_ref(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref, ptrdiff_t stride_ref, uint32_t rect)
+template <typename Sample>
+static int hevcasm_sad_c_ref(const Sample *src, ptrdiff_t stride_src, const Sample *ref, ptrdiff_t stride_ref, uint32_t rect)
 {
 	const int width = rect >> 8;
 	const int height = rect & 0xff;
@@ -190,7 +191,19 @@ hevcasm_sad* get_sad(int width, int height, hevcasm_code code)
 
 	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
-		return (hevcasm_sad*)&hevcasm_sad_c_ref;
+		return (hevcasm_sad*)&hevcasm_sad_c_ref<uint8_t>;
+	}
+
+	return 0;
+}
+
+hevcasm_sad16* get_sad16(int width, int height, hevcasm_code code)
+{
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+
+	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
+	{
+		return (hevcasm_sad16*)&hevcasm_sad_c_ref<uint16_t>;
 	}
 
 	return 0;
@@ -209,7 +222,20 @@ void HEVCASM_API hevcasm_populate_sad(hevcasm_table_sad *table, hevcasm_code cod
 }
 
 
-static void hevcasm_sad_multiref_4_c_ref(const uint8_t *src, ptrdiff_t stride_src, const uint8_t *ref[], ptrdiff_t stride_ref, int sad[], uint32_t rect)
+void HEVCASM_API hevcasm_populate_sad16(hevcasm_table_sad16 *table, hevcasm_code code)
+{
+	for (int height = 4; height <= 64; height += 4)
+	{
+		for (int width = 4; width <= 64; width += 4)
+		{
+			*hevcasm_get_sad16(table, width, height) = get_sad16(width, height, code);
+		}
+	}
+}
+
+
+template <typename Sample>
+static void hevcasm_sad_multiref_4_c_ref(const Sample *src, ptrdiff_t stride_src, const Sample *ref[], ptrdiff_t stride_ref, int sad[], uint32_t rect)
 {
 	const int width = rect >> 8;
 	const int height = rect & 0xff;
@@ -648,7 +674,23 @@ hevcasm_sad_multiref* get_sad_multiref(int ways, int width, int height, hevcasm_
 
 	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
-		if (!f) f = &hevcasm_sad_multiref_4_c_ref;
+		if (!f) f = &hevcasm_sad_multiref_4_c_ref<uint8_t>;
+	}
+
+	return f;
+}
+
+
+hevcasm_sad_multiref16* get_sad_multiref16(int ways, int width, int height, hevcasm_code code)
+{
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+	hevcasm_sad_multiref16* f = 0;
+
+	if (ways != 4) return 0;
+
+	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
+	{
+		if (!f) f = &hevcasm_sad_multiref_4_c_ref<uint16_t>;
 	}
 
 	return f;
@@ -662,6 +704,19 @@ void HEVCASM_API hevcasm_populate_sad_multiref(hevcasm_table_sad_multiref *table
 		for (int width = 4; width <= 64; width += 4)
 		{
 			*hevcasm_get_sad_multiref(table, 4, width, height) = get_sad_multiref(4, width, height, code);
+		}
+	}
+
+}
+
+
+void HEVCASM_API hevcasm_populate_sad_multiref16(hevcasm_table_sad_multiref16 *table, hevcasm_code code)
+{
+	for (int height = 4; height <= 64; height += 4)
+	{
+		for (int width = 4; width <= 64; width += 4)
+		{
+			*hevcasm_get_sad_multiref16(table, 4, width, height) = get_sad_multiref16(4, width, height, code);
 		}
 	}
 
