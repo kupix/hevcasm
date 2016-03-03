@@ -34,5 +34,6 @@ script:
   - cd build
   - cmake ..
   - make
+  - sde64 -nhm -- ./src/bin/hevcasm
   - sde64 -hsw -- ./src/bin/hevcasm
 
