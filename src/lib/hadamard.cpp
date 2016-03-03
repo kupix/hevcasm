@@ -186,7 +186,8 @@ struct Satd4
 		// rows in m0, m1
 
 		// vertical butterfly 1
-		vpsubw(m2, m0, m1); // really is this SSE2?
+		movdqa(m2, m0);
+		psubw(m2, m1);
 		paddw(m0, m1);
 
 		// rows in m0, m2
@@ -204,7 +205,7 @@ struct Satd4
 		add(eax, 1);
 		shr(eax, 1);
 	}
-	};
+};
 
 #define HADAMARD_8_H(a1, a2) \
 	vmovq(xmm ## a1, ptr [r0]);  /*srcA(7..0, y) */ \
