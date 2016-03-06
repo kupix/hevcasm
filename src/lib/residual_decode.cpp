@@ -3056,7 +3056,20 @@ void hevcasm_test_inverse_transform_add8(int *error_count, hevcasm_instruction_s
 }
 
 
-void hevcasm_partial_butterfly_4x4_dst_c_opt(int16_t *dst, const int16_t *src, ptrdiff_t src_stride, int shift)
+template <class Dst, class Src>
+Dst shiftRight(Src src, int shift)
+{
+	src >>= shift;
+	if (src > std::numeric_limits<Dst>::max()) return std::numeric_limits<Dst>::max();
+	if (src < std::numeric_limits<Dst>::min()) return std::numeric_limits<Dst>::min();
+	Dst dst = static_cast<Dst>(src);
+	//assert(static_cast<Src>(dst) == src || !"arithmetic overflow");
+	return dst;
+}
+
+
+template <typename Dst, typename Src>
+void hevcasm_partial_butterfly_4x4_dst_c_opt(Dst *dst, const Src *src, ptrdiff_t src_stride, int shift)
 {
 	const int add = 1 << (shift - 1);
 	const int dst_stride = 4;
@@ -3069,15 +3082,16 @@ void hevcasm_partial_butterfly_4x4_dst_c_opt(int16_t *dst, const int16_t *src, p
 		c[2] = src[src_stride*i + 0] - src[src_stride*i + 1];
 		c[3] = 74 * src[src_stride*i + 2];
 
-		dst[0 * dst_stride + i] = (29 * c[0] + 55 * c[1] + c[3] + add) >> shift;
-		dst[1 * dst_stride + i] = (74 * (src[src_stride*i + 0] + src[src_stride*i + 1] - src[src_stride*i + 3]) + add) >> shift;
-		dst[2 * dst_stride + i] = (29 * c[2] + 55 * c[0] - c[3] + add) >> shift;
-		dst[3 * dst_stride + i] = (55 * c[2] - 29 * c[1] + c[3] + add) >> shift;
+		dst[0 * dst_stride + i] = shiftRight<Dst>(29 * c[0] + 55 * c[1] + c[3] + add, shift);
+		dst[1 * dst_stride + i] = shiftRight<Dst>(74 * (src[src_stride*i + 0] + src[src_stride*i + 1] - src[src_stride*i + 3]) + add, shift);
+		dst[2 * dst_stride + i] = shiftRight<Dst>(29 * c[2] + 55 * c[0] - c[3] + add, shift);
+		dst[3 * dst_stride + i] = shiftRight<Dst>(55 * c[2] - 29 * c[1] + c[3] + add, shift);
 	}
 }
 
 
-void hevcasm_partial_butterfly_4x4_c_opt(int16_t *dst, const int16_t *src, ptrdiff_t src_stride, int shift)
+template <typename Dst, typename Src>
+void hevcasm_partial_butterfly_4x4_c_opt(Dst *dst, const Src *src, ptrdiff_t src_stride, int shift)
 {
 	const int add = 1 << (shift - 1);
 	const int dst_stride = 4;
@@ -3095,10 +3109,10 @@ void hevcasm_partial_butterfly_4x4_c_opt(int16_t *dst, const int16_t *src, ptrdi
 			{ 36, -83, 83, -36 }
 		};
 
-		dst[0 * dst_stride] = (table[0][0] * E[0] + table[0][1] * E[1] + add) >> shift;
-		dst[2 * dst_stride] = (table[2][0] * E[0] + table[2][1] * E[1] + add) >> shift;
-		dst[1 * dst_stride] = (table[1][0] * O[0] + table[1][1] * O[1] + add) >> shift;
-		dst[3 * dst_stride] = (table[3][0] * O[0] + table[3][1] * O[1] + add) >> shift;
+		dst[0 * dst_stride] = shiftRight<Dst>(table[0][0] * E[0] + table[0][1] * E[1] + add, shift);
+		dst[2 * dst_stride] = shiftRight<Dst>(table[2][0] * E[0] + table[2][1] * E[1] + add, shift);
+		dst[1 * dst_stride] = shiftRight<Dst>(table[1][0] * O[0] + table[1][1] * O[1] + add, shift);
+		dst[3 * dst_stride] = shiftRight<Dst>(table[3][0] * O[0] + table[3][1] * O[1] + add, shift);
 
 		src += src_stride;
 		dst++;
@@ -3106,7 +3120,8 @@ void hevcasm_partial_butterfly_4x4_c_opt(int16_t *dst, const int16_t *src, ptrdi
 }
 
 
-void hevcasm_partial_butterfly_8x8_c_opt(int16_t *dst, const int16_t *src, ptrdiff_t src_stride, int shift)
+template <typename Dst, typename Src>
+void hevcasm_partial_butterfly_8x8_c_opt(Dst *dst, const Src *src, ptrdiff_t src_stride, int shift)
 {
 	const int add = 1 << (shift - 1);
 	const int dst_stride = 8;
@@ -3138,15 +3153,15 @@ void hevcasm_partial_butterfly_8x8_c_opt(int16_t *dst, const int16_t *src, ptrdi
 			{ 18, -50, 75, -89, 89, -75, 50, -18 }
 		};
 
-		dst[0 * dst_stride] = (table[0][0] * EE[0] + table[0][1] * EE[1] + add) >> shift;
-		dst[4 * dst_stride] = (table[4][0] * EE[0] + table[4][1] * EE[1] + add) >> shift;
-		dst[2 * dst_stride] = (table[2][0] * EO[0] + table[2][1] * EO[1] + add) >> shift;
-		dst[6 * dst_stride] = (table[6][0] * EO[0] + table[6][1] * EO[1] + add) >> shift;
+		dst[0 * dst_stride] = shiftRight<Dst>(table[0][0] * EE[0] + table[0][1] * EE[1] + add, shift);
+		dst[4 * dst_stride] = shiftRight<Dst>(table[4][0] * EE[0] + table[4][1] * EE[1] + add, shift);
+		dst[2 * dst_stride] = shiftRight<Dst>(table[2][0] * EO[0] + table[2][1] * EO[1] + add, shift);
+		dst[6 * dst_stride] = shiftRight<Dst>(table[6][0] * EO[0] + table[6][1] * EO[1] + add, shift);
 
-		dst[1 * dst_stride] = (table[1][0] * O[0] + table[1][1] * O[1] + table[1][2] * O[2] + table[1][3] * O[3] + add) >> shift;
-		dst[3 * dst_stride] = (table[3][0] * O[0] + table[3][1] * O[1] + table[3][2] * O[2] + table[3][3] * O[3] + add) >> shift;
-		dst[5 * dst_stride] = (table[5][0] * O[0] + table[5][1] * O[1] + table[5][2] * O[2] + table[5][3] * O[3] + add) >> shift;
-		dst[7 * dst_stride] = (table[7][0] * O[0] + table[7][1] * O[1] + table[7][2] * O[2] + table[7][3] * O[3] + add) >> shift;
+		dst[1 * dst_stride] = shiftRight<Dst>(table[1][0] * O[0] + table[1][1] * O[1] + table[1][2] * O[2] + table[1][3] * O[3] + add, shift);
+		dst[3 * dst_stride] = shiftRight<Dst>(table[3][0] * O[0] + table[3][1] * O[1] + table[3][2] * O[2] + table[3][3] * O[3] + add, shift);
+		dst[5 * dst_stride] = shiftRight<Dst>(table[5][0] * O[0] + table[5][1] * O[1] + table[5][2] * O[2] + table[5][3] * O[3] + add, shift);
+		dst[7 * dst_stride] = shiftRight<Dst>(table[7][0] * O[0] + table[7][1] * O[1] + table[7][2] * O[2] + table[7][3] * O[3] + add, shift);
 
 		src += src_stride;
 		dst++;
@@ -3154,7 +3169,8 @@ void hevcasm_partial_butterfly_8x8_c_opt(int16_t *dst, const int16_t *src, ptrdi
 }
 
 
-void hevcasm_partial_butterfly_16x16_c_opt(int16_t *dst, const int16_t *src, ptrdiff_t src_stride, int shift)
+template <typename Dst, typename Src>
+void hevcasm_partial_butterfly_16x16_c_opt(Dst *dst, const Src *src, ptrdiff_t src_stride, int shift)
 {
 	const int add = 1 << (shift - 1);
 	const ptrdiff_t dst_stride = 16;
@@ -3201,20 +3217,20 @@ void hevcasm_partial_butterfly_16x16_c_opt(int16_t *dst, const int16_t *src, ptr
 			{ 9, -25, 43, -57, 70, -80, 87, -90, 90, -87, 80, -70, 57, -43, 25, -9 }
 		};
 
-		dst[0 * dst_stride] = (table[0][0] * EEE[0] + table[0][1] * EEE[1] + add) >> shift;
-		dst[8 * dst_stride] = (table[8][0] * EEE[0] + table[8][1] * EEE[1] + add) >> shift;
-		dst[4 * dst_stride] = (table[4][0] * EEO[0] + table[4][1] * EEO[1] + add) >> shift;
-		dst[12 * dst_stride] = (table[12][0] * EEO[0] + table[12][1] * EEO[1] + add) >> shift;
+		dst[0 * dst_stride] = shiftRight<Dst>(table[0][0] * EEE[0] + table[0][1] * EEE[1] + add, shift);
+		dst[8 * dst_stride] = shiftRight<Dst>(table[8][0] * EEE[0] + table[8][1] * EEE[1] + add, shift);
+		dst[4 * dst_stride] = shiftRight<Dst>(table[4][0] * EEO[0] + table[4][1] * EEO[1] + add, shift);
+		dst[12 * dst_stride] = shiftRight<Dst>(table[12][0] * EEO[0] + table[12][1] * EEO[1] + add, shift);
 
 		for (int k = 2; k<16; k += 4)
 		{
-			dst[k*dst_stride] = (table[k][0] * EO[0] + table[k][1] * EO[1] + table[k][2] * EO[2] + table[k][3] * EO[3] + add) >> shift;
+			dst[k*dst_stride] = shiftRight<Dst>(table[k][0] * EO[0] + table[k][1] * EO[1] + table[k][2] * EO[2] + table[k][3] * EO[3] + add, shift);
 		}
 
 		for (int k = 1; k<16; k += 2)
 		{
-			dst[k*dst_stride] = (table[k][0] * O[0] + table[k][1] * O[1] + table[k][2] * O[2] + table[k][3] * O[3] +
-				table[k][4] * O[4] + table[k][5] * O[5] + table[k][6] * O[6] + table[k][7] * O[7] + add) >> shift;
+			dst[k*dst_stride] = shiftRight<Dst>(table[k][0] * O[0] + table[k][1] * O[1] + table[k][2] * O[2] + table[k][3] * O[3] +
+				table[k][4] * O[4] + table[k][5] * O[5] + table[k][6] * O[6] + table[k][7] * O[7] + add, shift);
 		}
 
 		src += src_stride;
@@ -3223,7 +3239,8 @@ void hevcasm_partial_butterfly_16x16_c_opt(int16_t *dst, const int16_t *src, ptr
 }
 
 
-void hevcasm_partial_butterfly_32x32_c_opt(int16_t *dst, const int16_t *src, ptrdiff_t src_stride, int shift)
+template <typename Dst, typename Src>
+void hevcasm_partial_butterfly_32x32_c_opt(Dst *dst, const Src *src, ptrdiff_t src_stride, int shift)
 {
 	const int add = 1 << (shift - 1);
 	const int dst_stride = 32;
@@ -3293,25 +3310,25 @@ void hevcasm_partial_butterfly_32x32_c_opt(int16_t *dst, const int16_t *src, ptr
 			{ 4, -13, 22, -31, 38, -46, 54, -61, 67, -73, 78, -82, 85, -88, 90, -90, 90, -90, 88, -85, 82, -78, 73, -67, 61, -54, 46, -38, 31, -22, 13, -4 }
 		};
 
-		dst[0 * dst_stride] = (table[0][0] * EEEE[0] + table[0][1] * EEEE[1] + add) >> shift;
-		dst[16 * dst_stride] = (table[16][0] * EEEE[0] + table[16][1] * EEEE[1] + add) >> shift;
-		dst[8 * dst_stride] = (table[8][0] * EEEO[0] + table[8][1] * EEEO[1] + add) >> shift;
-		dst[24 * dst_stride] = (table[24][0] * EEEO[0] + table[24][1] * EEEO[1] + add) >> shift;
+		dst[0 * dst_stride] = shiftRight<Dst>(table[0][0] * EEEE[0] + table[0][1] * EEEE[1] + add, shift);
+		dst[16 * dst_stride] = shiftRight<Dst>(table[16][0] * EEEE[0] + table[16][1] * EEEE[1] + add, shift);
+		dst[8 * dst_stride] = shiftRight<Dst>(table[8][0] * EEEO[0] + table[8][1] * EEEO[1] + add, shift);
+		dst[24 * dst_stride] = shiftRight<Dst>(table[24][0] * EEEO[0] + table[24][1] * EEEO[1] + add, shift);
 		for (int k = 4; k<32; k += 8)
 		{
-			dst[k*dst_stride] = (table[k][0] * EEO[0] + table[k][1] * EEO[1] + table[k][2] * EEO[2] + table[k][3] * EEO[3] + add) >> shift;
+			dst[k*dst_stride] = shiftRight<Dst>(table[k][0] * EEO[0] + table[k][1] * EEO[1] + table[k][2] * EEO[2] + table[k][3] * EEO[3] + add, shift);
 		}
 		for (int k = 2; k<32; k += 4)
 		{
-			dst[k*dst_stride] = (table[k][0] * EO[0] + table[k][1] * EO[1] + table[k][2] * EO[2] + table[k][3] * EO[3] +
-				table[k][4] * EO[4] + table[k][5] * EO[5] + table[k][6] * EO[6] + table[k][7] * EO[7] + add) >> shift;
+			dst[k*dst_stride] = shiftRight<Dst>(table[k][0] * EO[0] + table[k][1] * EO[1] + table[k][2] * EO[2] + table[k][3] * EO[3] +
+				table[k][4] * EO[4] + table[k][5] * EO[5] + table[k][6] * EO[6] + table[k][7] * EO[7] + add, shift);
 		}
 		for (int k = 1; k<32; k += 2)
 		{
-			dst[k*dst_stride] = (table[k][0] * O[0] + table[k][1] * O[1] + table[k][2] * O[2] + table[k][3] * O[3] +
+			dst[k*dst_stride] = shiftRight<Dst>(table[k][0] * O[0] + table[k][1] * O[1] + table[k][2] * O[2] + table[k][3] * O[3] +
 				table[k][4] * O[4] + table[k][5] * O[5] + table[k][6] * O[6] + table[k][7] * O[7] +
 				table[k][8] * O[8] + table[k][9] * O[9] + table[k][10] * O[10] + table[k][11] * O[11] +
-				table[k][12] * O[12] + table[k][13] * O[13] + table[k][14] * O[14] + table[k][15] * O[15] + add) >> shift;
+				table[k][12] * O[12] + table[k][13] * O[13] + table[k][14] * O[14] + table[k][15] * O[15] + add, shift);
 		}
 		src += src_stride;
 		dst++;
