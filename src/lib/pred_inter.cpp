@@ -196,7 +196,7 @@ struct PredUniCopy
 
 	PredUniCopy(Jit::Buffer *buffer, int width)
 		:
-		Jit::Function(buffer, Jit::CountArguments<std::remove_pointer<HevcasmPredUni<Sample>>::type>::value),
+		Jit::Function(buffer, Jit::CountArguments<typename std::remove_pointer<HevcasmPredUni<Sample>>::type>::value),
 		width(width)
 	{
 		this->build();
@@ -904,7 +904,7 @@ void hevcasmPopulatePredUni(HevcasmTablePredUni<Sample> *table, hevcasm_code cod
 		}
 
 	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
-	auto const n = Jit::CountArguments<std::remove_pointer<HevcasmPredUni<Sample>>::type>::value;
+	auto const n = Jit::CountArguments<typename std::remove_pointer<HevcasmPredUni<Sample>>::type>::value;
 
 	if (buffer.isa & HEVCASM_C_REF)
 		for (int taps = 4; taps <= 8; taps += 4)
