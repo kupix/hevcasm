@@ -3570,7 +3570,8 @@ struct ForwardDct16x16
 			por(m10, m6);
 			// m10 = dstptr[14,12,10, 8, 6, 4, 2, 0]);
 
-			movdqa(m6, m10); punpcklwd(m6, m8);
+			movdqa(m6, m10); 
+			punpcklwd(m6, m8);
 			movdqu(ptr[r0], m6);
 
 			punpckhwd(m10, m8);

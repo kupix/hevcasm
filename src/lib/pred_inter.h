@@ -15,104 +15,73 @@
 #include "hevcasm.h"
 
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
-
 // HEVC uni prediction
+template <typename Sample>
+using HevcasmPredUni = void (Sample *dst, ptrdiff_t stride_dst, Sample const *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac, int bitDepth);
+typedef HevcasmPredUni<uint8_t> hevcasm_pred_uni_8to8;
+typedef HevcasmPredUni<uint16_t> hevcasm_pred_uni_16to16;
 
-typedef void HEVCASM_API hevcasm_pred_uni_8to8(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac, int bitDepth);
-typedef void HEVCASM_API hevcasm_pred_uni_16to16(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac, int bitDepth);
-
-typedef struct
+template <typename Sample>
+struct HevcasmTablePredUni
 {
-	hevcasm_pred_uni_8to8 * p[2][9][2][2];
-}
-hevcasm_table_pred_uni_8to8;
+	HevcasmPredUni<Sample>* p[3][2][9][2][2];
+};
 
-typedef struct
-{
-	hevcasm_pred_uni_16to16 * p[2][9][2][2];
-}
-hevcasm_table_pred_uni_16to16;
 
-static hevcasm_pred_uni_8to8** hevcasm_get_pred_uni_8to8(hevcasm_table_pred_uni_8to8 *table, int taps, int w, int h, int xFrac, int yFrac)
+template <typename Sample>
+static HevcasmPredUni<Sample>** hevcasmGetPredUni(HevcasmTablePredUni<Sample> *table, int taps, int w, int h, int xFrac, int yFrac, int bitDepth)
 {
-	return &table->p[taps / 4 - 1][(w + taps - 1) / taps][xFrac ? 1 : 0][yFrac ? 1 : 0];
+	return &table->p[bitDepth - 8][taps / 4 - 1][(w + taps - 1) / taps][xFrac ? 1 : 0][yFrac ? 1 : 0];
 }
 
-static hevcasm_pred_uni_16to16** hevcasm_get_pred_uni_16to16(hevcasm_table_pred_uni_16to16 *table, int taps, int w, int h, int xFrac, int yFrac)
-{
-	return &table->p[taps / 4 - 1][(w + taps - 1) / taps][xFrac ? 1 : 0][yFrac ? 1 : 0];
-}
 
-void HEVCASM_API hevcasm_populate_pred_uni_8to8(hevcasm_table_pred_uni_8to8 *table, hevcasm_code code);
-void HEVCASM_API hevcasm_populate_pred_uni_16to16(hevcasm_table_pred_uni_16to16 *table, hevcasm_code code);
+template <typename Sample>
+void hevcasmPopulatePredUni(HevcasmTablePredUni<Sample> *table, hevcasm_code code);
+
 
 hevcasm_test_function hevcasm_test_pred_uni;
 
 
 // HEVC bi prediction
 
-typedef void hevcasm_pred_bi_8to8(uint8_t *dst0, ptrdiff_t stride_dst, const uint8_t *ref0, const uint8_t *ref1, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1, int bitDepth);
-typedef void hevcasm_pred_bi_16to16(uint16_t *dst0, ptrdiff_t stride_dst, const uint16_t *ref0, const uint16_t *ref1, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1, int bitDepth);
+template <typename Sample>
+using HevcasmPredBi = void(Sample *dst0, ptrdiff_t stride_dst, const Sample *ref0, const Sample *ref1, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1, int bitDepth);
 
-typedef struct
+template <typename Sample>
+struct HevcasmTablePredBi
 {
-	hevcasm_pred_bi_8to8 * p[2][5][2];
-}
-hevcasm_table_pred_bi_8to8;
+	HevcasmPredBi<Sample> * p[3][2][5][2];
+};
 
-typedef struct
-{
-	hevcasm_pred_bi_16to16 * p[2][5][2];
-}
-hevcasm_table_pred_bi_16to16;
-
-static hevcasm_pred_bi_8to8** hevcasm_get_pred_bi_8to8(hevcasm_table_pred_bi_8to8 *table, int taps, int w, int h, int xFracA, int yFracA, int xFracB, int yFracB)
+template <typename Sample>
+static HevcasmPredBi<Sample>** hevcasmGetPredBi(HevcasmTablePredBi<Sample> *table, int taps, int w, int h, int xFracA, int yFracA, int xFracB, int yFracB, int bitDepth)
 {
 	const int frac = xFracA || yFracA || xFracB || yFracB;
-	return &table->p[taps / 4 - 1][(w + 2 * taps - 1) / (2 * taps)][frac];
+	return &table->p[bitDepth - 8][taps / 4 - 1][(w + 2 * taps - 1) / (2 * taps)][frac];
 }
 
-static hevcasm_pred_bi_16to16** hevcasm_get_pred_bi_16to16(hevcasm_table_pred_bi_16to16 *table, int taps, int w, int h, int xFracA, int yFracA, int xFracB, int yFracB)
-{
-	const int frac = xFracA || yFracA || xFracB || yFracB;
-	return &table->p[taps / 4 - 1][(w + 2 * taps - 1) / (2 * taps)][frac];
-}
-
-void HEVCASM_API hevcasm_populate_pred_bi_8to8(hevcasm_table_pred_bi_8to8 *table, hevcasm_code code);
-void HEVCASM_API hevcasm_populate_pred_bi_16to16(hevcasm_table_pred_bi_16to16 *table, hevcasm_code code);
+template <typename Sample>
+void hevcasmPopulatePredBi(HevcasmTablePredBi<Sample> *table, hevcasm_code code);
 
 hevcasm_test_function hevcasm_test_pred_bi;
-
-
-#ifdef __cplusplus
-}
-
 
 // review: rename, look for generic solution
 template <typename Sample> struct Lookup;
 
 template <> struct Lookup<uint8_t>
 {
-	typedef hevcasm_table_pred_uni_8to8 TablePredUni;
-	constexpr static decltype(&hevcasm_get_pred_uni_8to8) getPredUni() { return &hevcasm_get_pred_uni_8to8; }
-	typedef hevcasm_table_pred_bi_8to8 TablePredBi;
-	constexpr static decltype(&hevcasm_get_pred_bi_8to8) getPredBi() { return &hevcasm_get_pred_bi_8to8; }
+	typedef HevcasmTablePredUni<uint8_t> TablePredUni;
+	constexpr static decltype(&hevcasmGetPredUni<uint8_t>) getPredUni() { return &hevcasmGetPredUni<uint8_t>; }
+	typedef HevcasmTablePredBi<uint8_t> TablePredBi;
+	constexpr static decltype(&hevcasmGetPredBi<uint8_t>) getPredBi() { return &hevcasmGetPredBi<uint8_t>; }
 };
 
 template <> struct Lookup<uint16_t>
 {
-	typedef hevcasm_table_pred_uni_16to16 TablePredUni;
-	constexpr static decltype(&hevcasm_get_pred_uni_16to16) getPredUni() { return &hevcasm_get_pred_uni_16to16; }
-	typedef hevcasm_table_pred_bi_16to16 TablePredBi;
-	constexpr static decltype(&hevcasm_get_pred_bi_16to16) getPredBi() { return &hevcasm_get_pred_bi_16to16; }
+	typedef HevcasmTablePredUni<uint16_t> TablePredUni;
+	constexpr static decltype(&hevcasmGetPredUni<uint16_t>) getPredUni() { return &hevcasmGetPredUni<uint16_t>; }
+	typedef HevcasmTablePredBi<uint16_t> TablePredBi;
+	constexpr static decltype(&hevcasmGetPredBi<uint16_t>) getPredBi() { return &hevcasmGetPredBi<uint16_t>; }
 };
-
-
-#endif
 
 #endif

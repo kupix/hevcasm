@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <type_traits>
 
 
 static int Clip3(int min, int max, int value)
@@ -57,21 +58,14 @@ int hevcasm_pred_coefficient(int n, int fractionalPosition, int k)
 Generic function to handle all luma, chroma, 8 and 16-bit interpolation. 
 Consider this a reference implementation: it will not run fast.
 */
+template <typename Dst, typename Src>
 static void hevcasm_pred_uni_generic(
-	void *dst, int sizeof_dst, ptrdiff_t stride_dst, 
-	const void *src, int sizeof_src, ptrdiff_t stride_src, 
+	Dst *dst, ptrdiff_t stride_dst,
+	Src const *src, ptrdiff_t stride_src,
 	int w, int h, 
 	ptrdiff_t stride_tap, 
 	int n, int fractionalPosition, int shift, int add, int bitDepth)
 {
-	int32_t *dst32 = (int32_t *)dst;
-	uint16_t *dst16 = (uint16_t *)dst;
-	uint8_t *dst8 = (uint8_t *)dst;
-
-	const int32_t *src32 = (const int32_t *)src;
-	const uint16_t *src16 = (const uint16_t *)src;
-	const uint8_t *src8 = (const uint8_t *)src;
-
 	while (h--)
 	{
 		for (int x = 0; x<w; ++x)
@@ -82,12 +76,7 @@ static void hevcasm_pred_uni_generic(
 			{
 				const ptrdiff_t src_offset = x + (k - n / 2 + 1) * stride_tap;
 
-				int srcSample;
-				if (sizeof_src == 1) srcSample = src8[src_offset];
-				if (sizeof_src == 2) srcSample = src16[src_offset];
-				if (sizeof_src == 4) srcSample = src32[src_offset];
-
-				a += hevcasm_pred_coefficient(n, fractionalPosition, k) * srcSample;
+				a += hevcasm_pred_coefficient(n, fractionalPosition, k) * src[src_offset];
 			}
 
 			a >>= shift;
@@ -97,66 +86,49 @@ static void hevcasm_pred_uni_generic(
 				a = Clip3(0, (1 << bitDepth) - 1, a);
 			}
 
-			if (sizeof_dst == 1) dst8[x] = a;
-			if (sizeof_dst == 2) dst16[x] = a;
-			if (sizeof_dst == 4) dst32[x] = a;
+			dst[x] = a;
 		}
 
-		dst32 += stride_dst;
-		dst16 += stride_dst;
-		dst8 += stride_dst;
-
-		src32 += stride_src;
-		src16 += stride_src;
-		src8 += stride_src;
+		dst += stride_dst;
+		src += stride_src;
 	}
 };
 
 
-void hevcasm_pred_uni_copy_block(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
+template <typename Sample>
+void hevcasm_pred_uni_copy_block(Sample *dst, ptrdiff_t stride_dst, const Sample *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
 {
 	assert(!xFrac);
 	assert(!yFrac);
-	assert(bitDepth == 8);
 	while (h--)
 	{
-		memcpy(dst, ref, w);
+		memcpy(dst, ref, w * sizeof(Sample));
 		dst += stride_dst;
 		ref += stride_ref;
 	}
 }
 
 
-void hevcasm_pred_uni_8tap_8to8_h(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
+template <typename Sample>
+void hevcasm_pred_uni_8tap_h(Sample *dst, ptrdiff_t stride_dst, const Sample *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
 {
 	assert(xFrac);
 	assert(!yFrac);
-	assert(bitDepth == 8);
-	hevcasm_pred_uni_generic(dst, 1, stride_dst, ref, 1, stride_ref, w, h, 1, 8, xFrac, 6, 1, bitDepth);
+	hevcasm_pred_uni_generic(dst, stride_dst, ref, stride_ref, w, h, 1, 8, xFrac, 6, 1, bitDepth);
 }
 
 
-void hevcasm_pred_uni_8tap_8to8_v(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
+template <typename Sample>
+void hevcasm_pred_uni_8tap_v(Sample *dst, ptrdiff_t stride_dst, const Sample *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
 {
 	assert(!xFrac);
 	assert(yFrac);
-	hevcasm_pred_uni_generic(dst, 1, stride_dst, ref, 1, stride_ref, w, h, stride_ref, 8, yFrac, 6, 1, bitDepth);
+	hevcasm_pred_uni_generic(dst, stride_dst, ref, stride_ref, w, h, stride_ref, 8, yFrac, 6, 1, bitDepth);
 }
 
 
-void hevcasm_pred_uni_8tap_8to8_hv(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
-{
-	int intermediate[(64 + 7) * 64];
-
-	/* Horizontal filter */
-	hevcasm_pred_uni_generic(intermediate, 4, 64, ref - 3 * stride_ref, 1, stride_ref, w, h + 7, 1, 8, xFrac, 0, 0, 0);
-
-	/* Vertical filter */
-	hevcasm_pred_uni_generic(dst, 1, stride_dst, intermediate + 3 * 64, 4, 64, w, h, 64, 8, yFrac, 12, 1, bitDepth);
-}
-
-
-void hevcasm_pred_uni_8tap_16to16_hv(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
+template <typename Sample>
+void hevcasm_pred_uni_8tap_hv(Sample *dst, ptrdiff_t stride_dst, const Sample *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
 {
 	int intermediate[(64 + 7) * 64];
 
@@ -169,63 +141,33 @@ void hevcasm_pred_uni_8tap_16to16_hv(uint16_t *dst, ptrdiff_t stride_dst, const 
 	if (shift3 < 2) shift3 = 2;
 
 	/* Horizontal filter */
-	hevcasm_pred_uni_generic(intermediate, 4, 64, ref - 3 * stride_ref, 2, stride_ref, w, h + 7, 1, 8, xFrac, shift1, 0, 0);
+	hevcasm_pred_uni_generic(intermediate, 64, ref - 3 * stride_ref, stride_ref, w, h + 7, 1, 8, xFrac, shift1, 0, 0);
 
 	/* Vertical filter */
-	hevcasm_pred_uni_generic(dst, 2, stride_dst, intermediate + 3 * 64, 4, 64, w, h, 64, 8, yFrac, shift2 + shift3, 1, bitDepth);
+	hevcasm_pred_uni_generic(dst, stride_dst, intermediate + 3 * 64, 64, w, h, 64, 8, yFrac, shift2 + shift3, 1, bitDepth);
 }
 
 
-#define MAKE_hevcasm_pred_uni_xtap_8to8_hv(taps, suffix) \
- \
- static void hevcasm_pred_uni_ ## taps ## tap_8to8_hv ## suffix(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac, int bitDepth) \
-{ \
-	HEVCASM_ALIGN(32, int16_t, intermediate[(64 + taps - 1) * 64]); \
-	 \
-	/* Horizontal filter */ \
-	hevcasm_pred_uni_ ## taps ## tap_8to16_h ## suffix(intermediate, 64, ref - (taps/2-1) * stride_ref, stride_ref, nPbW, nPbH + taps - 1, xFrac, 0);	\
-	 \
-	/* Vertical filter */	 \
-	hevcasm_pred_uni_ ## taps ## tap_16to8_v ## suffix(dst, stride_dst, intermediate + (taps/2-1) * 64, 64, nPbW, nPbH, 0, yFrac); \
-} \
-
-//MAKE_hevcasm_pred_uni_xtap_8to8_hv(8, _16xh_sse4)
-//MAKE_hevcasm_pred_uni_xtap_8to8_hv(8, _32xh_sse4)
-//MAKE_hevcasm_pred_uni_xtap_8to8_hv(8, _48xh_sse4)
-//MAKE_hevcasm_pred_uni_xtap_8to8_hv(8, _64xh_sse4)
-//MAKE_hevcasm_pred_uni_xtap_8to8_hv(4, _16xh_sse4)
-//MAKE_hevcasm_pred_uni_xtap_8to8_hv(4, _32xh_sse4)
-
-
-void hevcasm_pred_uni_4tap_8to8_h(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
+template <typename Sample>
+void hevcasm_pred_uni_4tap_h(Sample *dst, ptrdiff_t stride_dst, const Sample *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
 {
 	assert(xFrac);
 	assert(!yFrac);
-	hevcasm_pred_uni_generic(dst, 1, stride_dst, ref, 1, stride_ref, w, h, 1, 4, xFrac, 6, 1, bitDepth);
+	hevcasm_pred_uni_generic(dst, stride_dst, ref, stride_ref, w, h, 1, 4, xFrac, 6, 1, bitDepth);
 }
 
 
-void hevcasm_pred_uni_4tap_8to8_v(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
+template <typename Sample>
+void hevcasm_pred_uni_4tap_v(Sample *dst, ptrdiff_t stride_dst, const Sample *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
 {
 	assert(!xFrac);
 	assert(yFrac);
-	hevcasm_pred_uni_generic(dst, 1, stride_dst, ref, 1, stride_ref, w, h, stride_ref, 4, yFrac, 6, 1, bitDepth);
+	hevcasm_pred_uni_generic(dst, stride_dst, ref, stride_ref, w, h, stride_ref, 4, yFrac, 6, 1, bitDepth);
 }
 
 
-void hevcasm_pred_uni_4tap_8to8_hv(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
-{
-	int intermediate[(32 + 3) * 32];
-
-	/* Horizontal filter */
-	hevcasm_pred_uni_generic(intermediate, 4, 32, ref - stride_ref, 1, stride_ref, w, h + 3, 1, 4, xFrac, 0, 0, 0);
-
-	/* Vertical filter */
-	hevcasm_pred_uni_generic(dst, 1, stride_dst, intermediate + 32, 4, 32, w, h, 32, 4, yFrac, 12, 1, bitDepth);
-}
-
-
-void hevcasm_pred_uni_4tap_16to16_hv(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
+template <typename Sample>
+void hevcasm_pred_uni_4tap_hv(Sample *dst, ptrdiff_t stride_dst, const Sample *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
 {
 	int intermediate[(32 + 3) * 64];
 
@@ -238,13 +180,14 @@ void hevcasm_pred_uni_4tap_16to16_hv(uint16_t *dst, ptrdiff_t stride_dst, const 
 	if (shift3 < 2) shift3 = 2;
 
 	/* Horizontal filter */
-	hevcasm_pred_uni_generic(intermediate, 4, 32, ref - stride_ref, 2, stride_ref, w, h + 3, 1, 4, xFrac, shift1, 0, 0);
+	hevcasm_pred_uni_generic(intermediate, 32, ref - stride_ref, stride_ref, w, h + 3, 1, 4, xFrac, shift1, 0, 0);
 
 	/* Vertical filter */
-	hevcasm_pred_uni_generic(dst, 2, stride_dst, intermediate + 32, 4, 32, w, h, 32, 4, yFrac, shift2 + shift3, 1, bitDepth);
+	hevcasm_pred_uni_generic(dst, stride_dst, intermediate + 32, 32, w, h, 32, 4, yFrac, shift2 + shift3, 1, bitDepth);
 }
 
 
+template <typename Sample>
 struct PredUniCopy
 	:
 	Jit::Function
@@ -253,7 +196,7 @@ struct PredUniCopy
 
 	PredUniCopy(Jit::Buffer *buffer, int width)
 		:
-		Jit::Function(buffer, Jit::CountArguments<hevcasm_pred_uni_8to8>::value),
+		Jit::Function(buffer, Jit::CountArguments<std::remove_pointer<HevcasmPredUni<Sample>>::type>::value),
 		width(width)
 	{
 		this->build();
@@ -269,9 +212,9 @@ struct PredUniCopy
 
 		L("loop");
 		{
-			int const n = width / 16;
+			int const n = sizeof(Sample) * width / 16;
 
-			Xbyak::Xmm const *m[4];
+			Xbyak::Xmm const *m[8];
 			for (int i = 0; i < n; ++i)
 			{
 				m[i] = &regXmm(i);
@@ -283,8 +226,8 @@ struct PredUniCopy
 				movdqu(ptr[r0 + 16 * i], *m[i]);
 			}
 
-			lea(r2, ptr[r2 + r3]);
-			lea(r0, ptr[r0 + r1]);
+			lea(r2, ptr[r2 + r3 * sizeof(Sample)]);
+			lea(r0, ptr[r0 + r1 * sizeof(Sample)]);
 		}
 		dec(height);
 		jg("loop");
@@ -293,29 +236,30 @@ struct PredUniCopy
 
 typedef void hevcasm_pred_uni_8to16(int16_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
 typedef void hevcasm_pred_uni_16to8(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-typedef void hevcasm_pred_uni_16to16(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac, int bitDepth);
 typedef void hevcasm_pred_bi_v_16to16(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, ptrdiff_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB);
-typedef void hevcasm_pred_bi_8to8_copy(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref0, const uint8_t *ref1, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1, int bitDepth);
+typedef void hevcasm_pred_bi_copy(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref0, const uint8_t *ref1, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1, int bitDepth);
 
-//rename
-struct PredUni
+
+template <typename Sample>
+struct PredInter
 	:
 	Jit::Function
 {
-	PredUni(Jit::Buffer *buffer, hevcasm_pred_uni_8to8 *, int taps, int width, int xFrac, int yFrac, int inputBitDepth)
+	PredInter(Jit::Buffer *buffer, int params, int taps, int width, int xFrac, int yFrac, int inputBitDepth, int inputSize)
 		:
-		Jit::Function(buffer, Jit::CountArguments<hevcasm_pred_uni_8to8>::value),
+		Jit::Function(buffer, params),
 		taps(taps),
 		width(width),
 		xFrac(xFrac),
 		yFrac(yFrac),
 		inputBitDepth(inputBitDepth),
+		inputSize(inputSize),
 		refs(1)
 	{
 		this->build();
 	}
 
-	PredUni(Jit::Buffer *buffer, hevcasm_pred_bi_v_16to16 *, int taps, int width, int xFrac, int yFrac, int inputBitDepth)
+	PredInter(Jit::Buffer *buffer, int taps, int width, int inputBitDepth)
 		:
 		Jit::Function(buffer, Jit::CountArguments<hevcasm_pred_bi_v_16to16>::value),
 		taps(taps),
@@ -325,20 +269,7 @@ struct PredUni
 		inputBitDepth(inputBitDepth),
 		refs(2)
 	{
-		this->build();
-	}
-
-	PredUni(Jit::Buffer *buffer, hevcasm_pred_uni_8to16 *, int taps, int width, int xFrac, int yFrac, int inputBitDepth)
-		:
-		Jit::Function(buffer, Jit::CountArguments<hevcasm_pred_uni_8to16>::value),
-		taps(taps),
-		width(width),
-		xFrac(xFrac),
-		yFrac(yFrac),
-		inputBitDepth(inputBitDepth),
-		outputBitDepth(16),
-		refs(1)
-	{
+		assert(0);
 		this->build();
 	}
 
@@ -348,10 +279,13 @@ struct PredUni
 	int xFrac;
 	int yFrac;
 	int inputBitDepth;
+	int inputSize;
 
 	Xbyak::Label coefficients;
 	Xbyak::Label coefficients16;
 	Xbyak::Label constant_times_4_dd_0x800;
+	Xbyak::Label constant_times_4_dd_0x200;
+	Xbyak::Label constant_times_4_dd_0x20;
 	Xbyak::Label constant_times_8_dw_0x20;
 	Xbyak::Label constant_times_8_dw_0x40;
 
@@ -386,8 +320,14 @@ struct PredUni
 		L(constant_times_4_dd_0x800);
 		dd({ 0x800 }, 4);
 
+		L(constant_times_4_dd_0x200);
+		dd({ 0x200 }, 4);
+
 		L(constant_times_8_dw_0x20);
 		dw({ 0x20 }, 8);
+
+		L(constant_times_4_dd_0x20);
+		dd({ 0x20 }, 4);
 
 		L(constant_times_8_dw_0x40);
 		dw({ 0x40 }, 8);
@@ -419,11 +359,9 @@ struct PredUni
 		auto &r6 = arg64(6);
 		auto &r7 = arg64(7);
 
-//		db({ 0xcc });
-
 		if (xFrac && !yFrac)
 		{
-			this->PRED_UNI_H_16NxH(taps, outputBitDepth, width);
+			this->PRED_UNI_H_16NxH(taps, outputBitDepth, width, false);
 			return;
 		}
 
@@ -438,20 +376,24 @@ struct PredUni
 			push(r0);
 
 			mov(r1, 64);
-			if (taps == 8)
+
+			for (int i = 0; i < sizeof(Sample); ++i)
 			{
-				sub(r2, r3);
+				if (taps == 8)
+				{
+					sub(r2, r3);
+					sub(r2, r3);
+				}
 				sub(r2, r3);
 			}
-			sub(r2, r3);
+
 			add(r5, taps - 1);
 
 			// first H then continue to V
-			this->PRED_UNI_H_16NxH(taps, 16, width);
+			this->PRED_UNI_H_16NxH(taps, 16, width, true);
 
 			pop(r0);
-//			mov(r2, 0); mov(r2, ptr[r2]);
-			lea(r2, ptr[r0 + 128 * (taps / 2 - 1)]);
+			lea(r2, ptr[r0 + 64 * 2 * (taps / 2 - 1)]);
 			mov(r3, 64);
 
 			pop(r5);
@@ -471,12 +413,15 @@ struct PredUni
 		//auto &m4 = regXmm(4);
 		auto &m5 = regXmm(4); // !
 
-		if (inputBitDepth == 16) shl(r3, 1);
+		int const inputBits = (inputBitDepth == 16 || sizeof(Sample) == 2) ? 16 : 8;
+		if (inputBits == 16) shl(r3, 1);
+
+		if (sizeof(Sample) == 2) shl(r1, 1);
 
 		// adjust input pointer (subtract (taps/2-1) * stride)
 		for (int i = 0; i < taps / 2 - 1; ++i) sub(r2, r3);
-		//db({ 0xcc });
-		if (inputBitDepth == 16)
+
+		if (inputBits == 16)
 		{
 			lea(r4, ptr[rip + coefficients16]);
 		}
@@ -485,7 +430,7 @@ struct PredUni
 			lea(r4, ptr[rip + coefficients]);
 		}
 
-		mov(r6, r7); // ??? avoid probls
+		mov(r6, r7); 
 		shl(r6d, 4 + taps / 4);
 		lea(r4, ptr[r4 + r6]);
 
@@ -494,13 +439,20 @@ struct PredUni
 			for (int i = 0; i < width / 8; ++i)
 			{
 				// each iteration operates on a row of 8-samples
-
 				if (inputBitDepth == 16)
 				{
-					movdqa(m3, ptr[rip + constant_times_4_dd_0x800]);
+					if (sizeof(Sample) == 2)
+						movdqa(m3, ptr[rip + constant_times_4_dd_0x200]);
+					else
+						movdqa(m3, ptr[rip + constant_times_4_dd_0x800]);
 					movdqa(m5, m3);
 				}
-				else
+				else if (sizeof(Sample) == 2)
+				{
+					movdqa(m3, ptr[rip + constant_times_4_dd_0x20]);
+					movdqa(m5, m3);
+				}
+				else 
 				{
 					movdqa(m3, ptr[rip + constant_times_8_dw_0x20]);
 				}
@@ -509,7 +461,7 @@ struct PredUni
 				{
 					// each iteration of this loop performs two filter taps
 
-					if (inputBitDepth == 16)
+					if (inputBits == 16)
 					{
 						movdqu(m0, ptr[r2]);
 						movdqu(m1, ptr[r2 + r3]);
@@ -543,27 +495,42 @@ struct PredUni
 
 				sub(r4, taps * 8);
 
-				if (inputBitDepth == 16)
+				if (sizeof(Sample) == 2)
+				{
+					if (inputBitDepth == 16)
+					{
+						psrad(m3, 4);
+						psrad(m5, 4);
+						packusdw(m3, m5); // should not saturate - just a shuffle
+						psrlw(m3, 6);
+					}
+					else
+					{
+						packusdw(m3, m5);
+						psrlw(m3, 6);
+					}
+				}
+				else if (inputBitDepth == 16)
 				{
 					psrad(m3, 12);
 					psrad(m5, 12);
 					packssdw(m3, m5);
+					packuswb(m3, m3);
 				}
 				else
 				{
 					psraw(m3, 6);
+					packuswb(m3, m3);
 				}
-
-				packuswb(m3, m3);
 
 				movdqu(ptr[r0], m3);
 
-				lea(r2, ptr[r2 + inputBitDepth]);
-				lea(r0, ptr[r0 + 8]);
+				lea(r2, ptr[r2 + inputBits]);
+				lea(r0, ptr[r0 + 8 * sizeof(Sample)]);
 			}
 
-			sub(r0, 8 * width / 8);
-			sub(r2, inputBitDepth * width / 8);
+			sub(r0, 8 * sizeof(Sample) * width / 8);
+			sub(r2, inputBits * width / 8);
 
 			add(r0, r1);
 			add(r2, r3);
@@ -572,11 +539,23 @@ struct PredUni
 		jg("loopV");
 	}
 
+	void packedMultiplyAdd(Xbyak::Xmm const &dst, Xbyak::Xmm const &src)
+	{
+		if (sizeof(Sample) == 2) pmaddwd(dst, src); else pmaddubsw(dst, src);
+	}
+
+	void packedAdd(Xbyak::Xmm const &dst, Xbyak::Xmm const &src)
+	{
+		if (sizeof(Sample) == 2) paddd(dst, src); else paddw(dst, src);
+	}
+
 	// taps is number of filter taps (4 or 8)
 	// outputTypeBits is size of output type (8 for uint8_t rounded, 16 for int16_t right shifted 6)
-	// dx is dx (horizontal offset as integer number of samples) 
-	void PRED_UNI_H_16x1(int taps, int outputTypeBits, int dx)
+	// dx horizontal offset as integer number of bytes 
+	void filterHorizontal16Bytes(int taps, int, int dx, bool filteringHV)
 	{
+		// note: comments apply when Sample is uint8_t
+
 		auto &r0 = reg64(0);
 		auto &r2 = reg64(2);
 
@@ -589,89 +568,109 @@ struct PredUni
 		auto &m6 = xmm6;
 		auto &m7 = xmm7;
 
-		movdqu(m2, ptr[r2 + 1 - (taps / 2) + dx]);
-		pmaddubsw(m2, m4);
+		movdqu(m2, ptr[r2 + sizeof(Sample) * (1 - (taps / 2)) + dx]);
+		packedMultiplyAdd(m2, m4);
 		// m2 = eca86420 (even positions, first two taps)
 
-		movdqu(m1, ptr[r2 + 2 - (taps / 2) + dx]);
-		pmaddubsw(m1, m4);
+		movdqu(m1, ptr[r2 + sizeof(Sample) * (2 - (taps / 2)) + dx]);
+		packedMultiplyAdd(m1, m4);
 		// m1 = fdb97531 (odd positions, first two taps)
 
-		movdqu(m0, ptr[r2 + 3 - (taps / 2) + dx]);
-		pmaddubsw(m0, m5);
+		movdqu(m0, ptr[r2 + sizeof(Sample) * (3 - (taps / 2)) + dx]);
+		packedMultiplyAdd(m0, m5);
 		// m0 = eca86420 (even positions, two taps)
 
-		paddw(m2, m0);
+		packedAdd(m2, m0);
 		// m2 = eca86420 (even positions)
 
-		movdqu(m0, ptr[r2 + 4 - (taps / 2) + dx]);
-		pmaddubsw(m0, m5);
+		movdqu(m0, ptr[r2 + sizeof(Sample) * (4 - (taps / 2)) + dx]);
+		packedMultiplyAdd(m0, m5);
 		// m0 = fdb97531 (odd positions, two taps)
 
-		paddw(m1, m0);
+		packedAdd(m1, m0);
 		// m1 = fdb97531 (odd positions)
 
 		if (taps == 8)
 		{
 			// need four more taps...
 
-			movdqu(m0, ptr[r2 + 5 - (taps / 2) + dx]);
-			pmaddubsw(m0, m6);
+			movdqu(m0, ptr[r2 + sizeof(Sample) * (5 - (taps / 2)) + dx]);
+			packedMultiplyAdd(m0, m6);
 			// m0 = eca86420(even positions, two taps)
 
-			paddw(m2, m0);
+			packedAdd(m2, m0);
 			// m2 = eca86420(even positions)
 
-			movdqu(m0, ptr[r2 + 6 - (taps / 2) + dx]);
-			pmaddubsw(m0, m6);
+			movdqu(m0, ptr[r2 + sizeof(Sample) * (6 - (taps / 2)) + dx]);
+			packedMultiplyAdd(m0, m6);
 			// m0 = fdb97531(odd positions, two taps)
 
-			paddw(m1, m0);
+			packedAdd(m1, m0);
 			// m1 = fdb97531(odd positions)
 
-			movdqu(m0, ptr[r2 + 7 - (taps / 2) + dx]);
-			pmaddubsw(m0, m7);
+			movdqu(m0, ptr[r2 + sizeof(Sample) * (7 - (taps / 2)) + dx]);
+			packedMultiplyAdd(m0, m7);
 			// m0 = eca86420(even positions, two taps)
 
-			paddw(m2, m0);
+			packedAdd(m2, m0);
 			// m2 = eca86420(even positions)
 
-			movdqu(m0, ptr[r2 + 8 - (taps / 2) + dx]);
-			pmaddubsw(m0, m7);
+			movdqu(m0, ptr[r2 + sizeof(Sample) * (8 - (taps / 2)) + dx]);
+			packedMultiplyAdd(m0, m7);
 			// m0 = fdb97531(odd positions, two taps)
 
-			paddw(m1, m0);
+			packedAdd(m1, m0);
 			// m1 = fdb97531(odd positions)
 		}
 
 		movq(m0, m2);
-		punpcklwd(m0, m1);
+		if (sizeof(Sample) == 2) punpckldq(m0, m1); else punpcklwd(m0, m1);
 		// m0 = 76543210
 
-		punpckhwd(m2, m1);
+		if (sizeof(Sample) == 2) punpckhdq(m2, m1); else punpckhwd(m2, m1);
 		// m2 = fedcba98
 
-		if (outputTypeBits == 16)
+		if (sizeof(Sample) == 2)
 		{
-			movdqu(ptr[r0 + 2 * dx], m0);
-			movdqu(ptr[r0 + 2 * dx + 16], m2);
+			if (filteringHV)
+			{
+				psrad(m0, 2);
+				psrad(m2, 2);
+				packssdw(m0, m2);
+				movdqu(ptr[r0 + dx], m0);
+			}
+			else
+			{
+				paddd(m0, ptr[rip + constant_times_4_dd_0x20]);
+				paddd(m2, ptr[rip + constant_times_4_dd_0x20]);
+				packusdw(m0, m2);
+				psrlw(m0, 6);
+				movdqu(ptr[r0 + dx], m0);
+			}
 		}
 		else
 		{
-			paddw(m0, ptr[rip + constant_times_8_dw_0x20]);
-			paddw(m2, ptr[rip + constant_times_8_dw_0x20]);
-			psraw(m0, 6);
-			psraw(m2, 6);
-			packuswb(m0, m2);
-			movdqu(ptr[r0 + dx], m0);
+			if (filteringHV)
+			{
+				movdqu(ptr[r0 + 2 * dx], m0);
+				movdqu(ptr[r0 + 2 * dx + 16], m2);
+			}
+			else
+			{
+				paddw(m0, ptr[rip + constant_times_8_dw_0x20]);
+				paddw(m2, ptr[rip + constant_times_8_dw_0x20]);
+				psraw(m0, 6);
+				psraw(m2, 6);
+				packuswb(m0, m2);
+				movdqu(ptr[r0 + dx], m0);
+			}
 		}
 	}
 
 
 	// taps is number of filter taps (4 or 8)
-	// outputTypeBits is size of output type (8 for uint8_t rounded, 16 for int16_t right shifted 6)
 	// width is block width (number of samples, multiple of 16)
-	void PRED_UNI_H_16NxH(int taps, int outputTypeBits, int width)
+	void PRED_UNI_H_16NxH(int taps, int, int width, bool filteringHV)
 	{
 		auto &r0 = reg64(0);
 		auto &r1 = reg64(1);
@@ -692,6 +691,11 @@ struct PredUni
 		auto &m6 = regXmm(6);
 		auto &m7 = regXmm(7);
 
+		if (sizeof(Sample) == 2)
+			lea(r4, ptr[rip + coefficients16]);
+		else
+			lea(r4, ptr[rip + coefficients]);
+
 		if (taps == 8)
 		{
 			shl(r6d, 6);  // frac *= 4 * 16
@@ -700,7 +704,6 @@ struct PredUni
 		{
 			shl(r6d, 5);  // frac *= 2 * 16
 		}
-		lea(r4, ptr[rip + coefficients]);
 
 		movdqa(m4, ptr[r4 + r6]);
 		movdqa(m5, ptr[r4 + r6 + 1 * 16]);
@@ -710,18 +713,23 @@ struct PredUni
 			movdqa(m7, ptr[r4 + r6 + 3 * 16]);
 		}
 
-		if (outputTypeBits == 16)
+		int shiftDstStride = 0;
+		if (sizeof(Sample) == 2 || filteringHV) ++shiftDstStride;
+
+		if (shiftDstStride) shl(r1, shiftDstStride);
+
+		if (sizeof(Sample) == 2)
 		{
-			// dst is int16_t * so need to double the stride
-			shl(r1, 1);  // 
+			// src is uint16_t * so need to double the stride
+			shl(r3, 1);
 		}
 
 		L("loop");
 		{
-			for (int i = 0; i < width / 16; ++i)
+			for (int i = 0; i < width * sizeof(Sample) / 16; ++i)
 			{
 				int const dx = 16 * i;
-				PRED_UNI_H_16x1(taps, outputTypeBits, dx);
+				filterHorizontal16Bytes(taps, 0, dx, filteringHV);
 			}
 
 			add(r0, r1);
@@ -875,333 +883,120 @@ struct PredUni
 };
 
 
-static hevcasm_pred_uni_8to8* get_pred_uni_8to8(int taps, int w, int h, int xFrac, int yFrac, hevcasm_code code)
+// returns true if width is a PU width used in HEVC
+bool legalWidth(int width)
 {
-	hevcasm_pred_uni_8to8 *f = 0;
-	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
-
-	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
-	{
-		if (taps == 8)
-		{
-			/* luma 8-tap filter */
-
-			if (xFrac)
-			{
-				if (yFrac)
-				{
-					f = hevcasm_pred_uni_8tap_8to8_hv;
-				}
-				else
-				{
-					f = hevcasm_pred_uni_8tap_8to8_h;
-				}
-			}
-			else
-			{
-				if (yFrac)
-				{
-					f = hevcasm_pred_uni_8tap_8to8_v;
-				}
-				else
-				{
-					f = hevcasm_pred_uni_copy_block;
-				}
-			}
-		}
-		else
-		{
-			assert(taps == 4);
-			/* chroma 4-tap filter */
-
-			if (xFrac)
-			{
-				if (yFrac)
-				{
-					f = hevcasm_pred_uni_4tap_8to8_hv;
-				}
-				else
-				{
-					f = hevcasm_pred_uni_4tap_8to8_h;
-				}
-			}
-			else
-			{
-				if (yFrac)
-				{
-					f = hevcasm_pred_uni_4tap_8to8_v;
-				}
-				else
-				{
-					f = hevcasm_pred_uni_copy_block;
-				}
-			}
-		}
-	}
-	
-	if (buffer.isa & HEVCASM_SSE2)
-	{
-		if (!xFrac && !yFrac)
-		{
-			if (w <= 64)
-			{
-				PredUniCopy a(&buffer, 64);
-				f = a;
-			}
-			if (w <= 48)
-			{
-				PredUniCopy a(&buffer, 48);
-				f = a;
-			}
-			if (w <= 32)
-			{
-				PredUniCopy a(&buffer, 32);
-				f = a;
-			}
-			if (w <= 16)
-			{
-				PredUniCopy a(&buffer, 16);
-				f = a;
-			}
-		}
-	}
-
-	if (buffer.isa & HEVCASM_SSE41)
-	{
-		if (xFrac && !yFrac)
-		{
-			if (taps == 8)
-			{
-				if (w <= 64)
-				{
-					PredUni a(&buffer, f, taps, 64, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 48)
-				{
-					PredUni a(&buffer, f, taps, 48, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 32)
-				{
-					PredUni a(&buffer, f, taps, 32, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 16)
-				{
-					PredUni a(&buffer, f, taps, 16, xFrac, yFrac, 8);
-					f = a;
-				}
-			}
-			if (taps == 4)
-			{
-				if (w <= 64)
-				{
-					PredUni a(&buffer, f, taps, 64, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 48)
-				{
-					PredUni a(&buffer, f, taps, 48, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 32)
-				{
-					PredUni a(&buffer, f, taps, 32, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 16)
-				{
-					PredUni a(&buffer, f, taps, 16, xFrac, yFrac, 8);
-					f = a;
-				}
-			}
-		}
-		if (!xFrac && yFrac)
-		{
-			if (taps == 8)
-			{
-				if (w <= 64)
-				{
-					PredUni a(&buffer, f, taps, 64, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 48)
-				{
-					PredUni a(&buffer, f, taps, 48, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 32)
-				{
-					PredUni a(&buffer, f, taps, 32, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 24)
-				{
-					PredUni a(&buffer, f, taps, 24, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 16)
-				{
-					PredUni a(&buffer, f, taps, 16, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 8)
-				{
-					PredUni a(&buffer, f, taps, 8, xFrac, yFrac, 8);
-					f = a;
-				}
-			}
-			if (taps == 4)
-			{
-				if (w <= 64)
-				{
-					PredUni a(&buffer, f, taps, 64, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 48)
-				{
-					PredUni a(&buffer, f, taps, 48, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 32)
-				{
-					PredUni a(&buffer, f, taps, 32, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 24)
-				{
-					PredUni a(&buffer, f, taps, 24, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 16)
-				{
-					PredUni a(&buffer, f, taps, 16, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 8)
-				{
-					PredUni a(&buffer, f, taps, 8, xFrac, yFrac, 8);
-					f = a;
-				}
-			}
-		}
-		if (xFrac && yFrac)
-		{
-			if (taps == 8)
-			{
-				if (w <= 64)
-				{
-					PredUni a(&buffer, f, taps, 64, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 48)
-				{
-					PredUni a(&buffer, f, taps, 48, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 32)
-				{
-					PredUni a(&buffer, f, taps, 32, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 16)
-				{
-					PredUni a(&buffer, f,  taps, 16, xFrac, yFrac, 8);
-					f = a;
-				}
-			}
-			if (taps == 4)
-			{
-				if (w <= 64)
-				{
-					PredUni a(&buffer, f, taps, 64, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 48)
-				{
-					PredUni a(&buffer, f, taps, 48, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 32)
-				{
-					PredUni a(&buffer, f, taps, 32, xFrac, yFrac, 8);
-					f = a;
-				}
-				if (w <= 16)
-				{
-					PredUni a(&buffer, f, taps, 16, xFrac, yFrac, 8);
-					f = a;
-				}
-			}
-		}
-	}
-	return f;
-}
-
-static hevcasm_pred_uni_16to16* get_pred_uni_16to16(int taps, int w, int h, int xFrac, int yFrac, hevcasm_code code)
-{
-	hevcasm_pred_uni_16to16 *f = 0;
-	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
-
-	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
-	{
-		f = taps == 8 ? hevcasm_pred_uni_8tap_16to16_hv : hevcasm_pred_uni_4tap_16to16_hv;
-	}
-
-	if (buffer.isa & HEVCASM_SSE2)
-	{
-		if (!xFrac && !yFrac)
-		{
-			//if (w <= 64) f = hevcasm_pred_uni_copy_16to16_64xh_sse2;
-			//if (w <= 48) f = hevcasm_pred_uni_copy_16to16_48xh_sse2;
-			//if (w <= 32) f = hevcasm_pred_uni_copy_16to16_32xh_sse2;
-			//if (w <= 16) f = hevcasm_pred_uni_copy_16to16_16xh_sse2;
-			//if (w <= 8) f = hevcasm_pred_uni_copy_16to16_8xh_sse2;
-		}
-	}
-
-	return f;
+	while ((width & 1) == 0) width >>= 1;
+	return width == 1 || width == 3;
 }
 
 
-
-
-void hevcasm_populate_pred_uni_8to8(hevcasm_table_pred_uni_8to8 *table, hevcasm_code code)
+template <typename Sample>
+void hevcasmPopulatePredUni(HevcasmTablePredUni<Sample> *table, hevcasm_code code)
 {
 	for (int taps = 4; taps <= 8; taps += 4)
-	{
 		for (int w = taps; w <= 8 * taps; w += taps)
 		{
 			for (int xFrac = 0; xFrac < 2; ++xFrac)
-			{
 				for (int yFrac = 0; yFrac < 2; ++yFrac)
-				{
-					*hevcasm_get_pred_uni_8to8(table, taps, w, 0, xFrac, yFrac)
-						= get_pred_uni_8to8(taps, w, 0, xFrac, yFrac, code);
-				}
-			}
+					for (int bitDepth = 8; bitDepth <= 10; ++bitDepth)
+						*hevcasmGetPredUni<Sample>(table, taps, w, 0, xFrac, yFrac, bitDepth) = 0;
 		}
-	}
-}
 
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+	auto const n = Jit::CountArguments<std::remove_pointer<HevcasmPredUni<Sample>>::type>::value;
 
-void hevcasm_populate_pred_uni_16to16(hevcasm_table_pred_uni_16to16 *table, hevcasm_code code)
-{
-	for (int taps = 4; taps <= 8; taps += 4)
-	{
-		for (int w = 0; w <= 8 * taps; w += taps)
+	if (buffer.isa & HEVCASM_C_REF)
+		for (int taps = 4; taps <= 8; taps += 4)
+			for (int w = 0; w <= 8 * taps; w += taps)
+				for (int xFrac = 0; xFrac < 2; ++xFrac)
+					for (int yFrac = 0; yFrac < 2; ++yFrac)
+						for (int bitDepth = 8; bitDepth <= 10; ++bitDepth)
+							*hevcasmGetPredUni<Sample>(table, taps, w, 0, xFrac, yFrac, bitDepth)
+								= taps == 8 ? hevcasm_pred_uni_8tap_hv<Sample> : hevcasm_pred_uni_4tap_hv<Sample>;
+
+	if (buffer.isa & HEVCASM_C_OPT)
+		for (int bitDepth = 8; bitDepth <= 10; ++bitDepth)
 		{
-			for (int xFrac = 0; xFrac < 2; ++xFrac)
+			for (int w = 8; w <= 64; w += 8)
 			{
-				for (int yFrac = 0; yFrac < 2; ++yFrac)
-				{
-					*hevcasm_get_pred_uni_16to16(table, taps, w, 0, xFrac, yFrac)
-						= get_pred_uni_16to16(taps, w, 0, xFrac, yFrac, code);
-				}
+				if (!legalWidth(w)) continue;
+
+				*hevcasmGetPredUni(table, 8, w, 0, 0, 0, bitDepth) = hevcasm_pred_uni_copy_block<Sample>;
+				*hevcasmGetPredUni(table, 8, w, 0, 1, 0, bitDepth) = hevcasm_pred_uni_8tap_h<Sample>;
+				*hevcasmGetPredUni(table, 8, w, 0, 0, 1, bitDepth) = hevcasm_pred_uni_8tap_v<Sample>;
+				*hevcasmGetPredUni(table, 8, w, 0, 1, 1, bitDepth) = hevcasm_pred_uni_8tap_hv<Sample>;
+			}
+
+			for (int w = 4; w <= 32; w += 4)
+			{
+				if (!legalWidth(w)) continue;
+
+				*hevcasmGetPredUni(table, 4, w, 0, 0, 0, bitDepth) = hevcasm_pred_uni_copy_block<Sample>;
+				*hevcasmGetPredUni(table, 4, w, 0, 1, 0, bitDepth) = hevcasm_pred_uni_4tap_h<Sample>;
+				*hevcasmGetPredUni(table, 4, w, 0, 0, 1, bitDepth) = hevcasm_pred_uni_4tap_v<Sample>;
+				*hevcasmGetPredUni(table, 4, w, 0, 1, 1, bitDepth) = hevcasm_pred_uni_4tap_hv<Sample>;
 			}
 		}
+
+	if (buffer.isa & HEVCASM_SSE2)
+	{
+		int const step = 16 / sizeof(Sample);
+		for (int bitDepth = 8; bitDepth <= std::min(10, 8 * (int)sizeof(Sample)); ++bitDepth)
+			for (int w = step; w <= 64; w += step)
+			{
+				if (!legalWidth(w)) continue;
+
+				PredUniCopy<Sample> a(&buffer, w);
+
+				*hevcasmGetPredUni(table, 8, w - 8, 0, 0, 0, bitDepth) = a;
+				*hevcasmGetPredUni(table, 8, w, 0, 0, 0, bitDepth) = a;
+				if (w <= 32)
+				{
+					*hevcasmGetPredUni(table, 4, w - 12, 0, 0, 0, bitDepth) = a;
+					*hevcasmGetPredUni(table, 4, w - 8, 0, 0, 0, bitDepth) = a;
+					*hevcasmGetPredUni(table, 4, w - 4, 0, 0, 0, bitDepth) = a;
+					*hevcasmGetPredUni(table, 4, w, 0, 0, 0, bitDepth) = a;
+				}
+			}
 	}
+
+	if (buffer.isa & HEVCASM_SSE41)
+		for (int taps = 4; taps <= 8; taps += 4)
+			for (int w = 16; w <= taps * 8; w += 16)
+			{
+				if (!legalWidth(w)) continue;
+
+				int bitDepth = sizeof(Sample) == 2 ? 10 : 8;
+
+				PredInter<Sample> aH(&buffer, n, taps, w, 1, 0, 8, 8);
+				PredInter<Sample> aV(&buffer, n, taps, w, 0, 1, 8, 8);
+				PredInter<Sample> aHV(&buffer, n, taps, w, 1, 1, 8, 8);
+
+				*hevcasmGetPredUni(table, taps, w, 0, 1, 0, bitDepth) = aH;
+				*hevcasmGetPredUni(table, taps, w - 8, 0, 1, 0, bitDepth) = aH;
+				*hevcasmGetPredUni(table, taps, w, 0, 0, 1, bitDepth) = aV;
+				*hevcasmGetPredUni(table, taps, w, 0, 1, 1, bitDepth) = aHV;
+				*hevcasmGetPredUni(table, taps, w - 8, 0, 1, 1, bitDepth) = aHV;
+
+				if (taps == 4)
+				{
+					*hevcasmGetPredUni(table, taps, w - 4, 0, 1, 0, bitDepth) = aH;
+					*hevcasmGetPredUni(table, taps, w - 4 - 8, 0, 1, 0, bitDepth) = aH;
+					*hevcasmGetPredUni(table, taps, w - 4, 0, 0, 1, bitDepth) = aV;
+					*hevcasmGetPredUni(table, taps, w - 4, 0, 1, 1, bitDepth) = aHV;
+					*hevcasmGetPredUni(table, taps, w - 4 - 8, 0, 1, 1, bitDepth) = aHV;
+				}
+
+				if (legalWidth(w - 8))
+				{
+					PredInter<Sample> aV2(&buffer, n, taps, w - 8, 0, 1, 8, 8);
+					*hevcasmGetPredUni(table, taps, w - 8, 0, 0, 1, bitDepth) = aV2;
+					if (taps == 4)
+						*hevcasmGetPredUni(table, taps, w - 4 - 8, 0, 0, 1, bitDepth) = aV2;
+				}
+			}
+
 }
 
 
@@ -1238,16 +1033,16 @@ static int get_pred_uni(void *p, hevcasm_code code)
 
 	if (s->bitDepth > 8)
 	{
-		hevcasm_table_pred_uni_16to16 table;
-		hevcasm_populate_pred_uni_16to16(&table, code);
-		s->f16 = *hevcasm_get_pred_uni_16to16(&table, s->taps, s->w, s->h, s->xFrac, s->yFrac);
+		HevcasmTablePredUni<uint16_t> table;
+		hevcasmPopulatePredUni<uint16_t>(&table, code);
+		s->f16 = *hevcasmGetPredUni<uint16_t>(&table, s->taps, s->w, s->h, s->xFrac, s->yFrac, s->bitDepth);
 		memset(s->dst16, 0, 2 * 64 * s->stride_dst);
 	}
 	else
 	{
-		hevcasm_table_pred_uni_8to8 table;
-		hevcasm_populate_pred_uni_8to8(&table, code);
-		s->f8 = *hevcasm_get_pred_uni_8to8(&table, s->taps, s->w, s->h, s->xFrac, s->yFrac);
+		HevcasmTablePredUni<uint8_t> table;
+		hevcasmPopulatePredUni<uint8_t>(&table, code);
+		s->f8 = *hevcasmGetPredUni<uint8_t>(&table, s->taps, s->w, s->h, s->xFrac, s->yFrac, s->bitDepth);
 		memset(s->dst8, 0, 64 * s->stride_dst);
 	}
 
@@ -1283,11 +1078,13 @@ int mismatch_pred_uni(void *boundRef, void *boundTest)
 	{
 		if (ref->bitDepth > 8)
 		{
-			if (memcmp(&ref->dst16[y*ref->stride_dst], &test->dst16[y*test->stride_dst], ref->w)) return 1;
+			if (memcmp(&ref->dst16[y*ref->stride_dst], &test->dst16[y*test->stride_dst], 2 * ref->w)) 
+				return 1;
 		}
 		else
 		{
-			if (memcmp(&ref->dst8[y*ref->stride_dst], &test->dst8[y*test->stride_dst], ref->w)) return 1;
+			if (memcmp(&ref->dst8[y*ref->stride_dst], &test->dst8[y*test->stride_dst], ref->w)) 
+				return 1;
 		}
 	}
 
@@ -1336,14 +1133,14 @@ void HEVCASM_API hevcasm_test_pred_uni(int *error_count, hevcasm_instruction_set
 #undef STRIDE_DST
 #undef STRIDE_REF
 
-	for (int x = 0; x < 80 * b[0].stride_ref; x++)
+	for (b[0].bitDepth = 10; b[0].bitDepth >= 8; --b[0].bitDepth)
 	{
-		ref8[x] = rand() & 0xff;
-		ref16[x] = rand() % (1 << 10);
-	}
+		for (int x = 0; x < 80 * b[0].stride_ref; x++)
+		{
+			ref8[x] = rand() & 0xff;
+			ref16[x] = rand() % (1 << b[0].bitDepth);
+		}
 
-	for (b[0].bitDepth = 10; b[0].bitDepth >= 8; b[0].bitDepth -= 2)
-	{
 		for (b[0].taps = 8; b[0].taps >= 4; b[0].taps -= 4)
 		{
 			for (b[0].yFrac = 0; b[0].yFrac < 2; ++b[0].yFrac)
@@ -1373,7 +1170,8 @@ void hevcasm_pred_bi_mean_32and32to8_c_ref(uint8_t *dst, ptrdiff_t stride_dst, c
 }
 
 
-void hevcasm_pred_bi_mean_32and32to16_c_ref(uint16_t *dst, ptrdiff_t stride_dst, const int *ref0, const int *ref1, ptrdiff_t stride_ref, int w, int h, int bits, int shift)
+template <typename Sample>
+void hevcasm_pred_bi_mean_c_ref(Sample *dst, ptrdiff_t stride_dst, const int *ref0, const int *ref1, ptrdiff_t stride_ref, int w, int h, int bits, int shift)
 {
 	for (int y = 0; y < h; ++y)
 	{
@@ -1387,55 +1185,54 @@ void hevcasm_pred_bi_mean_32and32to16_c_ref(uint16_t *dst, ptrdiff_t stride_dst,
 }
 
 
-#define MAKE_hevcasm_pred_bi(bits, taps) \
- \
-void hevcasm_pred_bi_ ## taps ## tap_ ## bits ## to ## bits ## _c_ref(uint ## bits ## _t *dst, ptrdiff_t stride_dst, const uint ## bits ## _t *ref0, const uint ## bits ## _t *ref1, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1, int bitDepth) \
-{ \
-	int intermediate[4][(64 + taps - 1) * 64]; \
-	 \
-	const int w = nPbW; \
-	const int h = nPbH; \
-	 \
-	int shift1 = bitDepth - 8; \
-	if (shift1 > 4) shift1 = 4; \
-	\
-	int shift2 = 6;  \
-	\
-	int shift3 = 14 - bitDepth; \
-	if (shift3 < 2) shift3 = 2; \
-	\
-	/* Horizontal filter */ \
-	hevcasm_pred_uni_generic(intermediate[2], 4, 64, ref0 - (taps/2-1) * stride_ref, bits/8, stride_ref, w, h + taps - 1, 1, taps, xFrac0, shift1, 0, 0); \
-	 \
-	/* Vertical filter */ \
-	hevcasm_pred_uni_generic(intermediate[0], 4, 64, intermediate[2] + (taps / 2 - 1) * 64, 4, 64, w, h, 64, taps, yFrac0, shift2, 0, 0); \
-	 \
-	/* Horizontal filter */ \
-	hevcasm_pred_uni_generic(intermediate[3], 4, 64, ref1 - (taps / 2 - 1) * stride_ref, bits/8, stride_ref, w, h + taps - 1, 1, taps, xFrac1, shift1, 0, 0); \
-	 \
-	/* Vertical filter */ \
-	hevcasm_pred_uni_generic(intermediate[1], 4, 64, intermediate[3] + (taps / 2 - 1) * 64, 4, 64, w, h, 64, taps, yFrac1, shift2, 0, 0); \
-	 \
-	/* Combine two references for bi pred */ \
-	hevcasm_pred_bi_mean_32and32to ## bits ##_c_ref(dst, stride_dst, intermediate[0], intermediate[1], 64, nPbW, nPbH, bitDepth, shift3 + 1); \
-} \
+template <typename Sample, int taps>
+void hevcasmPredBi_c_ref(Sample *dst, ptrdiff_t stride_dst, const Sample *ref0, const Sample *ref1, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1, int bitDepth)
+{
+	int intermediate[4][(64 + taps - 1) * 64];
+
+	const int w = nPbW; 
+	const int h = nPbH; 
+	 
+	int shift1 = bitDepth - 8; 
+	if (shift1 > 4) shift1 = 4; 
+	
+	int shift2 = 6;  
+	
+	int shift3 = 14 - bitDepth; 
+	if (shift3 < 2) shift3 = 2; 
+	
+	/* Horizontal filter */ 
+	hevcasm_pred_uni_generic(intermediate[2], 64, ref0 - (taps/2-1) * stride_ref, stride_ref, w, h + taps - 1, 1, taps, xFrac0, shift1, 0, 0); 
+	 
+	/* Vertical filter */ 
+	hevcasm_pred_uni_generic(intermediate[0], 64, intermediate[2] + (taps / 2 - 1) * 64, 64, w, h, 64, taps, yFrac0, shift2, 0, 0); 
+	 
+	/* Horizontal filter */ 
+	hevcasm_pred_uni_generic(intermediate[3], 64, ref1 - (taps / 2 - 1) * stride_ref,  stride_ref, w, h + taps - 1, 1, taps, xFrac1, shift1, 0, 0); 
+	 
+	/* Vertical filter */ 
+	hevcasm_pred_uni_generic(intermediate[1], 64, intermediate[3] + (taps / 2 - 1) * 64, 64, w, h, 64, taps, yFrac1, shift2, 0, 0); 
+	 
+	/* Combine two references for bi pred */ 
+	hevcasm_pred_bi_mean_c_ref(dst, stride_dst, intermediate[0], intermediate[1], 64, nPbW, nPbH, bitDepth, shift3 + 1); 
+} 
 
 
 
 
 
+template <typename Sample>
 struct PredBi
 	:
 	Jit::Function
 {
 	PredBi(Jit::Buffer *buffer, int width, int taps=0)
 		:
-		Jit::Function(buffer, Jit::CountArguments<hevcasm_pred_bi_8to8>::value),
+		Jit::Function(buffer, Jit::CountArguments<HevcasmPredBi<uint8_t>>::value),
 		width(width),
 		taps(taps)
 	{
 		static int n = 0;
-		//std::cout << ++n << " taps=" << taps << " width=" << width << "\n";
 		this->build();
 	}
 
@@ -1479,9 +1276,9 @@ struct PredBi
 		neg(r4);
 		if (taps == 8)
 		{
-			lea(r2, ptr[r2 + r4 * 2]);
+			lea(r2, ptr[r2 + r4 * (2 * sizeof(Sample))]);
 		}
-		lea(r2, ptr[r2 + r4]);
+		lea(r2, ptr[r2 + r4 * sizeof(Sample)]);
 		mov(r4, r5); // w
 		mov(r5, r6); // h
 		add(r5, taps - 1);
@@ -1505,9 +1302,9 @@ struct PredBi
 		neg(r4);
 		if (taps == 8)
 		{
-			lea(r2, ptr[r2 + r4 * 2]);
+			lea(r2, ptr[r2 + r4 * (2 * sizeof(Sample))]);
 		}
-		lea(r2, ptr[r2 + r4]);
+		lea(r2, ptr[r2 + r4 * sizeof(Sample)]);
 		mov(r4, r5); // w
 		mov(r5, r6); // h
 		add(r5, taps - 1);
@@ -1560,13 +1357,22 @@ struct PredBi
 		auto &m0 = regXmm(0);
 		auto &m1 = regXmm(1);
 
+		if (sizeof(Sample) == 2)
+		{
+			shl(r1, 1);
+			shl(r4, 1);
+		}
+
 		L("loop");
 		{
-			for (int dx = 0; dx < width; dx += 16)
+			for (int dx = 0; dx < width * sizeof(Sample); dx += 16)
 			{
 				movdqu(m0, ptr[r2 + dx]);
 				movdqu(m1, ptr[r3 + dx]);
-				pavgb(m0, m1);
+				if (sizeof(Sample) == 2)
+					pavgw(m0, m1);
+				else
+					pavgb(m0, m1);
 				movdqu(ptr[r0 + dx], m0);
 			}
 			lea(r2, ptr[r2 + r4]);
@@ -1580,8 +1386,11 @@ struct PredBi
 	Xbyak::Label coefficients;
 	Xbyak::Label coefficients16;
 	Xbyak::Label constant_times_4_dd_0x800;
+	Xbyak::Label constant_times_4_dd_0x200;
+	Xbyak::Label constant_times_4_dd_0x20;
 	Xbyak::Label constant_times_8_dw_0x20;
 	Xbyak::Label constant_times_8_dw_0x40;
+	Xbyak::Label constant_times_8_dw_0x10;
 	Xbyak::Label labelPRED_UNI_H_16NxH;
 	Xbyak::Label labelPRED_BI_V_8NxH;
 
@@ -1615,7 +1424,10 @@ struct PredBi
 		}
 
 		L(constant_times_4_dd_0x800);
-		dd({0x800}, 4);
+		dd({ 0x800 }, 4);
+
+		L(constant_times_4_dd_0x20);
+		dd({ 0x20 }, 4);
 
 		L(constant_times_8_dw_0x20);
 		dw({ 0x20 }, 8);
@@ -1623,19 +1435,34 @@ struct PredBi
 		L(constant_times_8_dw_0x40);
 		dw({ 0x40 }, 8);
 
+		L(constant_times_8_dw_0x10);
+		dw({ 0x10 }, 8);
+
 		if (this->taps)
 		{
 			L(labelPRED_UNI_H_16NxH);
-			this->PRED_UNI_H_16NxH(this->taps, 16, this->width);
+			this->PRED_UNI_H_16NxH(this->taps, 16, this->width, true);
 			ret();
 		}
 	}
 
+	void packedMultiplyAdd(Xbyak::Xmm const &dst, Xbyak::Xmm const &src)
+	{
+		if (sizeof(Sample) == 2) pmaddwd(dst, src); else pmaddubsw(dst, src);
+	}
+
+	void packedAdd(Xbyak::Xmm const &dst, Xbyak::Xmm const &src)
+	{
+		if (sizeof(Sample) == 2) paddd(dst, src); else paddw(dst, src);
+	}
+
 	// taps is number of filter taps (4 or 8)
 	// outputTypeBits is size of output type (8 for uint8_t rounded, 16 for int16_t right shifted 6)
-	// dx is dx (horizontal offset as integer number of samples) 
-	void PRED_UNI_H_16x1(int taps, int outputTypeBits, int dx)
+	// dx horizontal offset as integer number of bytes 
+	void filterHorizontal16Bytes(int taps, int, int dx, bool filteringHV)
 	{
+		// note: comments apply when Sample is uint8_t
+
 		auto &r0 = reg64(0);
 		auto &r2 = reg64(2);
 
@@ -1648,89 +1475,109 @@ struct PredBi
 		auto &m6 = xmm6;
 		auto &m7 = xmm7;
 
-		movdqu(m2, ptr[r2 + 1 - (taps / 2) + dx]);
-		pmaddubsw(m2, m4);
+		movdqu(m2, ptr[r2 + sizeof(Sample) * (1 - (taps / 2)) + dx]);
+		packedMultiplyAdd(m2, m4);
 		// m2 = eca86420 (even positions, first two taps)
 
-		movdqu(m1, ptr[r2 + 2 - (taps / 2) + dx]);
-		pmaddubsw(m1, m4);
+		movdqu(m1, ptr[r2 + sizeof(Sample) * (2 - (taps / 2)) + dx]);
+		packedMultiplyAdd(m1, m4);
 		// m1 = fdb97531 (odd positions, first two taps)
 
-		movdqu(m0, ptr[r2 + 3 - (taps / 2) + dx]);
-		pmaddubsw(m0, m5);
+		movdqu(m0, ptr[r2 + sizeof(Sample) * (3 - (taps / 2)) + dx]);
+		packedMultiplyAdd(m0, m5);
 		// m0 = eca86420 (even positions, two taps)
 
-		paddw(m2, m0);
+		packedAdd(m2, m0);
 		// m2 = eca86420 (even positions)
 
-		movdqu(m0, ptr[r2 + 4 - (taps / 2) + dx]);
-		pmaddubsw(m0, m5);
+		movdqu(m0, ptr[r2 + sizeof(Sample) * (4 - (taps / 2)) + dx]);
+		packedMultiplyAdd(m0, m5);
 		// m0 = fdb97531 (odd positions, two taps)
 
-		paddw(m1, m0);
+		packedAdd(m1, m0);
 		// m1 = fdb97531 (odd positions)
 
 		if (taps == 8)
 		{
 			// need four more taps...
 
-			movdqu(m0, ptr[r2 + 5 - (taps / 2) + dx]);
-			pmaddubsw(m0, m6);
+			movdqu(m0, ptr[r2 + sizeof(Sample) * (5 - (taps / 2)) + dx]);
+			packedMultiplyAdd(m0, m6);
 			// m0 = eca86420(even positions, two taps)
 
-			paddw(m2, m0);
+			packedAdd(m2, m0);
 			// m2 = eca86420(even positions)
 
-			movdqu(m0, ptr[r2 + 6 - (taps / 2) + dx]);
-			pmaddubsw(m0, m6);
+			movdqu(m0, ptr[r2 + sizeof(Sample) * (6 - (taps / 2)) + dx]);
+			packedMultiplyAdd(m0, m6);
 			// m0 = fdb97531(odd positions, two taps)
 
-			paddw(m1, m0);
+			packedAdd(m1, m0);
 			// m1 = fdb97531(odd positions)
 
-			movdqu(m0, ptr[r2 + 7 - (taps / 2) + dx]);
-			pmaddubsw(m0, m7);
+			movdqu(m0, ptr[r2 + sizeof(Sample) * (7 - (taps / 2)) + dx]);
+			packedMultiplyAdd(m0, m7);
 			// m0 = eca86420(even positions, two taps)
 
-			paddw(m2, m0);
+			packedAdd(m2, m0);
 			// m2 = eca86420(even positions)
 
-			movdqu(m0, ptr[r2 + 8 - (taps / 2) + dx]);
-			pmaddubsw(m0, m7);
+			movdqu(m0, ptr[r2 + sizeof(Sample) * (8 - (taps / 2)) + dx]);
+			packedMultiplyAdd(m0, m7);
 			// m0 = fdb97531(odd positions, two taps)
 
-			paddw(m1, m0);
+			packedAdd(m1, m0);
 			// m1 = fdb97531(odd positions)
 		}
 
 		movq(m0, m2);
-		punpcklwd(m0, m1);
+		if (sizeof(Sample) == 2) punpckldq(m0, m1); else punpcklwd(m0, m1);
 		// m0 = 76543210
 
-		punpckhwd(m2, m1);
+		if (sizeof(Sample) == 2) punpckhdq(m2, m1); else punpckhwd(m2, m1);
 		// m2 = fedcba98
 
-		if (outputTypeBits == 16)
+		if (sizeof(Sample) == 2)
 		{
-			movdqu(ptr[r0 + 2 * dx], m0);
-			movdqu(ptr[r0 + 2 * dx + 16], m2);
+			if (filteringHV)
+			{
+				psrad(m0, 2);
+				psrad(m2, 2);
+				packssdw(m0, m2);
+				movdqu(ptr[r0 + dx], m0);
+			}
+			else
+			{
+				paddd(m0, ptr[rip + constant_times_4_dd_0x20]);
+				paddd(m2, ptr[rip + constant_times_4_dd_0x20]);
+				packusdw(m0, m2);
+				psrlw(m0, 6);
+				movdqu(ptr[r0 + dx], m0);
+			}
 		}
 		else
 		{
-			paddw(m0, ptr[rip + constant_times_8_dw_0x20]);
-			paddw(m2, ptr[rip + constant_times_8_dw_0x20]);
-			psraw(m0, 6);
-			psraw(m2, 6);
-			packuswb(m0, m2);
-			movdqu(ptr[r0 + dx], m0);
+			if (filteringHV)
+			{
+				movdqu(ptr[r0 + 2 * dx], m0);
+				movdqu(ptr[r0 + 2 * dx + 16], m2);
+			}
+			else
+			{
+				paddw(m0, ptr[rip + constant_times_8_dw_0x20]);
+				paddw(m2, ptr[rip + constant_times_8_dw_0x20]);
+				psraw(m0, 6);
+				psraw(m2, 6);
+				packuswb(m0, m2);
+				movdqu(ptr[r0 + dx], m0);
+			}
 		}
 	}
 
 
 	// taps is number of filter taps (4 or 8)
-	// outputTypeBits is size of output type (8 for uint8_t rounded, 16 for int16_t right shifted 6)
 	// width is block width (number of samples, multiple of 16)
-	void PRED_UNI_H_16NxH(int taps, int outputTypeBits, int width)
+	void PRED_UNI_H_16NxH(int taps, int, int width, bool filteringHV)
 	{
 		auto &r0 = reg64(0);
 		auto &r1 = reg64(1);
@@ -1751,6 +1598,11 @@ struct PredBi
 		auto &m6 = regXmm(6);
 		auto &m7 = regXmm(7);
 
+		if (sizeof(Sample) == 2)
+			lea(r4, ptr[rip + coefficients16]);
+		else
+			lea(r4, ptr[rip + coefficients]);
+
 		if (taps == 8)
 		{
 			shl(r6d, 6);  // frac *= 4 * 16
@@ -1759,7 +1611,6 @@ struct PredBi
 		{
 			shl(r6d, 5);  // frac *= 2 * 16
 		}
-		lea(r4, ptr[rip + coefficients]);
 
 		movdqa(m4, ptr[r4 + r6]);
 		movdqa(m5, ptr[r4 + r6 + 1 * 16]);
@@ -1769,26 +1620,32 @@ struct PredBi
 			movdqa(m7, ptr[r4 + r6 + 3 * 16]);
 		}
 
-		if (outputTypeBits == 16)
+		int shiftDstStride = 0;
+		if (sizeof(Sample) == 2 || filteringHV) ++shiftDstStride;
+
+		if (shiftDstStride) shl(r1, shiftDstStride);
+
+		if (sizeof(Sample) == 2)
 		{
-			// dst is int16_t * so need to double the stride
-			shl(r1, 1);  // 
+			// src is uint16_t * so need to double the stride
+			shl(r3, 1);
 		}
 
-		L("loopHH");
+		L("loop");
 		{
-			for (int i = 0; i < (width + 15) / 16; ++i)
+			for (int i = 0; i < width * sizeof(Sample) / 16; ++i)
 			{
 				int const dx = 16 * i;
-				PRED_UNI_H_16x1(taps, outputTypeBits, dx);
+				filterHorizontal16Bytes(taps, 0, dx, filteringHV);
 			}
 
 			add(r0, r1);
 			add(r2, r3);
 		}
 		dec(r5d);
-		jg("loopHH");
+		jg("loop");
 	}
+
 
 	// void hevcasm_pred_bi_v_%1tap_16to16_%3xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, ptrdiff_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB)//
 	void PRED_BI_V_8NxH(int taps, int inputTypeSize, int width)
@@ -1826,7 +1683,9 @@ struct PredBi
 
 		shl(r4, 1);
 
-#if 1 // ARCH_X86_64
+//		db({ 0xcc });
+
+
 		shl(r7d, 4 + taps / 4);
 		shl(r8d, 4 + taps / 4);
 		lea(r5, ptr[rip + coefficients16]);
@@ -1835,17 +1694,6 @@ struct PredBi
 #define coeffA r7
 #define coeffB r8
 #define stride_dst r1
-#else
-		mov r5, r7m
-			shl r5, 4 + taps / 4
-			lea r1, [pred_inter_ % 1tap_coefficient_pairs_4_dw + r5]
-			mov r5, r8m
-			shl r5, 4 + taps / 4
-			lea r5, [pred_inter_ % 1tap_coefficient_pairs_4_dw + r5]
-			% define coeffA r1
-			%define coeffB r5
-			%define stride_dst r1m
-#endif
 			L("loopBiV");
 		{
 			int offset = 0;
@@ -1898,35 +1746,57 @@ struct PredBi
 				sub(coeffA, 8 * taps);
 				sub(coeffB, 8 * taps);
 
-				psrad(m3, 6);
-				psrad(m5, 6);
-				psrad(m6, 6);
-				psrad(m7, 6);
+				if (sizeof(Sample) == 1)
+				{
+					psrad(m3, 6);
+					psrad(m5, 6);
+					psrad(m6, 6);
+					psrad(m7, 6);
 
-				packssdw(m3, m5);
-				packssdw(m6, m7);
+					packssdw(m3, m5);
+					packssdw(m6, m7);
 
-				paddsw(m3, m6);
-				paddsw(m3, ptr[rip + constant_times_8_dw_0x40]);
-				psraw(m3, 7);
+					paddsw(m3, m6);
 
-				packuswb(m3, m3);
+					paddsw(m3, ptr[rip + constant_times_8_dw_0x40]);
+					psraw(m3, 7);
+					packuswb(m3, m3);
+				}
+				else
+				{
+					psrad(m3, 6);
+					psrad(m5, 6);
+					psrad(m6, 6);
+					psrad(m7, 6);
+
+					paddd(m3, m6);
+					paddd(m5, m7);
+
+					pslld(m3, 1);
+					pslld(m5, 1);
+
+					paddd(m3, ptr[rip + constant_times_4_dd_0x20]);
+					paddd(m5, ptr[rip + constant_times_4_dd_0x20]);
+					packusdw(m3, m5);
+
+					psrlw(m3, 6); 
+				}
 
 				movdqu(ptr[r0], m3);
 
 				lea(r2, ptr[r2 + 16]);
 				lea(r3, ptr[r3 + 16]);
-				lea(r0, ptr[r0 + 8]);
+				lea(r0, ptr[r0 + 8 * sizeof(Sample)]);
 
 				offset += 8;
 			}
 			sub(r2, 2 * offset);
 			sub(r3, 2 * offset);
-			sub(r0, offset);
+			sub(r0, offset * sizeof(Sample));
 
 			add(r2, r4);
 			add(r3, r4);
-			add(r0, stride_dst);
+			lea(r0, ptr[r0 + stride_dst * sizeof(Sample)]);
 		}
 		dec(r6d);
 		jg("loopBiV");
@@ -1937,137 +1807,45 @@ struct PredBi
 
 };
 
-MAKE_hevcasm_pred_bi(8, 8)
-MAKE_hevcasm_pred_bi(8, 4)
-MAKE_hevcasm_pred_bi(16, 8)
-MAKE_hevcasm_pred_bi(16, 4)
 
-
-hevcasm_pred_bi_8to8* get_pred_bi_8to8(int taps, int w, int h, int xFracA, int yFracA, int xFracB, int yFracB, Jit::Buffer &buffer)
+template <typename Sample>
+void hevcasmPopulatePredBi(HevcasmTablePredBi<Sample> *table, hevcasm_code code)
 {
-	hevcasm_pred_bi_8to8 *f = 0;
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+
+	for (int bitDepth = 8; bitDepth <= 10; ++bitDepth)
+		for (int taps = 4; taps <= 8; taps += 4)
+			for (int w = 0; w <= 8 * taps; w += 2 * taps)
+				for (int frac = 0; frac < 2; ++frac)
+					*hevcasmGetPredBi<Sample>(table, taps, w, 0, frac, frac, frac, frac, bitDepth) = 0;
+
+	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
+		for (int bitDepth = 8; bitDepth <= 10; ++bitDepth)
+			for (int taps = 4; taps <= 8; taps += 4)
+				for (int w = 0; w <= 8 * taps; w += 2 * taps)
+					for (int frac = 0; frac < 2; ++frac)
+						if (taps == 4)
+							*hevcasmGetPredBi<Sample>(table, taps, w, 0, frac, frac, frac, frac, bitDepth) = hevcasmPredBi_c_ref<Sample, 4>;
+						else
+							*hevcasmGetPredBi<Sample>(table, taps, w, 0, frac, frac, frac, frac, bitDepth) = hevcasmPredBi_c_ref<Sample, 8>;
 	
-	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
-	{
-		if (taps == 8) f = hevcasm_pred_bi_8tap_8to8_c_ref;
-		if (taps == 4) f = hevcasm_pred_bi_4tap_8to8_c_ref;
-	}
-
 	if (buffer.isa & HEVCASM_SSE2)
-	{
-		if (!xFracA && !yFracA && !xFracB && !yFracB)
+		for (int width = 64; width >= 16; width -= 16)
 		{
-			if (w <= 64)
-			{
-				PredBi a(&buffer, 64);
-				f = a;
-			}
-			if (w <= 48)
-			{
-				PredBi a(&buffer, 48);
-				f = a;
-			}
-			if (w <= 32)
-			{
-				PredBi a(&buffer, 32);
-				f = a;
-			}
-			if (w <= 16)
-			{
-				PredBi a(&buffer, 16);
-				f = a;
-			}
+			int bitDepth = sizeof(Sample) == 2 ? 10 : 8;
 
-		}
-	}
+			PredBi<Sample> a(&buffer, width);
+			for (int taps = 4; taps <= 8; taps += 4)
+				for (int w = 0; w <= 8 * taps && w <= width; w += 2 * taps)
+					*hevcasmGetPredBi<Sample>(table, taps, w, 0, 0, 0, 0, 0, bitDepth) = a;
 
-	if (buffer.isa & HEVCASM_SSE41)
-	{
-		if (taps == 8 && (xFracA || yFracA || xFracB || yFracB))
-		{
-			if (w <= 64)
+			for (int taps = 4; taps <= 8; taps += 4)
 			{
-				PredBi a(&buffer, 64, taps);
-				f = a;
-			}
-			if (w <= 48)
-			{
-				PredBi a(&buffer, 48, taps);
-				f = a;
-			}
-			if (w <= 32)
-			{
-				PredBi a(&buffer, 32, taps);
-				f = a;
-			}
-			if (w <= 16)
-			{
-				PredBi a(&buffer, 16, taps);
-				f = a;
+				PredBi<Sample> a(&buffer, width, taps);
+				for (int w = 0; w <= 8 * taps && w <= width; w += 2 * taps)
+					*hevcasmGetPredBi<Sample>(table, taps, w, 0, 1, 1, 1, 1, bitDepth) = a;
 			}
 		}
-		if (taps == 4 && (xFracA || yFracA || xFracB || yFracB))
-		{
-			if (w <= 32)
-			{
-				PredBi a(&buffer, 32, taps);
-				f = a;
-			}
-			if (w <= 16)
-			{
-				PredBi a(&buffer, 16, taps);
-				f = a;
-			}
-		}
-	}
-
-	return f;
-}
-
-
-hevcasm_pred_bi_16to16* get_pred_bi_16to16(int taps, int w, int h, int xFracA, int yFracA, int xFracB, int yFracB, Jit::Buffer &buffer)
-{
-	hevcasm_pred_bi_16to16 *f = 0;
-
-	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
-	{
-		if (taps == 8) f = hevcasm_pred_bi_8tap_16to16_c_ref;
-		if (taps == 4) f = hevcasm_pred_bi_4tap_16to16_c_ref;
-	}
-
-	return f;
-}
-
-void hevcasm_populate_pred_bi_8to8(hevcasm_table_pred_bi_8to8 *table, hevcasm_code code)
-{
-	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
-	for (int taps = 4; taps <= 8; taps += 4)
-	{
-		for (int w = 0; w <= 8 * taps; w += 2 * taps)
-		{
-			for (int frac = 0; frac < 2; ++frac)
-			{
-				*hevcasm_get_pred_bi_8to8(table, taps, w, 0, frac, frac, frac, frac)
-					= get_pred_bi_8to8(taps, w, 0, frac, frac, frac, frac, buffer);
-			}
-		}
-	}
-}
-
-void hevcasm_populate_pred_bi_16to16(hevcasm_table_pred_bi_16to16 *table, hevcasm_code code)
-{
-	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
-	for (int taps = 4; taps <= 8; taps += 4)
-	{
-		for (int w = 0; w <= 8 * taps; w += 2 * taps)
-		{
-			for (int frac = 0; frac < 2; ++frac)
-			{
-				*hevcasm_get_pred_bi_16to16(table, taps, w, 0, frac, frac, frac, frac)
-					= get_pred_bi_16to16(taps, w, 0, frac, frac, frac, frac, buffer);
-			}
-		}
-	}
 }
 
 
@@ -2076,8 +1854,8 @@ void hevcasm_populate_pred_bi_16to16(hevcasm_table_pred_bi_16to16 *table, hevcas
 
 typedef struct
 {
-	hevcasm_pred_bi_8to8 *f8;
-	hevcasm_pred_bi_16to16 *f16;
+	HevcasmPredBi<uint8_t> *f8;
+	HevcasmPredBi<uint16_t> *f16;
 	HEVCASM_ALIGN(32, uint8_t, dst8[64 * STRIDE_DST]);
 	HEVCASM_ALIGN(32, uint16_t, dst16[64 * STRIDE_DST]);
 	ptrdiff_t stride_dst;
@@ -2105,16 +1883,16 @@ int init_pred_bi(void *p, hevcasm_code code)
 
 	if (s->bitDepth > 8)
 	{
-		hevcasm_table_pred_bi_16to16 table;
-		hevcasm_populate_pred_bi_16to16(&table, code);
-		s->f16 = *hevcasm_get_pred_bi_16to16(&table, s->taps, s->w, s->h, s->xFracA, s->yFracA, s->xFracB, s->yFracB);
+		HevcasmTablePredBi<uint16_t> table;
+		hevcasmPopulatePredBi<uint16_t>(&table, code);
+		s->f16 = *hevcasmGetPredBi<uint16_t>(&table, s->taps, s->w, s->h, s->xFracA, s->yFracA, s->xFracB, s->yFracB, s->bitDepth);
 		memset(s->dst16, 0, 2 * 64 * s->stride_dst);
 	}
 	else
 	{
-		hevcasm_table_pred_bi_8to8 table;
-		hevcasm_populate_pred_bi_8to8(&table, code);
-		s->f8 = *hevcasm_get_pred_bi_8to8(&table, s->taps, s->w, s->h, s->xFracA, s->yFracA, s->xFracB, s->yFracB);
+		HevcasmTablePredBi<uint8_t> table;
+		hevcasmPopulatePredBi<uint8_t>(&table, code);
+		s->f8 = *hevcasmGetPredBi<uint8_t>(&table, s->taps, s->w, s->h, s->xFracA, s->yFracA, s->xFracB, s->yFracB, s->bitDepth);
 		memset(s->dst8, 0, 64 * s->stride_dst);
 	}
 
@@ -2152,11 +1930,13 @@ int mismatch_pred_bi(void *boundRef, void *boundTest)
 	{
 		if (ref->bitDepth > 8)
 		{
-			if (memcmp(&ref->dst16[y*ref->stride_dst], &test->dst16[y*test->stride_dst], 2 * ref->w)) return 1;
+			if (memcmp(&ref->dst16[y*ref->stride_dst], &test->dst16[y*test->stride_dst], 2 * ref->w))
+				return 1;
 		}
 		else
 		{
-			if (memcmp(&ref->dst8[y*ref->stride_dst], &test->dst8[y*test->stride_dst], ref->w)) return 1;
+			if (memcmp(&ref->dst8[y*ref->stride_dst], &test->dst8[y*test->stride_dst], ref->w)) 
+				return 1;
 		}
 	}
 
@@ -2216,7 +1996,7 @@ void HEVCASM_API hevcasm_test_pred_bi(int *error_count, hevcasm_instruction_set 
 	b[0].ref16[0] = ref16[0] + 8 * b[0].stride_ref;
 	b[0].ref16[1] = ref16[1] + 8 * b[0].stride_ref;
 
-	for (b[0].bitDepth = 10; b[0].bitDepth >= 8; b[0].bitDepth -= 2)
+	for (b[0].bitDepth = 10; b[0].bitDepth >= 8; --b[0].bitDepth)
 		for (b[0].taps = 8; b[0].taps >= 4; b[0].taps -= 4)
 		{
 			b[0].xFracA = b[0].yFracA = b[0].xFracB = b[0].yFracB = 0;
