@@ -22,8 +22,8 @@ extern "C"
 
 
 
-typedef void hevcasm_inverse_transform_add8(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t *coeffs, int bitDepth);
-typedef void hevcasm_inverse_transform_add16(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *pred, ptrdiff_t stride_pred, const int16_t *coeffs, int bitDepth);
+typedef void hevcasm_inverse_transform_add8(uint8_t *dst, intptr_t stride_dst, const uint8_t *pred, intptr_t stride_pred, const int16_t *coeffs, int bitDepth);
+typedef void hevcasm_inverse_transform_add16(uint16_t *dst, intptr_t stride_dst, const uint16_t *pred, intptr_t stride_pred, const int16_t *coeffs, int bitDepth);
 
 typedef struct
 {
@@ -65,15 +65,15 @@ static hevcasm_inverse_transform_add16** hevcasm_get_inverse_transform_add16(hev
 	}
 }
 
-void HEVCASM_API hevcasm_populate_inverse_transform_add8(hevcasm_table_inverse_transform_add8 *table, hevcasm_code code, int encoder);
-void HEVCASM_API hevcasm_populate_inverse_transform_add16(hevcasm_table_inverse_transform_add16 *table, hevcasm_code code, int encoder);
+void hevcasm_populate_inverse_transform_add8(hevcasm_table_inverse_transform_add8 *table, hevcasm_code code, int encoder);
+void hevcasm_populate_inverse_transform_add16(hevcasm_table_inverse_transform_add16 *table, hevcasm_code code, int encoder);
 
-void HEVCASM_API hevcasm_test_inverse_transform_add8(int *error_count, hevcasm_instruction_set mask);
-void HEVCASM_API hevcasm_test_inverse_transform_add16(int *error_count, hevcasm_instruction_set mask);
+void hevcasm_test_inverse_transform_add8(int *error_count, hevcasm_instruction_set mask);
+void hevcasm_test_inverse_transform_add16(int *error_count, hevcasm_instruction_set mask);
 
 
 // Review: this is an encode function in a file called "residual_decode.h"
-typedef void hevcasm_transform(int16_t *coeffs, const int16_t *src, ptrdiff_t src_stride);
+typedef void hevcasm_transform(int16_t *coeffs, const int16_t *src, intptr_t src_stride);
 
 typedef struct
 {
@@ -95,9 +95,9 @@ static hevcasm_transform** hevcasm_get_transform(hevcasm_table_transform *table,
 	}
 }
 
-void HEVCASM_API hevcasm_populate_transform(hevcasm_table_transform *table, hevcasm_code code);
+void hevcasm_populate_transform(hevcasm_table_transform *table, hevcasm_code code);
 
-void HEVCASM_API hevcasm_test_transform(int *error_count, hevcasm_instruction_set mask);
+void hevcasm_test_transform(int *error_count, hevcasm_instruction_set mask);
 
 
 

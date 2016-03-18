@@ -24,7 +24,7 @@ static int hevcasm_ssd_linear_c_ref(const uint8_t *p1, const uint8_t *p2, int n)
 }
 
 
-hevcasm_ssd_linear * HEVCASM_API hevcasm_get_ssd_linear(int size, hevcasm_code code)
+hevcasm_ssd_linear * hevcasm_get_ssd_linear(int size, hevcasm_code code)
 {
 	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
 
@@ -85,7 +85,7 @@ int mismatch_ssd_linear(void *boundRef, void *boundTest)
 
 
 // review: not called
-void HEVCASM_API hevcasm_test_ssd_linear(int *error_count, hevcasm_instruction_set mask)
+void hevcasm_test_ssd_linear(int *error_count, hevcasm_instruction_set mask)
 {
 	printf("\nhevcasm_ssd_linear - Linear Sum of Square Differences\n");
 

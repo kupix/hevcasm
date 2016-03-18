@@ -33,7 +33,7 @@ static uint8_t p(const uint8_t *neighbours, int dx, int dy)
 }
 
 
-void HEVCASM_API hevcasm_pred_intra_dc_ref(uint8_t *dst, const uint8_t *neighbours, int intraPredMode, hevcasm_pred_intra_packed packed)
+void hevcasm_pred_intra_dc_ref(uint8_t *dst, const uint8_t *neighbours, int intraPredMode, hevcasm_pred_intra_packed packed)
 {
 	const int k = (packed >> 1) & 0x7f;
 	const int nTbS = 1 << k;
@@ -315,7 +315,7 @@ int mismatch_pred_intra(void *boundRef, void *boundTest)
 }
 
 
-void HEVCASM_API hevcasm_test_pred_intra(int *error_count, hevcasm_instruction_set mask)
+void hevcasm_test_pred_intra(int *error_count, hevcasm_instruction_set mask)
 {
 	printf("\nhevcasm_pred_intra - Intra Prediction\n");
 

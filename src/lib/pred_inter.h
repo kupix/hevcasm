@@ -17,7 +17,7 @@
 
 // HEVC uni prediction
 template <typename Sample>
-using HevcasmPredUni = void (Sample *dst, ptrdiff_t stride_dst, Sample const *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac, int bitDepth);
+using HevcasmPredUni = void (Sample *dst, intptr_t stride_dst, Sample const *ref, intptr_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac, int bitDepth);
 typedef HevcasmPredUni<uint8_t> hevcasm_pred_uni_8to8;
 typedef HevcasmPredUni<uint16_t> hevcasm_pred_uni_16to16;
 
@@ -45,7 +45,7 @@ hevcasm_test_function hevcasm_test_pred_uni;
 // HEVC bi prediction
 
 template <typename Sample>
-using HevcasmPredBi = void(Sample *dst0, ptrdiff_t stride_dst, const Sample *ref0, const Sample *ref1, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1, int bitDepth);
+using HevcasmPredBi = void(Sample *dst0, intptr_t stride_dst, const Sample *ref0, const Sample *ref1, intptr_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1, int bitDepth);
 
 template <typename Sample>
 struct HevcasmTablePredBi

@@ -23,7 +23,7 @@ extern "C"
 typedef int hevcasm_pred_intra_packed;
 
 // Function prototype compatible with that of f265
-typedef void HEVCASM_API hevcasm_pred_intra(uint8_t *dst, const uint8_t *neighbours, int intraPredMode, hevcasm_pred_intra_packed packed);
+typedef void hevcasm_pred_intra(uint8_t *dst, const uint8_t *neighbours, int intraPredMode, hevcasm_pred_intra_packed packed);
 
 // Packing compatible with f265
 static __inline hevcasm_pred_intra_packed hevcasm_pred_intra_pack(int cIdx, int log2CbSize)
@@ -54,7 +54,7 @@ static __inline hevcasm_pred_intra** hevcasm_get_pred_intra(hevcasm_table_pred_i
 	}
 }
 
-void HEVCASM_API hevcasm_populate_pred_intra(hevcasm_table_pred_intra *table, hevcasm_code code);
+void hevcasm_populate_pred_intra(hevcasm_table_pred_intra *table, hevcasm_code code);
 
 hevcasm_test_function hevcasm_test_pred_intra;
 

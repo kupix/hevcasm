@@ -12,7 +12,7 @@
 
 
 template <typename Sample>
-static int hevcasm_ssd_c_ref(const Sample *pA, ptrdiff_t strideA, const Sample *pB, ptrdiff_t strideB, int w, int h)
+static int hevcasm_ssd_c_ref(const Sample *pA, intptr_t strideA, const Sample *pB, intptr_t strideB, int w, int h)
 {
 	int ssd = 0;
 	for (int y = 0; y < h; ++y)
@@ -27,20 +27,18 @@ static int hevcasm_ssd_c_ref(const Sample *pA, ptrdiff_t strideA, const Sample *
 }
 
 
-hevcasm_ssd hevcasm_ssd_16x16_avx;
-hevcasm_ssd hevcasm_ssd_32x32_avx;
-hevcasm_ssd hevcasm_ssd_64x64_avx;
 
 #define ORDER(a, b, c, d) ((a << 6) | (b << 4) | (c << 2) | d)
 
 
+template <typename Sample>
 struct Ssd
 	:
 	Jit::Function
 {
 	Ssd(Jit::Buffer *buffer, int width, int height)
 		:
-		Jit::Function(buffer, Jit::CountArguments<hevcasm_ssd>::value),
+		Jit::Function(buffer, Jit::CountArguments<hevcasm_ssd<uint8_t>>::value),
 		width(width),
 		height(height)
 	{
@@ -58,7 +56,15 @@ struct Ssd
 		auto &r4 = arg64(4);
 		auto &r5 = arg64(5);
 
-		if (width % 16 == 0)
+		if (sizeof(Sample) == 2)
+		{
+			shl(r1, 1);
+			shl(r3, 1);
+		}
+
+		int const widthBytes = width * sizeof(Sample);
+
+		if (widthBytes % 16 == 0)
 		{
 			auto &m0 = regXmm(0);
 			auto &m1 = regXmm(1);
@@ -72,20 +78,23 @@ struct Ssd
 
 			L("loop");
 			{
-				for (int x = 0; x < width; x += 16)
+				for (int x = 0; x < widthBytes; x += 16)
 				{
 					vmovdqa(m1, ptr[r0 + x]);
 					vmovdqa(m2, ptr[r2 + x]);
-					vpunpckhbw(m3, m1, m5);
-					vpunpckhbw(m4, m2, m5);
-					vpunpcklbw(m1, m5);
-					vpunpcklbw(m2, m5);
+					if (sizeof(Sample) == 1)
+					{
+						vpunpckhbw(m3, m1, m5);
+						vpunpckhbw(m4, m2, m5);
+						vpunpcklbw(m1, m5);
+						vpunpcklbw(m2, m5);
+					}
 					vpsubw(m1, m2);
-					vpsubw(m3, m4);
+					if (sizeof(Sample) == 1) vpsubw(m3, m4);
 					vpmaddwd(m1, m1);
-					vpmaddwd(m3, m3);
+					if (sizeof(Sample) == 1) vpmaddwd(m3, m3);
 					vpaddd(m0, m1);
-					vpaddd(m0, m3);
+					if (sizeof(Sample) == 1) vpaddd(m0, m3);
 				}
 				lea(r0, ptr[r0 + r1]);
 				lea(r2, ptr[r2 + r3]);
@@ -103,8 +112,8 @@ struct Ssd
 };
 
 
-
-void HEVCASM_API hevcasm_populate_ssd(hevcasm_table_ssd *table, hevcasm_code code)
+template <typename Sample>
+void hevcasm_populate_ssd(hevcasm_table_ssd<Sample> *table, hevcasm_code code)
 {
 	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
 
@@ -116,87 +125,86 @@ void HEVCASM_API hevcasm_populate_ssd(hevcasm_table_ssd *table, hevcasm_code cod
 
 	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
-		*hevcasm_get_ssd(table, 2) = hevcasm_ssd_c_ref<uint8_t>;
-		*hevcasm_get_ssd(table, 3) = hevcasm_ssd_c_ref<uint8_t>;
-		*hevcasm_get_ssd(table, 4) = hevcasm_ssd_c_ref<uint8_t>;
-		*hevcasm_get_ssd(table, 5) = hevcasm_ssd_c_ref<uint8_t>;
-		*hevcasm_get_ssd(table, 6) = hevcasm_ssd_c_ref<uint8_t>;
+		*hevcasm_get_ssd(table, 2) = hevcasm_ssd_c_ref<Sample>;
+		*hevcasm_get_ssd(table, 3) = hevcasm_ssd_c_ref<Sample>;
+		*hevcasm_get_ssd(table, 4) = hevcasm_ssd_c_ref<Sample>;
+		*hevcasm_get_ssd(table, 5) = hevcasm_ssd_c_ref<Sample>;
+		*hevcasm_get_ssd(table, 6) = hevcasm_ssd_c_ref<Sample>;
 	}
 
 	if (buffer.isa & HEVCASM_AVX)
 	{
+		if (sizeof(Sample) == 1)
 		{
-			Ssd ssd(&buffer, 16, 16);
+			Ssd<Sample> ssd(&buffer, 16, 16);
 			*hevcasm_get_ssd(table, 4) = ssd;
 		}
 		{
-			Ssd ssd(&buffer, 32, 32);
+			Ssd<Sample> ssd(&buffer, 32, 32);
 			*hevcasm_get_ssd(table, 5) = ssd;
 		}
 		{
-			Ssd ssd(&buffer, 64, 64);
+			Ssd<Sample> ssd(&buffer, 64, 64);
 			*hevcasm_get_ssd(table, 6) = ssd;
 		}
 	}
 }
 
 
-void HEVCASM_API hevcasm_populate_ssd16(hevcasm_table_ssd16 *table, hevcasm_code code)
+
+struct BoundSsdBase
 {
-	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
-
-	*hevcasm_get_ssd16(table, 2) = 0;
-	*hevcasm_get_ssd16(table, 3) = 0;
-	*hevcasm_get_ssd16(table, 4) = 0;
-	*hevcasm_get_ssd16(table, 5) = 0;
-	*hevcasm_get_ssd16(table, 6) = 0;
-
-	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
-	{
-		*hevcasm_get_ssd16(table, 2) = hevcasm_ssd_c_ref<uint16_t>;
-		*hevcasm_get_ssd16(table, 3) = hevcasm_ssd_c_ref<uint16_t>;
-		*hevcasm_get_ssd16(table, 4) = hevcasm_ssd_c_ref<uint16_t>;
-		*hevcasm_get_ssd16(table, 5) = hevcasm_ssd_c_ref<uint16_t>;
-		*hevcasm_get_ssd16(table, 6) = hevcasm_ssd_c_ref<uint16_t>;
-	}
-}
-
-
-typedef struct
-{
-	uint8_t *srcA, *srcB;
 	int log2TrafoSize;
 	int ssd;
-	hevcasm_ssd *f;
-}
-bound_ssd;
+	int bits;
+};
 
+
+template <typename Sample>
+struct BoundSsd
+	:
+	BoundSsdBase
+{
+	Sample *srcA, *srcB;
+	hevcasm_ssd<Sample> *f;
+
+	int init(void *p, hevcasm_code code)
+	{
+		auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+
+		auto s = this;
+
+		hevcasm_table_ssd<Sample> table;
+
+		hevcasm_populate_ssd(&table, code);
+
+		s->f = *hevcasm_get_ssd(&table, s->log2TrafoSize);
+
+		if (buffer.isa == HEVCASM_C_REF)
+		{
+			const int nCbS = 1 << s->log2TrafoSize;
+			printf("\t%d bits %dx%d : ", sizeof(Sample) == 2 ? 10 : 8, nCbS, nCbS);
+		}
+
+		return !!s->f;
+	}
+};
 
 int init_ssd(void *p, hevcasm_code code)
 {
-	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
-
-	bound_ssd *s = (bound_ssd *)p;
-
-	hevcasm_table_ssd table;
-
-	hevcasm_populate_ssd(&table, code);
-
-	s->f = *hevcasm_get_ssd(&table, s->log2TrafoSize);
-
-	if (buffer.isa == HEVCASM_C_REF)
-	{
-		const int nCbS = 1 << s->log2TrafoSize;
-		printf("\t%dx%d : ", nCbS, nCbS);
-	}
-
-	return !!s->f;
-}
+	BoundSsdBase *b = (BoundSsdBase *)p;
+	if (b->bits == 8)
+		return static_cast<BoundSsd<uint8_t> *>(b)->init(p, code);
+	else
+		return static_cast<BoundSsd<uint16_t> *>(b)->init(p, code);
+};
 
 
-void invoke_ssd(void *p, int n)
+
+template <typename Sample>
+void invokeSsd(BoundSsdBase *b, int n)
 {
-	bound_ssd *s = (bound_ssd *)p;
+	BoundSsd<Sample> *s = static_cast<BoundSsd<Sample> *>(b);
 	const int nCbS = 1 << s->log2TrafoSize;
 	while (n--)
 	{
@@ -205,21 +213,31 @@ void invoke_ssd(void *p, int n)
 }
 
 
+void invoke_ssd(void *p, int n)
+{
+	BoundSsdBase *b = (BoundSsdBase *)p;
+	if (b->bits == 8)
+		invokeSsd<uint8_t>(b, n);
+	else
+		invokeSsd<uint16_t>(b, n);
+};
+
+
+
 int mismatch_ssd(void *boundRef, void *boundTest)
 {
-	bound_ssd *ref = (bound_ssd *)boundRef;
-	bound_ssd *test = (bound_ssd *)boundTest;
+	BoundSsdBase *ref = (BoundSsdBase *)boundRef;
+	BoundSsdBase *test = (BoundSsdBase *)boundTest;
 
 	return ref->ssd != test->ssd;
 }
 
 
-void HEVCASM_API hevcasm_test_ssd(int *error_count, hevcasm_instruction_set mask)
+template <typename Sample>
+void testSsd(int *error_count, hevcasm_instruction_set mask)
 {
-	printf("\nhevcasm_ssd - Sum of Square Differences\n");
-
-	uint8_t  srcA[64 * 96];
-	uint8_t  srcB[64 * 96];
+	Sample  srcA[64 * 96];
+	Sample  srcB[64 * 96];
 
 	for (int i = 0; i < 64 * 96; ++i)
 	{
@@ -227,8 +245,9 @@ void HEVCASM_API hevcasm_test_ssd(int *error_count, hevcasm_instruction_set mask
 		srcB[i] = rand() & 0xff;
 	}
 
-	bound_ssd b[2];
+	BoundSsd<Sample> b[2];
 
+	b[0].bits = sizeof(Sample) == 1 ? 8 : 10;
 	b[0].srcA = srcA;
 	b[0].srcB = srcB;
 
@@ -237,4 +256,12 @@ void HEVCASM_API hevcasm_test_ssd(int *error_count, hevcasm_instruction_set mask
 		b[1] = b[0];
 		*error_count += hevcasm_test(&b[0], &b[1], init_ssd, invoke_ssd, mismatch_ssd, mask, 100000);
 	}
+}
+
+
+void hevcasm_test_ssd(int *error_count, hevcasm_instruction_set mask)
+{
+	printf("\nhevcasm_ssd - Sum of Square Differences\n");
+	testSsd<uint8_t>(error_count, mask);
+	testSsd<uint16_t>(error_count, mask);
 }

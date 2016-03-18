@@ -41,17 +41,6 @@ static hevcasm_timestamp hevcasm_get_timestamp()
 	return __rdtsc();
 }
 
-
-#ifdef HEVCASM_DLL_EXPORTS
-#define HEVCASM_API __declspec( dllexport ) 
-#else
-#ifdef HEVCASM_DLL_IMPORTS
-#define HEVCASM_API __declspec( dllimport ) 
-#else
-#define HEVCASM_API
-#endif
-#endif
-
 #define HEVCASM_ALIGN(n, T, v) \
 	__declspec(align(n)) T v
 
@@ -89,8 +78,6 @@ static hevcasm_timestamp hevcasm_get_timestamp(void)
 #define HEVCASM_ALIGN(n, T, v) \
 	T v __attribute__((aligned(n)))
 
-#define HEVCASM_API
-
 #endif
 
 
@@ -122,10 +109,10 @@ typedef enum
 
 
 /* queries processor via cpuid instruction and returns a bitmask representing supported instruction sets */
-hevcasm_instruction_set HEVCASM_API hevcasm_instruction_set_support();
+hevcasm_instruction_set hevcasm_instruction_set_support();
 
 
-void HEVCASM_API hevcasm_print_instruction_set_support(FILE *f, hevcasm_instruction_set mask);
+void hevcasm_print_instruction_set_support(FILE *f, hevcasm_instruction_set mask);
 
 
 typedef struct
@@ -143,13 +130,13 @@ void hevcasm_delete_code(hevcasm_code);
 
 
 /* library self-test entry point */
-int HEVCASM_API hevcasm_main(int argc, const char *argv[]);
+int hevcasm_main(int argc, const char *argv[]);
 
 
 #define HEVCASM_RECT(width, height) (((width) << 8) | (height))
 
 
-typedef void HEVCASM_API hevcasm_test_function(int *error_count, hevcasm_instruction_set mask);
+typedef void hevcasm_test_function(int *error_count, hevcasm_instruction_set mask);
 
 
 #ifdef __cplusplus

@@ -13,13 +13,14 @@
 #include <assert.h>
 
 
+template <typename Sample>
 struct SadSse2
 	:
 	Jit::Function
 {
 	SadSse2(Jit::Buffer *buffer, int width, int height)
 		:
-		Jit::Function(buffer, Jit::CountArguments<hevcasm_sad>::value),
+		Jit::Function(buffer, Jit::CountArguments<hevcasm_sad<uint8_t>>::value),
 		width(width),
 		height(height)
 	{
@@ -28,31 +29,51 @@ struct SadSse2
 
 	int width, height;
 
+	template <class A, class B>
+	void sad(A const &a, B const &b)
+	{
+		if (sizeof(Sample) == 2)
+		{
+			psubw(a, b);
+			pabsw(a, a);
+		}
+		else
+			psadbw(a, b);
+	}
+
 	void assemble() override
 	{
-		if ((width % 16) && width != 8) return;
+		int widthBytes = width * sizeof(Sample);
+
+		if ((widthBytes % 16) && widthBytes != 8) return;
 
 		auto &src = arg64(0);
 		auto &stride_src = arg64(1);
 		auto &ref = arg64(2);
 		auto &stride_ref = arg64(3);
 
+		if (sizeof(Sample) == 2)
+		{
+			shl(stride_src, 1);
+			shl(stride_ref, 1);
+		}
+
 		auto &n = reg64(4);
 
-		const Xbyak::Reg64 *stride_ref_x3 = width == 16 ? &reg64(5) : 0;
-		const Xbyak::Reg64 *stride_src_x3 = width == 16 ? &reg64(6) : 0;
+		const Xbyak::Reg64 *stride_ref_x3 = widthBytes == 16 ? &reg64(5) : 0;
+		const Xbyak::Reg64 *stride_src_x3 = widthBytes == 16 ? &reg64(6) : 0;
 
-		if (width == 8)
+		if (widthBytes == 8)
 		{
 			mov(n, height / 2);
 		}
-		else if (width == 16)
+		else if (widthBytes == 16)
 		{
 			mov(n, height / 4);
 			lea(*stride_ref_x3, ptr[stride_ref + stride_ref * 2]);
 			lea(*stride_src_x3, ptr[stride_src + stride_src * 2]);
 		}
-		else if (width == 32)
+		else if (widthBytes == 32)
 		{
 			mov(n, height / 2);
 		}
@@ -66,79 +87,116 @@ struct SadSse2
 		auto &xmm2 = regXmm(2);
 		auto &xmm3 = regXmm(3);
 		auto &xmm4 = regXmm(4);
+		auto &xmm5 = regXmm(5);
 
 		pxor(xmm0, xmm0);
+		pxor(xmm5, xmm5);
 		
 		L("loop");
 		{
-			if (width == 8)
+			if (widthBytes == 8)
 			{
 				movq(xmm1, ptr[ref]);
 				movhps(xmm1, ptr[ref + stride_ref]);
 				movq(xmm2, ptr[src]);
 				movhps(xmm2, ptr[src + stride_src]);
-				psadbw(xmm1, xmm2);
+				sad(xmm1, xmm2);
 
 				lea(ref, ptr[ref + stride_ref * 2]);
+				if (sizeof(Sample) == 2)
+				{
+					phaddw(xmm1, xmm5);
+					phaddw(xmm1, xmm5);
+					phaddw(xmm1, xmm5);
+				}
 				paddd(xmm0, xmm1);
 				lea(src, ptr[src + stride_src * 2]);
 			}
-			else if (width == 16)
+			else if (widthBytes == 16)
 			{
 				movdqu(xmm1, ptr[ref]);
 				movdqu(xmm2, ptr[ref + stride_ref]);
 				movdqu(xmm3, ptr[ref + stride_ref * 2]);
 				movdqu(xmm4, ptr[ref + *stride_ref_x3]);
 
-				psadbw(xmm1, ptr[src]);
-				psadbw(xmm2, ptr[src + stride_src]);
-				psadbw(xmm3, ptr[src + stride_src * 2]);
-				psadbw(xmm4, ptr[src + *stride_src_x3]);
+				sad(xmm1, ptr[src]);
+				sad(xmm2, ptr[src + stride_src]);
+				sad(xmm3, ptr[src + stride_src * 2]);
+				sad(xmm4, ptr[src + *stride_src_x3]);
 
 				lea(src, ptr[src + stride_src * 4]);
 				paddd(xmm1, xmm2);
 				lea(ref, ptr[ref + stride_ref * 4]);
 				paddd(xmm3, xmm4);
+				if (sizeof(Sample) == 2)
+				{
+					phaddw(xmm1, xmm5);
+					phaddw(xmm1, xmm5);
+					phaddw(xmm1, xmm5);
+					phaddw(xmm3, xmm5);
+					phaddw(xmm3, xmm5);
+					phaddw(xmm3, xmm5);
+				}
 				paddd(xmm0, xmm1);
 				paddd(xmm0, xmm3);
 			}
-			else if (width == 32)
+			else if (widthBytes == 32)
 			{
 				movdqu(xmm1, ptr[ref]);
 				movdqu(xmm2, ptr[ref + 16]);
 				movdqu(xmm3, ptr[ref + stride_ref]);
 				movdqu(xmm4, ptr[ref + stride_ref + 16]);
 
-				psadbw(xmm1, ptr[src]);
-				psadbw(xmm2, ptr[src + 16]);
-				psadbw(xmm3, ptr[src + stride_src]);
-				psadbw(xmm4, ptr[src + stride_src + 16]);
+				sad(xmm1, ptr[src]);
+				sad(xmm2, ptr[src + 16]);
+				sad(xmm3, ptr[src + stride_src]);
+				sad(xmm4, ptr[src + stride_src + 16]);
 
 				lea(src, ptr[src + stride_src * 2]);
 				paddd(xmm1, xmm2);
 				lea(ref, ptr[ref + stride_ref * 2]);
 				paddd(xmm3, xmm4);
+				if (sizeof(Sample) == 2)
+				{
+					phaddw(xmm1, xmm5);
+					phaddw(xmm1, xmm5);
+					phaddw(xmm1, xmm5);
+					phaddw(xmm3, xmm5);
+					phaddw(xmm3, xmm5);
+					phaddw(xmm3, xmm5);
+				}
 				paddd(xmm0, xmm1);
 				paddd(xmm0, xmm3);
 			}
 			else
 			{
-				assert(width > 32);
-				movdqu(xmm1, ptr[ref]);
-				movdqu(xmm2, ptr[ref + 16]);
-				movdqu(xmm3, ptr[ref + 32]);
-				if (width > 48) movdqu(xmm4, ptr[ref + 48]);
-				psadbw(xmm1, ptr[src + 0 ]);
-				psadbw(xmm2, ptr[src + 16]);
-				psadbw(xmm3, ptr[src + 32]);
-				if (width > 48) psadbw(xmm4, ptr[src + 48]);
-				paddd(xmm1, xmm2);
+				for (int dx = 0; dx < widthBytes; dx += 64)
+				{
+					movdqu(xmm1, ptr[ref + dx]);
+					movdqu(xmm2, ptr[ref + dx + 16]);
+					if (widthBytes - dx > 32) movdqu(xmm3, ptr[ref + dx + 32]);
+					if (widthBytes - dx > 48) movdqu(xmm4, ptr[ref + dx + 48]);
+					sad(xmm1, ptr[src + dx + 0]);
+					sad(xmm2, ptr[src + dx + 16]);
+					if (widthBytes - dx > 32) sad(xmm3, ptr[src + dx + 32]);
+					if (widthBytes - dx > 48) sad(xmm4, ptr[src + dx + 48]);
+					paddd(xmm1, xmm2);
 
-				add(src, stride_src);
-				if (width > 48) paddd(xmm3, xmm4);
-				paddd(xmm0, xmm1);
+					if (widthBytes > 48) paddd(xmm3, xmm4);
+					if (sizeof(Sample) == 2)
+					{
+						phaddw(xmm1, xmm5);
+						phaddw(xmm1, xmm5);
+						phaddw(xmm1, xmm5);
+						if (widthBytes - dx > 32) phaddw(xmm3, xmm5);
+						if (widthBytes - dx > 32) phaddw(xmm3, xmm5);
+						if (widthBytes - dx > 32) phaddw(xmm3, xmm5);
+					}
+					paddd(xmm0, xmm1);
+					if (widthBytes - dx > 32) paddd(xmm0, xmm3);
+				}
 				add(ref, stride_ref);
-				paddd(xmm0, xmm3);
+				add(src, stride_src);
 			}
 		}
 		dec(n);
@@ -154,7 +212,7 @@ struct SadSse2
 
 
 template <typename Sample>
-static int hevcasm_sad_c_ref(const Sample *src, ptrdiff_t stride_src, const Sample *ref, ptrdiff_t stride_ref, uint32_t rect)
+static int hevcasm_sad_c_ref(const Sample *src, intptr_t stride_src, const Sample *ref, intptr_t stride_ref, uint32_t rect)
 {
 	const int width = rect >> 8;
 	const int height = rect & 0xff;
@@ -169,18 +227,19 @@ static int hevcasm_sad_c_ref(const Sample *src, ptrdiff_t stride_src, const Samp
 	return sad;
 }
 
-
-hevcasm_sad* get_sad(int width, int height, hevcasm_code code)
+template <typename Sample>
+hevcasm_sad<Sample>* get_sad(int width, int height, hevcasm_code code)
 {
 	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
-	if (buffer.isa & HEVCASM_SSE2)
+	if ((sizeof(Sample) == 1 && buffer.isa & HEVCASM_SSE2) ||
+		(sizeof(Sample) == 2 && buffer.isa & HEVCASM_SSSE3))
 	{
 #define X(w, h) \
 		{ \
-			SadSse2 sadSse2(&buffer, w, h); \
+			SadSse2<Sample> sadSse2(&buffer, w, h); \
 			if (w==width && h==height) \
 			{ \
-				hevcasm_sad *f = sadSse2; \
+				hevcasm_sad<Sample> *f = sadSse2; \
 				if (f) return f; \
 			} \
 		}
@@ -191,51 +250,30 @@ hevcasm_sad* get_sad(int width, int height, hevcasm_code code)
 
 	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
-		return (hevcasm_sad*)&hevcasm_sad_c_ref<uint8_t>;
+		return (hevcasm_sad<Sample>*)&hevcasm_sad_c_ref<Sample>;
 	}
 
 	return 0;
 }
 
-hevcasm_sad16* get_sad16(int width, int height, hevcasm_code code)
-{
-	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
-
-	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
-	{
-		return (hevcasm_sad16*)&hevcasm_sad_c_ref<uint16_t>;
-	}
-
-	return 0;
-}
-
-
-void HEVCASM_API hevcasm_populate_sad(hevcasm_table_sad *table, hevcasm_code code)
+template <typename Sample>
+void hevcasm_populate_sad(hevcasm_table_sad<Sample> *table, hevcasm_code code)
 {
 	for (int height = 4; height <= 64; height += 4)
 	{
 		for (int width = 4; width <= 64; width += 4)
 		{
-			*hevcasm_get_sad(table, width, height) = get_sad(width, height, code);
+			*hevcasm_get_sad(table, width, height) = get_sad<Sample>(width, height, code);
 		}
 	}
 }
 
-
-void HEVCASM_API hevcasm_populate_sad16(hevcasm_table_sad16 *table, hevcasm_code code)
-{
-	for (int height = 4; height <= 64; height += 4)
-	{
-		for (int width = 4; width <= 64; width += 4)
-		{
-			*hevcasm_get_sad16(table, width, height) = get_sad16(width, height, code);
-		}
-	}
-}
+template void hevcasm_populate_sad<uint8_t>(hevcasm_table_sad<uint8_t> *table, hevcasm_code code);
+template void hevcasm_populate_sad<uint16_t>(hevcasm_table_sad<uint16_t> *table, hevcasm_code code);
 
 
 template <typename Sample>
-static void hevcasm_sad_multiref_4_c_ref(const Sample *src, ptrdiff_t stride_src, const Sample *ref[], ptrdiff_t stride_ref, int sad[], uint32_t rect)
+static void hevcasm_sad_multiref_4_c_ref(const Sample *src, intptr_t stride_src, const Sample *ref[], intptr_t stride_ref, int sad[], uint32_t rect)
 {
 	const int width = rect >> 8;
 	const int height = rect & 0xff;
@@ -259,13 +297,14 @@ static void hevcasm_sad_multiref_4_c_ref(const Sample *src, ptrdiff_t stride_src
 
 
 #if USE_WEBM_DERIVED
+template <typename Sample>
 struct Sad4Avx2
 	:
 	Jit::Function
 {
 	Sad4Avx2(Jit::Buffer *buffer, int width, int height)
 		:
-		Jit::Function(buffer, Jit::CountArguments<hevcasm_sad_multiref>::value),
+		Jit::Function(buffer, Jit::CountArguments<hevcasm_sad_multiref<uint8_t>>::value),
 		width(width),
 		height(height)
 	{
@@ -280,15 +319,17 @@ struct Sad4Avx2
 	void data() override
 	{
 		align();
+		
+		int widthBytes = width *  sizeof(Sample);
 
-		if (width == 24)
+		if (widthBytes == 24)
 		{
 			L(mask_24_32);
 			db({ 0xff }, 24);
 			db({ 0 }, 8);
 		}
 
-		if (width == 12)
+		if (widthBytes == 12)
 		{
 			L(mask_12_16);
 			db({ 0xff }, 12);
@@ -298,6 +339,22 @@ struct Sad4Avx2
 		}
 	}
 		
+	template <class A, class B>
+	void sad(A const &a, B const &b)
+	{
+		if (sizeof(Sample) == 2)
+		{
+			vpsubw(a, b);
+			vpabsw(a, a);
+			vphaddw(a, ymm9);
+			vpunpcklwd(a, ymm9);
+			vphaddd(a, ymm9);
+			vpunpckldq(a, ymm9);
+		}
+		else
+			vpsadbw(a, b);
+	}
+
 	void assemble() override
 	{
 		auto &src = arg64(0);
@@ -306,6 +363,12 @@ struct Sad4Avx2
 		auto &ref_stride = arg64(3);
 		auto &sads = arg64(4);
 		auto &rect = arg64(5);
+
+		if (sizeof(Sample) == 2)
+		{
+			shl(src_stride, 1);
+			shl(ref_stride, 1);
+		}
 
 		auto &xmm0 = regXmm(0);
 		auto &xmm1 = regXmm(1);
@@ -316,8 +379,11 @@ struct Sad4Avx2
 		auto &xmm6 = regXmm(6);
 		auto &xmm7 = regXmm(7);
 		auto &xmm8 = regXmm(8);
+		auto *xmm9 = sizeof(Sample) == 2 ? &regXmm(9) : (Xbyak::Xmm const *)0;
 
-		if (width == 8)
+		int widthBytes = width *  sizeof(Sample);
+
+		if (widthBytes == 8)
 		{
 			auto &ref0 = reg64(6);
 			auto &ref1 = reg64(7);
@@ -353,10 +419,10 @@ struct Sad4Avx2
 			lea(ref0, ptr[ref0 + ref_stride]);
 			lea(src, ptr[src + src_stride * 2]);
 
-			vpsadbw(xmm0, xmm4);
-			vpsadbw(xmm1, xmm4);
-			vpsadbw(xmm2, xmm4);
-			vpsadbw(xmm3, xmm4);
+			sad(xmm0, xmm4);
+			sad(xmm1, xmm4);
+			sad(xmm2, xmm4);
+			sad(xmm3, xmm4);
 
 			dec(n);
 
@@ -379,10 +445,10 @@ struct Sad4Avx2
 				lea(ref0, ptr[ref0 + ref_stride]);
 				lea(src, ptr[src + src_stride * 2]);
 
-				vpsadbw(xmm5, xmm4);
-				vpsadbw(xmm6, xmm4);
-				vpsadbw(xmm7, xmm4);
-				vpsadbw(xmm8, xmm4);
+				sad(xmm5, xmm4);
+				sad(xmm6, xmm4);
+				sad(xmm7, xmm4);
+				sad(xmm8, xmm4);
 
 				vpaddd(xmm0, xmm5);
 				vpaddd(xmm1, xmm6);
@@ -403,7 +469,7 @@ struct Sad4Avx2
 			vpaddd(xmm0, xmm1);
 			vmovdqu(ptr[sads], xmm0);
 		}
-		else if (width == 4)
+		else if (widthBytes == 4)
 		{
 			auto &ref0 = reg64(6);
 			auto &ref1 = reg64(7);
@@ -443,10 +509,10 @@ struct Sad4Avx2
 				vpunpckldq(xmm8, ptr[ref3 + ref0]);
 				lea(ref0, ptr[ref0 + ref_stride]);
 				lea(src, ptr[src + src_stride * 2]);
-				vpsadbw(xmm5, xmm4);
-				vpsadbw(xmm6, xmm4);
-				vpsadbw(xmm7, xmm4);
-				vpsadbw(xmm8, xmm4);
+				sad(xmm5, xmm4);
+				sad(xmm6, xmm4);
+				sad(xmm7, xmm4);
+				sad(xmm8, xmm4);
 				vpunpckldq(xmm5, xmm6);
 				vpunpckldq(xmm7, xmm8);
 				vpaddd(xmm0, xmm5);
@@ -466,7 +532,7 @@ struct Sad4Avx2
 			vpaddd(xmm0, xmm1);
 			vmovdqu(ptr[sads], xmm0);
 		}
-		else/* if (width == 32 || width == 48 || width == 64)*/
+		else/* if (widthBytes == 32 || widthBytes == 48 || widthBytes == 64)*/
 		{
 			auto &r0 = arg64(0);
 			auto &r1 = arg64(1);
@@ -485,7 +551,7 @@ struct Sad4Avx2
 			and (rect, 0xFF);
 			auto &n = rect;
 
-			if (width <= 16)
+			if (widthBytes <= 16)
 			{
 				shr(n, 1);
 			}
@@ -501,10 +567,11 @@ struct Sad4Avx2
 			vpxor(ymm6, ymm6);
 			vpxor(ymm7, ymm7);
 			vpxor(ymm8, ymm8);
+			if (sizeof(Sample) == 2) vpxor(ymm9, ymm9);
 
 			L("loop");
 			{
-				if (width <= 16)
+				if (widthBytes <= 16)
 				{
 					vmovdqu(xmm0, ptr[r0]);
 					vmovdqu(xmm1, ptr[r1]);
@@ -518,7 +585,7 @@ struct Sad4Avx2
 					vinserti128(ymm3, ymm3, ptr[r3 + r7], 1);
 					vinserti128(ymm4, ymm4, ptr[r4 + r7], 1);
 					
-					if (width == 12)
+					if (widthBytes == 12)
 					{
 						vpand(ymm0, ptr[rip + mask_12_16]);
 						vpand(ymm1, ptr[rip + mask_12_16]);
@@ -536,52 +603,54 @@ struct Sad4Avx2
 					vmovdqu(ymm4, ptr[r4]);
 				}
 
-				vpsadbw(ymm1, ymm0);
-				vpsadbw(ymm2, ymm0);
-				vpsadbw(ymm3, ymm0);
-				vpsadbw(ymm4, ymm0);
+				sad(ymm1, ymm0);
+				sad(ymm2, ymm0);
+				sad(ymm3, ymm0);
+				sad(ymm4, ymm0);
 
-				if (width == 24)
+				if (widthBytes == 24)
 				{
 					vpand(ymm1, ptr[rip + mask_24_32]);
 					vpand(ymm2, ptr[rip + mask_24_32]);
 					vpand(ymm3, ptr[rip + mask_24_32]);
 					vpand(ymm4, ptr[rip + mask_24_32]);
 				}
-				
+
 				vpaddd(ymm5, ymm1);
 				vpaddd(ymm6, ymm2);
 				vpaddd(ymm7, ymm3);
 				vpaddd(ymm8, ymm4);
 
-				if (width > 32)
+				for (int i = 1; i < (widthBytes + 31) / 32; ++i)
 				{
-					vmovdqu(ymm0, ptr[r0 + 32]);
-					vmovdqu(ymm1, ptr[r1 + 32]);
-					vmovdqu(ymm2, ptr[r2 + 32]);
-					vmovdqu(ymm3, ptr[r3 + 32]);
-					vmovdqu(ymm4, ptr[r4 + 32]);
+					vmovdqu(ymm0, ptr[r0 + 32 * i]);
+					vmovdqu(ymm1, ptr[r1 + 32 * i]);
+					vmovdqu(ymm2, ptr[r2 + 32 * i]);
+					vmovdqu(ymm3, ptr[r3 + 32 * i]);
+					vmovdqu(ymm4, ptr[r4 + 32 * i]);
 
-					if (width == 48)
+					if (widthBytes == 48)
 					{
-						vpsadbw(xmm1, xmm0);
-						vpsadbw(xmm2, xmm0);
-						vpsadbw(xmm3, xmm0);
-						vpsadbw(xmm4, xmm0);
+						sad(xmm1, xmm0);
+						sad(xmm2, xmm0);
+						sad(xmm3, xmm0);
+						sad(xmm4, xmm0);
 					}
 					else
 					{
-						vpsadbw(ymm1, ymm0);
-						vpsadbw(ymm2, ymm0);
-						vpsadbw(ymm3, ymm0);
-						vpsadbw(ymm4, ymm0);
+						sad(ymm1, ymm0);
+						sad(ymm2, ymm0);
+						sad(ymm3, ymm0);
+						sad(ymm4, ymm0);
 					}
+
 					vpaddd(ymm5, ymm1);
 					vpaddd(ymm6, ymm2);
 					vpaddd(ymm7, ymm3);
 					vpaddd(ymm8, ymm4);
 				}
-				if (width <= 16)
+
+				if (widthBytes <= 16)
 				{
 					lea(r0, ptr[r0 + r6 * 2]);
 					lea(r1, ptr[r1 + r7 * 2]);
@@ -647,10 +716,11 @@ struct Sad4Avx2
 #endif
 
 
-hevcasm_sad_multiref* get_sad_multiref(int ways, int width, int height, hevcasm_code code)
+template <typename Sample>
+hevcasm_sad_multiref<Sample>* get_sad_multiref(int ways, int width, int height, hevcasm_code code)
 {
 	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
-	hevcasm_sad_multiref* f = 0;
+	hevcasm_sad_multiref<Sample>* f = 0;
 
 	if (ways != 4) return 0;
 
@@ -659,10 +729,10 @@ hevcasm_sad_multiref* get_sad_multiref(int ways, int width, int height, hevcasm_
 	{
 #define X(w, h) \
 		{ \
-			Sad4Avx2 sad4Avx2(&buffer, w, h); \
+			Sad4Avx2<Sample> sad4Avx2(&buffer, w, h); \
 			if (w==width && h==height) \
 			{ \
-				hevcasm_sad_multiref *f = sad4Avx2; \
+				hevcasm_sad_multiref<Sample> *f = sad4Avx2; \
 				if (f) return f; \
 			} \
 		}
@@ -674,88 +744,81 @@ hevcasm_sad_multiref* get_sad_multiref(int ways, int width, int height, hevcasm_
 
 	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
-		if (!f) f = &hevcasm_sad_multiref_4_c_ref<uint8_t>;
+		if (!f) f = &hevcasm_sad_multiref_4_c_ref<Sample>;
 	}
 
 	return f;
 }
 
 
-hevcasm_sad_multiref16* get_sad_multiref16(int ways, int width, int height, hevcasm_code code)
-{
-	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
-	hevcasm_sad_multiref16* f = 0;
-
-	if (ways != 4) return 0;
-
-	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
-	{
-		if (!f) f = &hevcasm_sad_multiref_4_c_ref<uint16_t>;
-	}
-
-	return f;
-}
-
-
-void HEVCASM_API hevcasm_populate_sad_multiref(hevcasm_table_sad_multiref *table, hevcasm_code code)
+template <typename Sample>
+void hevcasm_populate_sad_multiref(hevcasm_table_sad_multiref<Sample> *table, hevcasm_code code)
 {
 	for (int height = 4; height <= 64; height += 4)
 	{
 		for (int width = 4; width <= 64; width += 4)
 		{
-			*hevcasm_get_sad_multiref(table, 4, width, height) = get_sad_multiref(4, width, height, code);
+			*hevcasm_get_sad_multiref(table, 4, width, height) = get_sad_multiref<Sample>(4, width, height, code);
 		}
 	}
 
 }
 
+template void hevcasm_populate_sad_multiref<uint8_t>(hevcasm_table_sad_multiref<uint8_t> *table, hevcasm_code code);
+template void hevcasm_populate_sad_multiref<uint16_t>(hevcasm_table_sad_multiref<uint16_t> *table, hevcasm_code code);
 
-void HEVCASM_API hevcasm_populate_sad_multiref16(hevcasm_table_sad_multiref16 *table, hevcasm_code code)
+
+struct BoundSadBase
 {
-	for (int height = 4; height <= 64; height += 4)
-	{
-		for (int width = 4; width <= 64; width += 4)
-		{
-			*hevcasm_get_sad_multiref16(table, 4, width, height) = get_sad_multiref16(4, width, height, code);
-		}
-	}
-
-}
-
-
-
-typedef struct
-{
-	HEVCASM_ALIGN(32, uint8_t, src[128 * 128]);
-	HEVCASM_ALIGN(32, uint8_t, ref[128 * 128]);
-	hevcasm_sad *f;
 	int width;
 	int height;
 	int sad;
-} 
-bound_sad;
+	int bitDepth;
+	virtual int init(hevcasm_code code) = 0;
+};
 
+
+template <typename Sample>
+struct BoundSad
+	:
+	BoundSadBase
+{
+	HEVCASM_ALIGN(32, Sample, src[128 * 128]);
+	HEVCASM_ALIGN(32, Sample, ref[128 * 128]);
+	hevcasm_sad<Sample> *f;
+	int init(hevcasm_code code) override
+	{
+		this->bitDepth = sizeof(Sample) == 2 ? 10 : 8;
+
+		auto s = this;
+
+		hevcasm_table_sad<Sample> table;
+		hevcasm_populate_sad<Sample>(&table, code);
+
+		s->f = *hevcasm_get_sad<Sample>(&table, s->width, s->height);
+
+		auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+		if (buffer.isa == HEVCASM_C_REF) printf("\t%d bits %dx%d:", s->bitDepth, s->width, s->height);
+
+		return !!s->f;
+	}
+};
 
 int init_sad(void *p, hevcasm_code code)
 {
-	bound_sad *s = (bound_sad *)p;
-
-	hevcasm_table_sad table;
-	hevcasm_populate_sad(&table, code);
-
-	s->f = *hevcasm_get_sad(&table, s->width, s->height);
-
-	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
-	if (buffer.isa == HEVCASM_C_REF) printf("\t%dx%d:", s->width, s->height);
-
-	return !!s->f;
+	BoundSadBase *s = (BoundSadBase *)p;
+	return s->init(code);
 }
 
 
-void invoke_sad(void *p, int n)
+typedef BoundSad<uint8_t> bound_sad;
+
+
+template <typename Sample>
+void invokeSad(void *p, int n)
 {
-	bound_sad *s = (bound_sad *)p;
-	const uint8_t *unaligned_ref = &s->ref[1 + 1 * 128];
+	BoundSad<Sample> *s = (BoundSad<Sample> *)p;
+	const Sample *unaligned_ref = &s->ref[1 + 1 * 128];
 	while (n--)
 	{
 		s->sad = s->f(s->src, 64, unaligned_ref, 64, HEVCASM_RECT(s->width, s->height));
@@ -763,10 +826,21 @@ void invoke_sad(void *p, int n)
 }
 
 
+void invoke_sad(void *p, int n)
+{
+	BoundSadBase *s = (BoundSadBase *)p;
+
+	if (s->bitDepth == 8)
+		invokeSad<uint8_t>(s, n);
+	else
+		invokeSad<uint16_t>(s, n);
+}
+
+
 int mismatch_sad(void *boundRef, void *boundTest)
 {
-	bound_sad *ref = (bound_sad *)boundRef;
-	bound_sad *test = (bound_sad *)boundTest;
+	BoundSadBase *ref = (BoundSadBase *)boundRef;
+	BoundSadBase *test = (BoundSadBase *)boundTest;
 
 	return  ref->sad != test->sad;
 }
@@ -784,14 +858,13 @@ static const int partitions[][2] = {
 	{ 0, 0 } };
 
 
-void HEVCASM_API hevcasm_test_sad(int *error_count, hevcasm_instruction_set mask)
+template <typename Sample>
+void testSad(int *error_count, hevcasm_instruction_set mask)
 {
-	printf("\nhevcasm_sad - Sum of Absolute Differences\n");
+	BoundSad<Sample> b[2];
 
-	bound_sad b[2];
-
-	for (int x = 0; x < 128 * 128; x++) b[0].src[x] = rand();
-	for (int x = 0; x < 128 * 128; x++) b[0].ref[x] = rand();
+	for (int x = 0; x < 128 * 128; x++) b[0].src[x] = rand() & 0x3ff;
+	for (int x = 0; x < 128 * 128; x++) b[0].ref[x] = rand() & 0x3ff;
 
 	for (int i = 0; partitions[i][0]; ++i)
 	{
@@ -803,46 +876,68 @@ void HEVCASM_API hevcasm_test_sad(int *error_count, hevcasm_instruction_set mask
 }
 
 
-typedef struct
+void hevcasm_test_sad(int *error_count, hevcasm_instruction_set mask)
 {
-	hevcasm_sad_multiref *f;
+	printf("\nhevcasm_sad - Sum of Absolute Differences\n");
+
+//	testSad<uint8_t>(error_count, mask);
+	testSad<uint16_t>(error_count, mask);
+}
+
+
+struct BoundsSadMultirefBase
+{
+	int bits;
 	int ways;
 	int width;
 	int height;
-	HEVCASM_ALIGN(32, uint8_t, src[128 * 128]);
-	HEVCASM_ALIGN(32, uint8_t, ref[128 * 128]);
-	const uint8_t *ref_array[4];
 	int sad[4];
-} 
-bound_sad_multiref;
+	virtual int init(hevcasm_code code) = 0;
+};
+
+
+template <typename Sample>
+struct BoundSadMultiref
+	:
+	BoundsSadMultirefBase
+{
+	hevcasm_sad_multiref<Sample> *f;
+	HEVCASM_ALIGN(32, Sample, src[128 * 128]);
+	HEVCASM_ALIGN(32, Sample, ref[128 * 128]);
+	const Sample *ref_array[4];
+
+	int init(hevcasm_code code) override
+	{
+		this->bits = sizeof(Sample) ==2 ? 10 : 8;
+
+		auto s = this;
+
+		hevcasm_table_sad_multiref<Sample> table;
+		hevcasm_populate_sad_multiref(&table, code);
+		s->f = *hevcasm_get_sad_multiref(&table, s->ways, s->width, s->height);
+
+		auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+		if (s->f && buffer.isa == HEVCASM_C_REF)
+		{
+			printf("\t%d bits %d-way %dx%d : ", s->bits, s->ways, s->width, s->height);
+		}
+
+		return !!s->f;
+	}
+};
 
 
 int init_sad_multiref(void *p, hevcasm_code code)
 {
-	bound_sad_multiref *s = (bound_sad_multiref *)p;
-
-	hevcasm_table_sad_multiref table;
-	hevcasm_populate_sad_multiref(&table, code);
-	s->f = *hevcasm_get_sad_multiref(&table, s->ways, s->width, s->height);
-
-	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
-	if (s->f && buffer.isa == HEVCASM_C_REF)
-	{
-		printf("\t%d-way %dx%d : ", s->ways, s->width, s->height);
-	}
-
-	return !!s->f;
+	BoundsSadMultirefBase *s = (BoundsSadMultirefBase *)p;
+	return s->init(code);
 }
 
 
-void invoke_sad_multiref(void *p, int n)
+template <typename Sample>
+void invokeSadMultiref(void *p, int n)
 {
-	bound_sad_multiref *s = (bound_sad_multiref *)p;
-
-	s->sad[0] = 0;
-	s->sad[1] = 0;
-	s->sad[2] = 0;
-	s->sad[3] = 0;
+	BoundSadMultiref<Sample> *s = (BoundSadMultiref<Sample> *)p;
 
 	while (n--)
 	{
@@ -851,10 +946,26 @@ void invoke_sad_multiref(void *p, int n)
 }
 
 
+void invoke_sad_multiref(void *p, int n)
+{
+	BoundsSadMultirefBase *s = (BoundsSadMultirefBase *)p;
+
+	s->sad[0] = 0;
+	s->sad[1] = 0;
+	s->sad[2] = 0;
+	s->sad[3] = 0;
+
+	if (s->bits == 8)
+		invokeSadMultiref<uint8_t>(s, n);
+	else
+		invokeSadMultiref<uint16_t>(s, n);
+}
+
+
 int mismatch_sad_multiref(void *boundRef, void *boundTest)
 {
-	bound_sad_multiref *ref = (bound_sad_multiref *)boundRef;
-	bound_sad_multiref *test = (bound_sad_multiref *)boundTest;
+	BoundsSadMultirefBase *ref = (BoundsSadMultirefBase *)boundRef;
+	BoundsSadMultirefBase *test = (BoundsSadMultirefBase *)boundTest;
 
 	assert(ref->ways);
 
@@ -867,16 +978,15 @@ int mismatch_sad_multiref(void *boundRef, void *boundTest)
 }
 
 
-void HEVCASM_API hevcasm_test_sad_multiref(int *error_count, hevcasm_instruction_set mask)
+template <typename Sample>
+void testSadMultiref(int *error_count, hevcasm_instruction_set mask)
 {
-	bound_sad_multiref b[2];
+	BoundSadMultiref<Sample> b[2];
 
 	b[0].ways = 4;
 
-	printf("\nhevcasm_sad_multiref - Sum Of Absolute Differences with multiple references (%d candidate references)\n", b[0].ways);
-
-	for (int x = 0; x < 128 * 128; x++) b[0].src[x] = rand();
-	for (int x = 0; x < 128 * 128; x++) b[0].ref[x] = rand();
+	for (int x = 0; x < 128 * 128; x++) b[0].src[x] = rand() & 0x3ff;
+	for (int x = 0; x < 128 * 128; x++) b[0].ref[x] = rand() & 0x3ff;
 
 	b[0].ref_array[0] = &b[0].ref[1 + 2 * 128];
 	b[0].ref_array[1] = &b[0].ref[2 + 1 * 128];
@@ -890,4 +1000,12 @@ void HEVCASM_API hevcasm_test_sad_multiref(int *error_count, hevcasm_instruction
 		b[1] = b[0];
 		*error_count += hevcasm_test(&b[0], &b[1], init_sad_multiref, invoke_sad_multiref, mismatch_sad_multiref, mask, 1000);
 	}
+}
+
+
+void hevcasm_test_sad_multiref(int *error_count, hevcasm_instruction_set mask)
+{
+	printf("\nhevcasm_sad_multiref - Sum Of Absolute Differences with multiple references (%d candidate references)\n", 4);
+	testSadMultiref<uint16_t>(error_count, mask);
+	testSadMultiref<uint8_t>(error_count, mask);
 }

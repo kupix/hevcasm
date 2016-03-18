@@ -318,7 +318,7 @@ int hevcasm_clip(int x, int bit_depth)
 }
 
 
-void hevcasm_add8_residual(int n, uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, int16_t *residual)
+void hevcasm_add8_residual(int n, uint8_t *dst, intptr_t stride_dst, const uint8_t *pred, intptr_t stride_pred, int16_t *residual)
 {
 	for (int y = 0; y < n; ++y)
 	{
@@ -329,7 +329,7 @@ void hevcasm_add8_residual(int n, uint8_t *dst, ptrdiff_t stride_dst, const uint
 	}
 }
 
-void hevcasm_add16_residual(int n, uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *pred, ptrdiff_t stride_pred, int16_t *residual, int bitDepth)
+void hevcasm_add16_residual(int n, uint16_t *dst, intptr_t stride_dst, const uint16_t *pred, intptr_t stride_pred, int16_t *residual, int bitDepth)
 {
 	for (int y = 0; y < n; ++y)
 	{
@@ -341,7 +341,7 @@ void hevcasm_add16_residual(int n, uint16_t *dst, ptrdiff_t stride_dst, const ui
 }
 
 
-void hevcasm_idct_4x4_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[4 * 4], int bitDepth)
+void hevcasm_idct_4x4_c_opt(uint8_t *dst, intptr_t stride_dst, const uint8_t *pred, intptr_t stride_pred, const int16_t coeffs[4 * 4], int bitDepth)
 {
 	int16_t temp[2][4 * 4];
 	hevcasm_inverse_partial_butterfly_4x4_c_opt(temp[0], coeffs, 7);
@@ -350,7 +350,7 @@ void hevcasm_idct_4x4_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *p
 }
 
 
-void hevcasm_idct_4x4_16_c_opt(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[4 * 4], int bitDepth)
+void hevcasm_idct_4x4_16_c_opt(uint16_t *dst, intptr_t stride_dst, const uint16_t *pred, intptr_t stride_pred, const int16_t coeffs[4 * 4], int bitDepth)
 {
 	int16_t temp[2][4 * 4];
 	hevcasm_inverse_partial_butterfly_4x4_c_opt(temp[0], coeffs, 7);
@@ -359,7 +359,7 @@ void hevcasm_idct_4x4_16_c_opt(uint16_t *dst, ptrdiff_t stride_dst, const uint16
 }
 
 
-void hevcasm_idst_4x4_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[4 * 4], int bitDepth)
+void hevcasm_idst_4x4_c_opt(uint8_t *dst, intptr_t stride_dst, const uint8_t *pred, intptr_t stride_pred, const int16_t coeffs[4 * 4], int bitDepth)
 {
 	int16_t temp[2][4 * 4];
 	hevcasm_inverse_partial_butterfly_4x4_dst_c_opt(temp[0], coeffs, 7);
@@ -368,7 +368,7 @@ void hevcasm_idst_4x4_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *p
 }
 
 
-void hevcasm_idst_4x4_16_c_opt(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[4 * 4], int bitDepth)
+void hevcasm_idst_4x4_16_c_opt(uint16_t *dst, intptr_t stride_dst, const uint16_t *pred, intptr_t stride_pred, const int16_t coeffs[4 * 4], int bitDepth)
 {
 	int16_t temp[2][4 * 4];
 	hevcasm_inverse_partial_butterfly_4x4_dst_c_opt(temp[0], coeffs, 7);
@@ -377,7 +377,7 @@ void hevcasm_idst_4x4_16_c_opt(uint16_t *dst, ptrdiff_t stride_dst, const uint16
 }
 
 
-void hevcasm_idct_8x8_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[8 * 8], int bitDepth)
+void hevcasm_idct_8x8_c_opt(uint8_t *dst, intptr_t stride_dst, const uint8_t *pred, intptr_t stride_pred, const int16_t coeffs[8 * 8], int bitDepth)
 {
 	int16_t temp[2][8 * 8];
 	hevcasm_inverse_partial_butterfly_8x8_c_opt(temp[0], coeffs, 7);
@@ -386,7 +386,7 @@ void hevcasm_idct_8x8_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *p
 }
 
 
-void hevcasm_idct_8x8_16_c_opt(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[8 * 8], int bitDepth)
+void hevcasm_idct_8x8_16_c_opt(uint16_t *dst, intptr_t stride_dst, const uint16_t *pred, intptr_t stride_pred, const int16_t coeffs[8 * 8], int bitDepth)
 {
 	int16_t temp[2][8 * 8];
 	hevcasm_inverse_partial_butterfly_8x8_c_opt(temp[0], coeffs, 7);
@@ -395,7 +395,7 @@ void hevcasm_idct_8x8_16_c_opt(uint16_t *dst, ptrdiff_t stride_dst, const uint16
 }
 
 
-void hevcasm_idct_16x16_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[8 * 8], int bitDepth)
+void hevcasm_idct_16x16_c_opt(uint8_t *dst, intptr_t stride_dst, const uint8_t *pred, intptr_t stride_pred, const int16_t coeffs[8 * 8], int bitDepth)
 {
 	int16_t temp[2][16 * 16];
 	hevcasm_inverse_partial_butterfly_16x16_c_opt(temp[0], coeffs, 7);
@@ -404,7 +404,7 @@ void hevcasm_idct_16x16_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t 
 }
 
 
-void hevcasm_idct_16x16_16_c_opt(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[8 * 8], int bitDepth)
+void hevcasm_idct_16x16_16_c_opt(uint16_t *dst, intptr_t stride_dst, const uint16_t *pred, intptr_t stride_pred, const int16_t coeffs[8 * 8], int bitDepth)
 {
 	int16_t temp[2][16 * 16];
 	hevcasm_inverse_partial_butterfly_16x16_c_opt(temp[0], coeffs, 7);
@@ -413,7 +413,7 @@ void hevcasm_idct_16x16_16_c_opt(uint16_t *dst, ptrdiff_t stride_dst, const uint
 }
 
 
-void hevcasm_idct_32x32_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[32 * 32], int bitDepth)
+void hevcasm_idct_32x32_c_opt(uint8_t *dst, intptr_t stride_dst, const uint8_t *pred, intptr_t stride_pred, const int16_t coeffs[32 * 32], int bitDepth)
 {
 	int16_t temp[2][32 * 32];
 	hevcasm_inverse_partial_butterfly_32x32_c_opt(temp[0], coeffs, 7);
@@ -422,7 +422,7 @@ void hevcasm_idct_32x32_c_opt(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t 
 }
 
 
-void hevcasm_idct_32x32_16_c_opt(uint16_t *dst, ptrdiff_t stride_dst, const uint16_t *pred, ptrdiff_t stride_pred, const int16_t coeffs[32 * 32], int bitDepth)
+void hevcasm_idct_32x32_16_c_opt(uint16_t *dst, intptr_t stride_dst, const uint16_t *pred, intptr_t stride_pred, const int16_t coeffs[32 * 32], int bitDepth)
 {
 	int16_t temp[2][32 * 32];
 	hevcasm_inverse_partial_butterfly_32x32_c_opt(temp[0], coeffs, 7);
@@ -1853,7 +1853,7 @@ struct InverseTransformAdd
 			return;
 		}
 #endif
-		// void hevcasm_inverse_transform_add(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t *coeffs);
+		// void hevcasm_inverse_transform_add(uint8_t *dst, intptr_t stride_dst, const uint8_t *pred, intptr_t stride_pred, const int16_t *coeffs);
 
 		auto &r0 = arg64(0);
 		auto &r1 = arg64(1);
@@ -2953,7 +2953,7 @@ static hevcasm_inverse_transform_add16* get_inverse_transform_add16(int trType, 
 }
 
 
-void HEVCASM_API hevcasm_populate_inverse_transform_add8(hevcasm_table_inverse_transform_add8 *table, hevcasm_code code, int encoder)
+void hevcasm_populate_inverse_transform_add8(hevcasm_table_inverse_transform_add8 *table, hevcasm_code code, int encoder)
 {
 	*hevcasm_get_inverse_transform_add8(table, 1, 2) = get_inverse_transform_add8(1, 2, code, encoder);
 	for (int log2TrafoSize = 2; log2TrafoSize <= 5; ++log2TrafoSize)
@@ -2963,7 +2963,7 @@ void HEVCASM_API hevcasm_populate_inverse_transform_add8(hevcasm_table_inverse_t
 }
 
 
-void HEVCASM_API hevcasm_populate_inverse_transform_add16(hevcasm_table_inverse_transform_add16 *table, hevcasm_code code, int encoder)
+void hevcasm_populate_inverse_transform_add16(hevcasm_table_inverse_transform_add16 *table, hevcasm_code code, int encoder)
 {
 	*hevcasm_get_inverse_transform_add16(table, 1, 2) = get_inverse_transform_add16(1, 2, code, encoder);
 	for (int log2TrafoSize = 2; log2TrafoSize <= 5; ++log2TrafoSize)
@@ -3015,7 +3015,7 @@ void invoke_inverse_transform_add8(void *p, int n)
 
 	while (n--)
 	{
-		s->f(s->dst, (ptrdiff_t)1 << s->log2TrafoSize, s->predicted, (ptrdiff_t)1 << s->log2TrafoSize, s->coefficients, 8);
+		s->f(s->dst, (intptr_t)1 << s->log2TrafoSize, s->predicted, (intptr_t)1 << s->log2TrafoSize, s->coefficients, 8);
 	}
 }
 
@@ -3069,7 +3069,7 @@ Dst shiftRight(Src src, int shift)
 
 
 template <typename Dst, typename Src>
-void hevcasm_partial_butterfly_4x4_dst_c_opt(Dst *dst, const Src *src, ptrdiff_t src_stride, int shift)
+void hevcasm_partial_butterfly_4x4_dst_c_opt(Dst *dst, const Src *src, intptr_t src_stride, int shift)
 {
 	const int add = 1 << (shift - 1);
 	const int dst_stride = 4;
@@ -3091,7 +3091,7 @@ void hevcasm_partial_butterfly_4x4_dst_c_opt(Dst *dst, const Src *src, ptrdiff_t
 
 
 template <typename Dst, typename Src>
-void hevcasm_partial_butterfly_4x4_c_opt(Dst *dst, const Src *src, ptrdiff_t src_stride, int shift)
+void hevcasm_partial_butterfly_4x4_c_opt(Dst *dst, const Src *src, intptr_t src_stride, int shift)
 {
 	const int add = 1 << (shift - 1);
 	const int dst_stride = 4;
@@ -3121,7 +3121,7 @@ void hevcasm_partial_butterfly_4x4_c_opt(Dst *dst, const Src *src, ptrdiff_t src
 
 
 template <typename Dst, typename Src>
-void hevcasm_partial_butterfly_8x8_c_opt(Dst *dst, const Src *src, ptrdiff_t src_stride, int shift)
+void hevcasm_partial_butterfly_8x8_c_opt(Dst *dst, const Src *src, intptr_t src_stride, int shift)
 {
 	const int add = 1 << (shift - 1);
 	const int dst_stride = 8;
@@ -3170,10 +3170,10 @@ void hevcasm_partial_butterfly_8x8_c_opt(Dst *dst, const Src *src, ptrdiff_t src
 
 
 template <typename Dst, typename Src>
-void hevcasm_partial_butterfly_16x16_c_opt(Dst *dst, const Src *src, ptrdiff_t src_stride, int shift)
+void hevcasm_partial_butterfly_16x16_c_opt(Dst *dst, const Src *src, intptr_t src_stride, int shift)
 {
 	const int add = 1 << (shift - 1);
-	const ptrdiff_t dst_stride = 16;
+	const intptr_t dst_stride = 16;
 
 	for (int j = 0; j<16; ++j)
 	{
@@ -3240,7 +3240,7 @@ void hevcasm_partial_butterfly_16x16_c_opt(Dst *dst, const Src *src, ptrdiff_t s
 
 
 template <typename Dst, typename Src>
-void hevcasm_partial_butterfly_32x32_c_opt(Dst *dst, const Src *src, ptrdiff_t src_stride, int shift)
+void hevcasm_partial_butterfly_32x32_c_opt(Dst *dst, const Src *src, intptr_t src_stride, int shift)
 {
 	const int add = 1 << (shift - 1);
 	const int dst_stride = 32;
@@ -3336,7 +3336,7 @@ void hevcasm_partial_butterfly_32x32_c_opt(Dst *dst, const Src *src, ptrdiff_t s
 }
 
 
-void hevcasm_dst_4x4_c_opt(int16_t coeffs[4 * 4], const int16_t *src, ptrdiff_t src_stride)
+void hevcasm_dst_4x4_c_opt(int16_t coeffs[4 * 4], const int16_t *src, intptr_t src_stride)
 {
 	int16_t temp[4 * 4];
 	hevcasm_partial_butterfly_4x4_dst_c_opt(temp, src, src_stride,1 );
@@ -3344,7 +3344,7 @@ void hevcasm_dst_4x4_c_opt(int16_t coeffs[4 * 4], const int16_t *src, ptrdiff_t 
 }
 
 
-void hevcasm_dct_4x4_c_opt(int16_t coeffs[4 * 4], const int16_t *src, ptrdiff_t src_stride)
+void hevcasm_dct_4x4_c_opt(int16_t coeffs[4 * 4], const int16_t *src, intptr_t src_stride)
 {
 	int16_t temp[4 * 4];
 	hevcasm_partial_butterfly_4x4_c_opt(temp, src, src_stride, 1);
@@ -3352,7 +3352,7 @@ void hevcasm_dct_4x4_c_opt(int16_t coeffs[4 * 4], const int16_t *src, ptrdiff_t 
 }
 
 
-void hevcasm_dct_8x8_c_opt(int16_t coeffs[8 * 8], const int16_t *src, ptrdiff_t src_stride)
+void hevcasm_dct_8x8_c_opt(int16_t coeffs[8 * 8], const int16_t *src, intptr_t src_stride)
 {
 	int16_t temp[8 * 8];
 	hevcasm_partial_butterfly_8x8_c_opt(temp, src, src_stride, 2);
@@ -3360,7 +3360,7 @@ void hevcasm_dct_8x8_c_opt(int16_t coeffs[8 * 8], const int16_t *src, ptrdiff_t 
 }
 
 
-void hevcasm_dct_16x16_c_opt(int16_t coeffs[16 * 16], const int16_t *src, ptrdiff_t src_stride)
+void hevcasm_dct_16x16_c_opt(int16_t coeffs[16 * 16], const int16_t *src, intptr_t src_stride)
 {
 	int16_t temp[16 * 16];
 	hevcasm_partial_butterfly_16x16_c_opt(temp, src, src_stride, 3);
@@ -3368,7 +3368,7 @@ void hevcasm_dct_16x16_c_opt(int16_t coeffs[16 * 16], const int16_t *src, ptrdif
 }
 
 
-void hevcasm_dct_32x32_c_opt(int16_t coeffs[32 * 32], const int16_t *src, ptrdiff_t src_stride)
+void hevcasm_dct_32x32_c_opt(int16_t coeffs[32 * 32], const int16_t *src, intptr_t src_stride)
 {
 	int16_t temp[32 * 32];
 	hevcasm_partial_butterfly_32x32_c_opt(temp, src, src_stride, 4);
@@ -3444,7 +3444,7 @@ struct ForwardDct16x16
 
 	void assemble()
 	{
-		//void hevcasm_dct_16x16_ssse3(int16_t *coeffs, const int16_t *src, ptrdiff_t src_stride)
+		//void hevcasm_dct_16x16_ssse3(int16_t *coeffs, const int16_t *src, intptr_t src_stride)
 		//{
 		//	HEVCASM_ALIGN(32, int16_t, temp[16 * 16]);
 		//	hevcasm_partial_butterfly_16h_ssse3(temp, src, src_stride, 3);
@@ -3483,7 +3483,7 @@ struct ForwardDct16x16
 		mov(ptr[rsp], r0);
 		lea(r0, ptr[rsp + 32]);
 		//db({ 0xcc });
-		// void transform_partial_butterfly_16h_ssse3(int16_t *dst, const int16_t *src, std::ptrdiff_t srcStride, int shift)//);
+		// void transform_partial_butterfly_16h_ssse3(int16_t *dst, const int16_t *src, std::intptr_t srcStride, int shift)//);
 		// shift parameter ignored (r3));
 		// INIT_XMM ssse3
 		// cglobal partial_butterfly_16h, 4, 7, 16
@@ -3786,7 +3786,7 @@ struct ForwardDct16x16
 };
 
 
-hevcasm_transform* HEVCASM_API get_transform(int trType, int log2TrafoSize, hevcasm_code code)
+hevcasm_transform* get_transform(int trType, int log2TrafoSize, hevcasm_code code)
 {
 	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
 	const int nCbS = 1 << log2TrafoSize;
@@ -3814,7 +3814,7 @@ hevcasm_transform* HEVCASM_API get_transform(int trType, int log2TrafoSize, hevc
 }
 
 
-void HEVCASM_API hevcasm_populate_transform(hevcasm_table_transform *table, hevcasm_code code)
+void hevcasm_populate_transform(hevcasm_table_transform *table, hevcasm_code code)
 {
 	*hevcasm_get_transform(table, 1, 2) = get_transform(1, 2, code);
 	for (int log2TrafoSize = 2; log2TrafoSize <= 5; ++log2TrafoSize)
@@ -3829,7 +3829,7 @@ typedef struct
 	hevcasm_transform *f;
 	HEVCASM_ALIGN(32, int16_t, dst[32 * 32]);
 	int16_t *src;
-	ptrdiff_t src_stride;
+	intptr_t src_stride;
 	int trType;
 	int log2TrafoSize;
 }

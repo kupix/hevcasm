@@ -29,18 +29,21 @@ int hevcasm_count_average_cycles(
 		{
 			if (8 * duration * count < 7 * 4 * sum)
 			{
+				// duration lower than mean
 				sum = 0;
 				count = 0;
-				warmup = 100;
+				warmup = 10;
 			}
 			else 	if (7 * duration * count <= 8 * 4 * sum)
 			{
+				// duration close to mean
 				count += 4;
 				sum += duration;
 			}
 			else
 			{
-				warmup = 100;
+				// duration higher than mean
+				warmup = 10;
 			}
 		}
 		else
@@ -100,7 +103,7 @@ int hevcasm_test(
 		hevcasm_instruction_set set;
 		for (set = HEVCASM_C_OPT; set; set <<= 1)
 		{
-			hevcasm_code code_test = hevcasm_new_code(set & mask, 2000000);
+			hevcasm_code code_test = hevcasm_new_code(set & mask, 100000000);
 			if (get(test, code_test))
 			{
 				error_count += hevcasm_count_average_cycles(ref, test, invoke, mismatch, &first_result, set, iterations);

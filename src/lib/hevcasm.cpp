@@ -146,18 +146,18 @@ int hevcasm_main(int argc, const char *argv[])
 
 	int error_count = 0;
 
-	hevcasm_test_sad_multiref(&error_count, mask);
-	hevcasm_test_sad(&error_count, mask);
-	hevcasm_test_ssd(&error_count, mask);
-	hevcasm_test_pred_intra(&error_count, mask);
+	//hevcasm_test_sad_multiref(&error_count, mask);
+	//hevcasm_test_sad(&error_count, mask);
+	//hevcasm_test_ssd(&error_count, mask);
+	//hevcasm_test_pred_intra(&error_count, mask);
 	hevcasm_test_hadamard_satd(&error_count, mask);
-	hevcasm_test_quantize_inverse(&error_count, mask);
-	hevcasm_test_quantize(&error_count, mask);
-	hevcasm_test_quantize_reconstruct(&error_count, mask);
-	hevcasm_test_pred_uni(&error_count, mask);
-	hevcasm_test_pred_bi(&error_count, mask);
-	hevcasm_test_inverse_transform_add8(&error_count, mask);
-	hevcasm_test_transform(&error_count, mask);
+	//hevcasm_test_quantize_inverse(&error_count, mask);
+	//hevcasm_test_quantize(&error_count, mask);
+	//hevcasm_test_quantize_reconstruct(&error_count, mask);
+	//hevcasm_test_pred_uni(&error_count, mask);
+	//hevcasm_test_pred_bi(&error_count, mask);
+	//**hevcasm_test_inverse_transform_add8(&error_count, mask);
+	//hevcasm_test_transform(&error_count, mask);
 
 	printf("\n");
 	printf("HEVCasm self test: %d errors\n", error_count);

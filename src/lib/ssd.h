@@ -14,74 +14,30 @@
 #include "hevcasm.h"
 
 
+template <typename Sample>
+using hevcasm_ssd = int(Sample const *srcA, intptr_t stride_srcA, Sample const *srcB, intptr_t stride_srcB, int w, int h);
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
-
-
-typedef int hevcasm_ssd(const uint8_t *srcA, ptrdiff_t stride_srcA, const uint8_t *srcB, ptrdiff_t stride_srcB, int w, int h);
-typedef int hevcasm_ssd16(const uint16_t *srcA, ptrdiff_t stride_srcA, const uint16_t *srcB, ptrdiff_t stride_srcB, int w, int h);
-
-typedef struct
-{
-	hevcasm_ssd *satd[5];
-}
-hevcasm_table_ssd;
-
-typedef struct
-{
-	hevcasm_ssd16 *satd[5];
-}
-hevcasm_table_ssd16;
-
-static hevcasm_ssd** hevcasm_get_ssd(hevcasm_table_ssd *table, int log2TrafoSize)
-{
-	return &table->satd[log2TrafoSize - 2];
-}
-
-static hevcasm_ssd16** hevcasm_get_ssd16(hevcasm_table_ssd16 *table, int log2TrafoSize)
-{
-	return &table->satd[log2TrafoSize - 2];
-}
-
-void HEVCASM_API hevcasm_populate_ssd(hevcasm_table_ssd *table, hevcasm_code code);
-
-void HEVCASM_API hevcasm_populate_ssd16(hevcasm_table_ssd16 *table, hevcasm_code code);
-
-void HEVCASM_API hevcasm_test_ssd(int *error_count, hevcasm_instruction_set mask);
-
-
-#ifdef __cplusplus
-}
 
 template <typename Sample>
-struct HevcasmSsd;
-
-template <>
-struct HevcasmSsd<uint8_t>
+struct hevcasm_table_ssd
 {
-	typedef hevcasm_ssd Function;
-	typedef hevcasm_table_ssd Table;
-	static Function **get(Table *table, int log2TrafoSize)
-	{
-		return hevcasm_get_ssd(table, log2TrafoSize);
-	}
+	hevcasm_ssd<Sample> *ssd[5];
 };
 
-template <>
-struct HevcasmSsd<uint16_t>
-{
-	typedef hevcasm_ssd16 Function;
-	typedef hevcasm_table_ssd16 Table;
-	static Function **get(Table *table, int log2TrafoSize)
-	{
-		return hevcasm_get_ssd16(table, log2TrafoSize);
-	}
-};
 
-#endif
+template <typename Sample>
+static hevcasm_ssd<Sample>** hevcasm_get_ssd(hevcasm_table_ssd<Sample> *table, int log2TrafoSize)
+{
+
+	return &table->ssd[log2TrafoSize - 2];
+}
+
+
+template <typename Sample>
+void hevcasm_populate_ssd(hevcasm_table_ssd<Sample> *table, hevcasm_code code);
+
+
+void hevcasm_test_ssd(int *error_count, hevcasm_instruction_set mask);
+
 
 #endif

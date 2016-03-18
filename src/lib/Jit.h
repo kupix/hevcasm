@@ -42,7 +42,7 @@ struct Buffer
 		this->update(this->p + n);
 	}
 
-	ptrdiff_t nRemainingBytes() const
+	intptr_t nRemainingBytes() const
 	{
 		return &this->buffer[0] + this->buffer.size() - this->p;
 	}
@@ -347,7 +347,7 @@ private:
 //struct Sad
 //{
 //	Sad(int bitDepth=8*sizeof(T), int width=0, int height=0) { }
-//	typedef int Type(T *p, ptrdiff_t stride);
+//	typedef int Type(T *p, intptr_t stride);
 //	Type *make(Buffer &buffer)
 //	{
 //	}

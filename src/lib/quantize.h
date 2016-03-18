@@ -37,9 +37,9 @@ static hevcasm_quantize_inverse** hevcasm_get_quantize_inverse(hevcasm_table_qua
 	return &table->p;
 }
 
-void HEVCASM_API hevcasm_populate_quantize_inverse(hevcasm_table_quantize_inverse *table, hevcasm_code code);
+void hevcasm_populate_quantize_inverse(hevcasm_table_quantize_inverse *table, hevcasm_code code);
 
-void HEVCASM_API hevcasm_test_quantize_inverse(int *error_count, hevcasm_instruction_set mask);
+void hevcasm_test_quantize_inverse(int *error_count, hevcasm_instruction_set mask);
 
 
 
@@ -58,15 +58,15 @@ static hevcasm_quantize** hevcasm_get_quantize(hevcasm_table_quantize *table)
 	return &table->p;
 }
 
-void HEVCASM_API hevcasm_populate_quantize(hevcasm_table_quantize *table, hevcasm_code code);
+void hevcasm_populate_quantize(hevcasm_table_quantize *table, hevcasm_code code);
 
-void HEVCASM_API hevcasm_test_quantize(int *error_count, hevcasm_instruction_set mask);
+void hevcasm_test_quantize(int *error_count, hevcasm_instruction_set mask);
 
 
 
 // Reconstruction function: adds a CU's predicted and residual values
 
-typedef void hevcasm_quantize_reconstruct(uint8_t *rec, ptrdiff_t stride_rec, const uint8_t *pred, ptrdiff_t stride_pred, const int16_t *res, int n);
+typedef void hevcasm_quantize_reconstruct(uint8_t *rec, intptr_t stride_rec, const uint8_t *pred, intptr_t stride_pred, const int16_t *res, int n);
 
 typedef struct
 {
@@ -79,9 +79,9 @@ static hevcasm_quantize_reconstruct** hevcasm_get_quantize_reconstruct(hevcasm_t
 	return &table->p[log2TrafoSize - 2];
 }
 
-void HEVCASM_API hevcasm_populate_quantize_reconstruct(hevcasm_table_quantize_reconstruct *table, hevcasm_code code);
+void hevcasm_populate_quantize_reconstruct(hevcasm_table_quantize_reconstruct *table, hevcasm_code code);
 
-void HEVCASM_API hevcasm_test_quantize_reconstruct(int *error_count, hevcasm_instruction_set mask);
+void hevcasm_test_quantize_reconstruct(int *error_count, hevcasm_instruction_set mask);
 
 
 #ifdef __cplusplus

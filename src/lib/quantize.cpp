@@ -212,7 +212,7 @@ int mismatch_quantize_inverse(void *boundRef, void *boundTest)
 }
 
 
-void HEVCASM_API hevcasm_test_quantize_inverse(int *error_count, hevcasm_instruction_set mask)
+void hevcasm_test_quantize_inverse(int *error_count, hevcasm_instruction_set mask)
 {
 	printf("\nhevcasm_quantize_inverse - Inverse Quantization (\"scaling\")\n");
 
@@ -466,7 +466,7 @@ int mismatch_quantize(void *boundRef, void *boundTest)
 }
 
 
-void HEVCASM_API hevcasm_test_quantize(int *error_count, hevcasm_instruction_set mask)
+void hevcasm_test_quantize(int *error_count, hevcasm_instruction_set mask)
 {
 	printf("\nhevcasm_quantize - Quantization\n");
 
@@ -495,7 +495,7 @@ void HEVCASM_API hevcasm_test_quantize(int *error_count, hevcasm_instruction_set
 
 
 
-static void hevcasm_quantize_reconstruct_c_ref(uint8_t *rec, ptrdiff_t stride_rec, const uint8_t *predSamples, ptrdiff_t stride_pred, const int16_t *resSamples, int n)
+static void hevcasm_quantize_reconstruct_c_ref(uint8_t *rec, intptr_t stride_rec, const uint8_t *predSamples, intptr_t stride_pred, const int16_t *resSamples, int n)
 {
 	for (int y = 0; y < n; ++y)
 	{
@@ -599,7 +599,7 @@ struct QuantiseReconstruct
 };
 
 
-hevcasm_quantize_reconstruct * HEVCASM_API get_quantize_reconstruct(int log2TrafoSize, hevcasm_code code)
+hevcasm_quantize_reconstruct * get_quantize_reconstruct(int log2TrafoSize, hevcasm_code code)
 {
 	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
 	auto mask = buffer.isa;
@@ -637,7 +637,7 @@ hevcasm_quantize_reconstruct * HEVCASM_API get_quantize_reconstruct(int log2Traf
 }
 
 
-void HEVCASM_API hevcasm_populate_quantize_reconstruct(hevcasm_table_quantize_reconstruct *table, hevcasm_code code)
+void hevcasm_populate_quantize_reconstruct(hevcasm_table_quantize_reconstruct *table, hevcasm_code code)
 {
 	for (int log2TrafoSize = 2; log2TrafoSize < 6; ++log2TrafoSize)
 	{
@@ -649,9 +649,9 @@ void HEVCASM_API hevcasm_populate_quantize_reconstruct(hevcasm_table_quantize_re
 typedef struct
 {
 	HEVCASM_ALIGN(32, uint8_t, rec[32 * 32]);
-	ptrdiff_t stride_rec;
+	intptr_t stride_rec;
 	const uint8_t *pred;
-	ptrdiff_t stride_pred;
+	intptr_t stride_pred;
 	const int16_t *res;
 	int log2TrafoSize;
 	hevcasm_quantize_reconstruct *f;
@@ -712,7 +712,7 @@ int mismatch_quantize_reconstruct(void *boundRef, void *boundTest)
 
 
 
-void HEVCASM_API hevcasm_test_quantize_reconstruct(int *error_count, hevcasm_instruction_set mask)
+void hevcasm_test_quantize_reconstruct(int *error_count, hevcasm_instruction_set mask)
 {
 	printf("\nhevcasm_quantize_reconstruct - Reconstruction\n");
 

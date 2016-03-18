@@ -60,10 +60,10 @@ Consider this a reference implementation: it will not run fast.
 */
 template <typename Dst, typename Src>
 static void hevcasm_pred_uni_generic(
-	Dst *dst, ptrdiff_t stride_dst,
-	Src const *src, ptrdiff_t stride_src,
+	Dst *dst, intptr_t stride_dst,
+	Src const *src, intptr_t stride_src,
 	int w, int h, 
-	ptrdiff_t stride_tap, 
+	intptr_t stride_tap, 
 	int n, int fractionalPosition, int shift, int add, int bitDepth)
 {
 	while (h--)
@@ -74,7 +74,7 @@ static void hevcasm_pred_uni_generic(
 
 			for (int k = 0; k<n; ++k)
 			{
-				const ptrdiff_t src_offset = x + (k - n / 2 + 1) * stride_tap;
+				const intptr_t src_offset = x + (k - n / 2 + 1) * stride_tap;
 
 				a += hevcasm_pred_coefficient(n, fractionalPosition, k) * src[src_offset];
 			}
@@ -96,7 +96,7 @@ static void hevcasm_pred_uni_generic(
 
 
 template <typename Sample>
-void hevcasm_pred_uni_copy_block(Sample *dst, ptrdiff_t stride_dst, const Sample *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
+void hevcasm_pred_uni_copy_block(Sample *dst, intptr_t stride_dst, const Sample *ref, intptr_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
 {
 	assert(!xFrac);
 	assert(!yFrac);
@@ -110,7 +110,7 @@ void hevcasm_pred_uni_copy_block(Sample *dst, ptrdiff_t stride_dst, const Sample
 
 
 template <typename Sample>
-void hevcasm_pred_uni_8tap_h(Sample *dst, ptrdiff_t stride_dst, const Sample *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
+void hevcasm_pred_uni_8tap_h(Sample *dst, intptr_t stride_dst, const Sample *ref, intptr_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
 {
 	assert(xFrac);
 	assert(!yFrac);
@@ -119,7 +119,7 @@ void hevcasm_pred_uni_8tap_h(Sample *dst, ptrdiff_t stride_dst, const Sample *re
 
 
 template <typename Sample>
-void hevcasm_pred_uni_8tap_v(Sample *dst, ptrdiff_t stride_dst, const Sample *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
+void hevcasm_pred_uni_8tap_v(Sample *dst, intptr_t stride_dst, const Sample *ref, intptr_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
 {
 	assert(!xFrac);
 	assert(yFrac);
@@ -128,7 +128,7 @@ void hevcasm_pred_uni_8tap_v(Sample *dst, ptrdiff_t stride_dst, const Sample *re
 
 
 template <typename Sample>
-void hevcasm_pred_uni_8tap_hv(Sample *dst, ptrdiff_t stride_dst, const Sample *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
+void hevcasm_pred_uni_8tap_hv(Sample *dst, intptr_t stride_dst, const Sample *ref, intptr_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
 {
 	int intermediate[(64 + 7) * 64];
 
@@ -149,7 +149,7 @@ void hevcasm_pred_uni_8tap_hv(Sample *dst, ptrdiff_t stride_dst, const Sample *r
 
 
 template <typename Sample>
-void hevcasm_pred_uni_4tap_h(Sample *dst, ptrdiff_t stride_dst, const Sample *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
+void hevcasm_pred_uni_4tap_h(Sample *dst, intptr_t stride_dst, const Sample *ref, intptr_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
 {
 	assert(xFrac);
 	assert(!yFrac);
@@ -158,7 +158,7 @@ void hevcasm_pred_uni_4tap_h(Sample *dst, ptrdiff_t stride_dst, const Sample *re
 
 
 template <typename Sample>
-void hevcasm_pred_uni_4tap_v(Sample *dst, ptrdiff_t stride_dst, const Sample *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
+void hevcasm_pred_uni_4tap_v(Sample *dst, intptr_t stride_dst, const Sample *ref, intptr_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
 {
 	assert(!xFrac);
 	assert(yFrac);
@@ -167,7 +167,7 @@ void hevcasm_pred_uni_4tap_v(Sample *dst, ptrdiff_t stride_dst, const Sample *re
 
 
 template <typename Sample>
-void hevcasm_pred_uni_4tap_hv(Sample *dst, ptrdiff_t stride_dst, const Sample *ref, ptrdiff_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
+void hevcasm_pred_uni_4tap_hv(Sample *dst, intptr_t stride_dst, const Sample *ref, intptr_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
 {
 	int intermediate[(32 + 3) * 64];
 
@@ -234,10 +234,10 @@ struct PredUniCopy
 	}
 };
 
-typedef void hevcasm_pred_uni_8to16(int16_t *dst, ptrdiff_t stride_dst, const uint8_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-typedef void hevcasm_pred_uni_16to8(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *ref, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
-typedef void hevcasm_pred_bi_v_16to16(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, ptrdiff_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB);
-typedef void hevcasm_pred_bi_copy(uint8_t *dst, ptrdiff_t stride_dst, const uint8_t *ref0, const uint8_t *ref1, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1, int bitDepth);
+typedef void hevcasm_pred_uni_8to16(int16_t *dst, intptr_t stride_dst, const uint8_t *ref, intptr_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
+typedef void hevcasm_pred_uni_16to8(uint8_t *dst, intptr_t stride_dst, const int16_t *ref, intptr_t stride_ref, int nPbW, int nPbH, int xFrac, int yFrac);
+typedef void hevcasm_pred_bi_v_16to16(uint8_t *dst, intptr_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, intptr_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB);
+typedef void hevcasm_pred_bi_copy(uint8_t *dst, intptr_t stride_dst, const uint8_t *ref0, const uint8_t *ref1, intptr_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1, int bitDepth);
 
 
 template <typename Sample>
@@ -739,7 +739,7 @@ struct PredInter
 		jg("loop");
 	}
 
-	// void hevcasm_pred_bi_v_%1tap_16to16_%3xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, ptrdiff_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB)//
+	// void hevcasm_pred_bi_v_%1tap_16to16_%3xh_sse4(uint8_t *dst, intptr_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, intptr_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB)//
 	void PRED_BI_V_8NxH(int taps, int inputTypeSize, int width)
 	{
 		// taps is number of filter taps (4 or 8)//
@@ -747,7 +747,7 @@ struct PredInter
 		// width is block width (number of samples, multiple of 8)
 		assert(inputTypeSize == 16);
 
-		// // void hevcasm_pred_bi_v_%1tap_16to16_%3xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, ptrdiff_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB)//
+		// // void hevcasm_pred_bi_v_%1tap_16to16_%3xh_sse4(uint8_t *dst, intptr_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, intptr_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB)//
 		// INIT_XMM sse4
 		// cglobal pred_bi_v_%1tap_16to16_%3xh, 9, 9, 8
 
@@ -1009,10 +1009,10 @@ typedef struct
 	HEVCASM_ALIGN(32, uint16_t, dst16[64 * STRIDE_DST]);
 	hevcasm_pred_uni_8to8 *f8;
 	hevcasm_pred_uni_16to16 *f16;
-	ptrdiff_t stride_dst;
+	intptr_t stride_dst;
 	const uint8_t *ref8;
 	const uint16_t *ref16;
-	ptrdiff_t stride_ref;
+	intptr_t stride_ref;
 	int w;
 	int h;
 	int xFrac;
@@ -1117,7 +1117,7 @@ static void test_partitions(int *error_count, bound_pred_uni *b, hevcasm_instruc
 }
 
 
-void HEVCASM_API hevcasm_test_pred_uni(int *error_count, hevcasm_instruction_set mask)
+void hevcasm_test_pred_uni(int *error_count, hevcasm_instruction_set mask)
 {
 	printf("\nhevcasm_pred_uni - Unireference Inter Prediction (single-reference motion compensation)\n");
 
@@ -1155,7 +1155,7 @@ void HEVCASM_API hevcasm_test_pred_uni(int *error_count, hevcasm_instruction_set
 }
 
 
-void hevcasm_pred_bi_mean_32and32to8_c_ref(uint8_t *dst, ptrdiff_t stride_dst, const int *ref0, const int *ref1, ptrdiff_t stride_ref, int w, int h, int bits, int shift)
+void hevcasm_pred_bi_mean_32and32to8_c_ref(uint8_t *dst, intptr_t stride_dst, const int *ref0, const int *ref1, intptr_t stride_ref, int w, int h, int bits, int shift)
 {
 	assert(bits == 8);
 	for (int y = 0; y < h; ++y)
@@ -1171,7 +1171,7 @@ void hevcasm_pred_bi_mean_32and32to8_c_ref(uint8_t *dst, ptrdiff_t stride_dst, c
 
 
 template <typename Sample>
-void hevcasm_pred_bi_mean_c_ref(Sample *dst, ptrdiff_t stride_dst, const int *ref0, const int *ref1, ptrdiff_t stride_ref, int w, int h, int bits, int shift)
+void hevcasm_pred_bi_mean_c_ref(Sample *dst, intptr_t stride_dst, const int *ref0, const int *ref1, intptr_t stride_ref, int w, int h, int bits, int shift)
 {
 	for (int y = 0; y < h; ++y)
 	{
@@ -1186,7 +1186,7 @@ void hevcasm_pred_bi_mean_c_ref(Sample *dst, ptrdiff_t stride_dst, const int *re
 
 
 template <typename Sample, int taps>
-void hevcasmPredBi_c_ref(Sample *dst, ptrdiff_t stride_dst, const Sample *ref0, const Sample *ref1, ptrdiff_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1, int bitDepth)
+void hevcasmPredBi_c_ref(Sample *dst, intptr_t stride_dst, const Sample *ref0, const Sample *ref1, intptr_t stride_ref, int nPbW, int nPbH, int xFrac0, int yFrac0, int xFrac1, int yFrac1, int bitDepth)
 {
 	int intermediate[4][(64 + taps - 1) * 64];
 
@@ -1328,7 +1328,7 @@ struct PredBi
 		mov(r8, r10); //yFrac1
 
 		// inline "function"
-		// void hevcasm_pred_bi_v_%1tap_16to16_%3xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, ptrdiff_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB)//
+		// void hevcasm_pred_bi_v_%1tap_16to16_%3xh_sse4(uint8_t *dst, intptr_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, intptr_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB)//
 		this->PRED_BI_V_8NxH(this->taps, 16, this->width);
 
 
@@ -1647,7 +1647,7 @@ struct PredBi
 	}
 
 
-	// void hevcasm_pred_bi_v_%1tap_16to16_%3xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, ptrdiff_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB)//
+	// void hevcasm_pred_bi_v_%1tap_16to16_%3xh_sse4(uint8_t *dst, intptr_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, intptr_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB)//
 	void PRED_BI_V_8NxH(int taps, int inputTypeSize, int width)
 	{
 		// taps is number of filter taps (4 or 8)//
@@ -1655,7 +1655,7 @@ struct PredBi
 		// width is block width (number of samples, multiple of 8)
 		assert(inputTypeSize == 16);
 
-		// // void hevcasm_pred_bi_v_%1tap_16to16_%3xh_sse4(uint8_t *dst, ptrdiff_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, ptrdiff_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB)//
+		// // void hevcasm_pred_bi_v_%1tap_16to16_%3xh_sse4(uint8_t *dst, intptr_t stride_dst, const int16_t *refAtop, const int16_t *refBtop, intptr_t stride_ref, int nPbW, int nPbH, int yFracA, int yFracB)//
 		// INIT_XMM sse4
 		// cglobal pred_bi_v_%1tap_16to16_%3xh, 9, 9, 8
 
@@ -1858,10 +1858,10 @@ typedef struct
 	HevcasmPredBi<uint16_t> *f16;
 	HEVCASM_ALIGN(32, uint8_t, dst8[64 * STRIDE_DST]);
 	HEVCASM_ALIGN(32, uint16_t, dst16[64 * STRIDE_DST]);
-	ptrdiff_t stride_dst;
+	intptr_t stride_dst;
 	const uint8_t *ref8[2];
 	const uint16_t *ref16[2];
-	ptrdiff_t stride_ref;
+	intptr_t stride_ref;
 	int w;
 	int h;
 	int xFracA;
@@ -1969,7 +1969,7 @@ static void test_partitions_bi(int *error_count, bound_pred_bi *b, hevcasm_instr
 }
 
 
-void HEVCASM_API hevcasm_test_pred_bi(int *error_count, hevcasm_instruction_set mask)
+void hevcasm_test_pred_bi(int *error_count, hevcasm_instruction_set mask)
 {
 	printf("\nhevcasm_pred_bi - Bireference Inter Prediction (two-reference motion compensation)\n");
 
