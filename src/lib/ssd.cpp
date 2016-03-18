@@ -12,9 +12,9 @@
 
 
 template <typename Sample>
-static int hevcasm_ssd_c_ref(const Sample *pA, intptr_t strideA, const Sample *pB, intptr_t strideB, int w, int h)
+static uint32_t hevcasm_ssd_c_ref(const Sample *pA, intptr_t strideA, const Sample *pB, intptr_t strideB, int w, int h)
 {
-	int ssd = 0;
+	uint32_t ssd = 0;
 	for (int y = 0; y < h; ++y)
 	{
 		for (int x = 0; x < w; ++x)
@@ -134,7 +134,11 @@ void hevcasm_populate_ssd(hevcasm_table_ssd<Sample> *table, hevcasm_code code)
 
 	if (buffer.isa & HEVCASM_AVX)
 	{
-		if (sizeof(Sample) == 1)
+		if (sizeof(Sample) == 2)
+		{
+			Ssd<Sample> ssd(&buffer, 8, 8);
+			*hevcasm_get_ssd(table, 3) = ssd;
+		}
 		{
 			Ssd<Sample> ssd(&buffer, 16, 16);
 			*hevcasm_get_ssd(table, 4) = ssd;
@@ -155,7 +159,7 @@ void hevcasm_populate_ssd(hevcasm_table_ssd<Sample> *table, hevcasm_code code)
 struct BoundSsdBase
 {
 	int log2TrafoSize;
-	int ssd;
+	uint32_t ssd;
 	int bits;
 };
 
@@ -235,14 +239,14 @@ int mismatch_ssd(void *boundRef, void *boundTest)
 
 template <typename Sample>
 void testSsd(int *error_count, hevcasm_instruction_set mask)
-{
-	Sample  srcA[64 * 96];
-	Sample  srcB[64 * 96];
+{	
+	Sample  srcA[64 * 64 * 2];
+	Sample  srcB[64 * 64 * 2];
 
-	for (int i = 0; i < 64 * 96; ++i)
+	for (int i = 0; i < 64 * 64 * 2; ++i)
 	{
-		srcA[i] = rand() & 0xff;
-		srcB[i] = rand() & 0xff;
+		srcA[i] = rand() & 0x3ff;
+		srcB[i] = rand() & 0x3ff;
 	}
 
 	BoundSsd<Sample> b[2];

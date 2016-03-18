@@ -140,11 +140,11 @@ static hevcasm_quantize_inverse * get_quantize_inverse(hevcasm_code code)
 	
 	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT)) f = hevcasm_quantize_inverse_c_ref;
 
-	//if (buffer.isa & HEVCASM_SSE41)
-	//{
-	//	InverseQuantise inverseQuantise(&buffer);
-	//	f = inverseQuantise;
-	//}
+	if (buffer.isa & HEVCASM_SSE41)
+	{
+		InverseQuantise inverseQuantise(&buffer);
+		f = inverseQuantise;
+	}
 	return f;
 }
 

@@ -15,7 +15,7 @@
 
 
 template <typename Sample>
-using hevcasm_ssd = int(Sample const *srcA, intptr_t stride_srcA, Sample const *srcB, intptr_t stride_srcB, int w, int h);
+using hevcasm_ssd = uint32_t(Sample const *srcA, intptr_t stride_srcA, Sample const *srcB, intptr_t stride_srcB, int w, int h);
 
 
 template <typename Sample>
