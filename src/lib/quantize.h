@@ -28,13 +28,13 @@ typedef void hevcasm_quantize_inverse(int16_t *dst, const int16_t *src, int scal
 
 typedef struct
 {
-	hevcasm_quantize_inverse *p;
+	hevcasm_quantize_inverse *p[2];
 }
 hevcasm_table_quantize_inverse;
 
-static hevcasm_quantize_inverse** hevcasm_get_quantize_inverse(hevcasm_table_quantize_inverse *table)
+static hevcasm_quantize_inverse** hevcasm_get_quantize_inverse(hevcasm_table_quantize_inverse *table, int scale, int shift)
 {
-	return &table->p;
+	return &table->p[!!(scale & ((1 << shift) - 1))];
 }
 
 void hevcasm_populate_quantize_inverse(hevcasm_table_quantize_inverse *table, hevcasm_code code);

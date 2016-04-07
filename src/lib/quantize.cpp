@@ -6,7 +6,7 @@
 
 #include "quantize.h"
 #include "hevcasm_test.h"
-#include <Jit.h>
+#include "Jit.h"
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -35,20 +35,25 @@ struct InverseQuantise
 	:
 	Jit::Function
 {
-	InverseQuantise(Jit::Buffer *buffer)
+	InverseQuantise(Jit::Buffer *buffer, bool round)
 		:
-		Jit::Function(buffer, Jit::CountArguments<hevcasm_quantize_inverse>::value)
+		Jit::Function(buffer, Jit::CountArguments<hevcasm_quantize_inverse>::value),
+		round(round)
 	{
 		this->build();
 	}
 
+	bool round;
 	Xbyak::Label ones_w;
 
 	void data()
 	{
-		align();
-		L(ones_w);
-		dw({ 1 }, 8);
+		if (this->round)
+		{
+			align();
+			L(ones_w);
+			dw({ 1 }, 8);
+		}
 	}
 
 	void assemble()
@@ -65,27 +70,37 @@ struct InverseQuantise
 		auto &m3 = regXmm(3);
 		auto &m4 = regXmm(4);
 		auto &m5 = regXmm(5);
-		auto &m6 = regXmm(6);
-		auto &m7 = regXmm(7);
-
-		movdqa(m0, ptr[rip + ones_w]);
 
 		Xbyak::Reg32 r2d(r2.getIdx());
 		Xbyak::Reg32 r3d(r3.getIdx());
+		Xbyak::Reg8 r3b(r3.getIdx());
 		Xbyak::Reg32 r4d(r4.getIdx());
 
-		movd(m1, r3d);
-		//  m1 = shift
+		if (this->round)
+		{
+			movdqa(m0, ptr[rip + ones_w]);
 
-		Xbyak::Reg8 r3b(r3.getIdx());
+			//  m1 = shift
+			movd(m1, r3d);
+			add(r3b, 15);
+			bts(r2d, r3d);
+			// r2d = (0x10000 << (shift - 1)) + scale
+		}
+		else
+		{
 
-		add(r3b, 15);
-		bts(r2d, r3d);
-		// r2d = (0x10000 << (shift - 1)) + scale
+			pxor(m0, m0);
+
+			// scale >>= shift
+			auto &r5 = reg64(5);
+			mov(r5, rcx);
+			mov(cl, r3d);
+			shr(r2d, cl);
+			mov(rcx, r5);
+		}
 
 		movd(m2, r2d);
 		pshufd(m2, m2, 0);
-		// m2 = 1 << (shift - 1), scale, 1 << (shift - 1), scale, 1 << (shift - 1), scale, 1 << (shift - 1), scale
 
 		shr(r4d, 4);
 		// r4 = n / 16
@@ -111,11 +126,14 @@ struct InverseQuantise
 				pmaddwd(m5, m2);
 				// m5 = (1 << (shift - 1)) + src[3] * scale, (1 << (shift - 1)) + src[2] * scale, (1 << (shift - 1)) + src[1] * scale, (1 << (shift - 1)) + src[0] * scale
 
-				psrad(m4, m1);
-				// m4 = ((1 << (shift - 1)) + src[7] * scale) >> shift, ((1 << (shift - 1)) + src[6] * scale) >> shift, ((1 << (shift - 1)) + src[5] * scale) >> shift, ((1 << (shift - 1)) + src[4] * scale) >> shift
+				if (this->round)
+				{
+					psrad(m4, m1);
+					// m4 = ((1 << (shift - 1)) + src[7] * scale) >> shift, ((1 << (shift - 1)) + src[6] * scale) >> shift, ((1 << (shift - 1)) + src[5] * scale) >> shift, ((1 << (shift - 1)) + src[4] * scale) >> shift
 
-				psrad(m5, m1);
-				// m5 = ((1 << (shift - 1)) + src[3] * scale) >> shift, ((1 << (shift - 1)) + src[2] * scale) >> shift, ((1 << (shift - 1)) + src[1] * scale) >> shift, ((1 << (shift - 1)) + src[0] * scale) >> shift
+					psrad(m5, m1);
+					// m5 = ((1 << (shift - 1)) + src[3] * scale) >> shift, ((1 << (shift - 1)) + src[2] * scale) >> shift, ((1 << (shift - 1)) + src[1] * scale) >> shift, ((1 << (shift - 1)) + src[0] * scale) >> shift
+				}
 
 				packssdw(m5, m4);
 				// m5 = ((1 << (shift - 1)) + src[7] * scale) >> shift, ((1 << (shift - 1)) + src[6] * scale) >> shift, ((1 << (shift - 1)) + src[5] * scale) >> shift, ((1 << (shift - 1)) + src[4] * scale) >> shift, ((1 << (shift - 1)) + src[3] * scale) >> shift, ((1 << (shift - 1)) + src[2] * scale) >> shift, ((1 << (shift - 1)) + src[1] * scale) >> shift, ((1 << (shift - 1)) + src[0] * scale) >> shift
@@ -134,24 +152,29 @@ struct InverseQuantise
 
 static hevcasm_quantize_inverse * get_quantize_inverse(hevcasm_code code)
 {
-	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
-
-	hevcasm_quantize_inverse *f = 0;
-	
-	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT)) f = hevcasm_quantize_inverse_c_ref;
-
-	if (buffer.isa & HEVCASM_SSE41)
-	{
-		InverseQuantise inverseQuantise(&buffer);
-		f = inverseQuantise;
-	}
-	return f;
 }
 
 
 void hevcasm_populate_quantize_inverse(hevcasm_table_quantize_inverse *table, hevcasm_code code)
 {
-	table->p = get_quantize_inverse(code);
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+
+	table->p[0] = 0;
+	table->p[1] = 0;
+
+	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
+	{
+		table->p[0] = hevcasm_quantize_inverse_c_ref;
+		table->p[1] = hevcasm_quantize_inverse_c_ref;
+	}
+
+	if (buffer.isa & HEVCASM_SSE41)
+	{
+		InverseQuantise inverseQuantise0(&buffer, false);
+		table->p[0] = inverseQuantise0;
+		InverseQuantise inverseQuantise1(&buffer, true);
+		table->p[1] = inverseQuantise1;
+	}
 }
 
 
@@ -177,12 +200,12 @@ int init_quantize_inverse(void *p, hevcasm_code code)
 
 	hevcasm_populate_quantize_inverse(&table, code);
 
-	s->f = *hevcasm_get_quantize_inverse(&table);
+	s->f = *hevcasm_get_quantize_inverse(&table, s->scale, s->shift);
 	
 	if (s->f && buffer.isa == HEVCASM_C_REF)
 	{
 		const int nCbS = 1 << s->log2TrafoSize;
-		printf("\t%dx%d : ", nCbS, nCbS);
+		printf("\t%s%dx%d : ", s->scale < 1000 ? "round " : "", nCbS, nCbS);
 	}
 
 	return !!s->f;
@@ -222,13 +245,20 @@ void hevcasm_test_quantize_inverse(int *error_count, hevcasm_instruction_set mas
 		
 	hevcasm_bound_quantize_inverse b[2];
 	b[0].src = src;
-	b[0].scale = 51;
-	b[0].shift = 14;
 
-	for (b[0].log2TrafoSize = 2; b[0].log2TrafoSize <= 5; ++b[0].log2TrafoSize)
+	int const log2TrafoSize = 3;
+	int const bitDepth = 8;
+
+	for (int i = 0; i < 2; ++i)
 	{
-		b[1] = b[0];
-		*error_count += hevcasm_test(&b[0], &b[1], init_quantize_inverse, invoke_quantize_inverse, mismatch_quantize_inverse, mask, 100000);
+		b[0].scale = i ? 52224 : 51;
+
+		for (b[0].log2TrafoSize = 2; b[0].log2TrafoSize <= 5; ++b[0].log2TrafoSize)
+		{
+			b[0].shift = b[0].log2TrafoSize - 1 + bitDepth - 8;
+			b[1] = b[0];
+			*error_count += hevcasm_test(&b[0], &b[1], init_quantize_inverse, invoke_quantize_inverse, mismatch_quantize_inverse, mask, 100000);
+		}
 	}
 }
 
