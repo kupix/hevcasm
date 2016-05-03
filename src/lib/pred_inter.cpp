@@ -169,7 +169,7 @@ void hevcasm_pred_uni_4tap_v(Sample *dst, intptr_t stride_dst, const Sample *ref
 template <typename Sample>
 void hevcasm_pred_uni_4tap_hv(Sample *dst, intptr_t stride_dst, const Sample *ref, intptr_t stride_ref, int w, int h, int xFrac, int yFrac, int bitDepth)
 {
-	int intermediate[(32 + 3) * 64];
+	int intermediate[(64 + 3) * 64];
 
 	int shift1 = bitDepth - 8;
 	if (shift1 > 4) shift1 = 4;
@@ -180,10 +180,10 @@ void hevcasm_pred_uni_4tap_hv(Sample *dst, intptr_t stride_dst, const Sample *re
 	if (shift3 < 2) shift3 = 2;
 
 	/* Horizontal filter */
-	hevcasm_pred_uni_generic(intermediate, 32, ref - stride_ref, stride_ref, w, h + 3, 1, 4, xFrac, shift1, 0, 0);
+	hevcasm_pred_uni_generic(intermediate, 64, ref - stride_ref, stride_ref, w, h + 3, 1, 4, xFrac, shift1, 0, 0);
 
 	/* Vertical filter */
-	hevcasm_pred_uni_generic(dst, stride_dst, intermediate + 32, 32, w, h, 32, 4, yFrac, shift2 + shift3, 1, bitDepth);
+	hevcasm_pred_uni_generic(dst, stride_dst, intermediate + 64, 64, w, h, 64, 4, yFrac, shift2 + shift3, 1, bitDepth);
 }
 
 
@@ -895,7 +895,7 @@ template <typename Sample>
 void hevcasmPopulatePredUni(HevcasmTablePredUni<Sample> *table, hevcasm_code code)
 {
 	for (int taps = 4; taps <= 8; taps += 4)
-		for (int w = taps; w <= 8 * taps; w += taps)
+		for (int w = taps; w <= 64; w += taps)
 		{
 			for (int xFrac = 0; xFrac < 2; ++xFrac)
 				for (int yFrac = 0; yFrac < 2; ++yFrac)
@@ -908,7 +908,7 @@ void hevcasmPopulatePredUni(HevcasmTablePredUni<Sample> *table, hevcasm_code cod
 
 	if (buffer.isa & HEVCASM_C_REF)
 		for (int taps = 4; taps <= 8; taps += 4)
-			for (int w = 0; w <= 8 * taps; w += taps)
+			for (int w = 0; w <= 64; w += taps)
 				for (int xFrac = 0; xFrac < 2; ++xFrac)
 					for (int yFrac = 0; yFrac < 2; ++yFrac)
 						for (int bitDepth = 8; bitDepth <= 10; ++bitDepth)
@@ -918,24 +918,25 @@ void hevcasmPopulatePredUni(HevcasmTablePredUni<Sample> *table, hevcasm_code cod
 	if (buffer.isa & HEVCASM_C_OPT)
 		for (int bitDepth = 8; bitDepth <= 10; ++bitDepth)
 		{
-			for (int w = 8; w <= 64; w += 8)
+			for (int w = 1; w <= 64; ++w)
 			{
 				if (!legalWidth(w)) continue;
 
-				*hevcasmGetPredUni(table, 8, w, 0, 0, 0, bitDepth) = hevcasm_pred_uni_copy_block<Sample>;
-				*hevcasmGetPredUni(table, 8, w, 0, 1, 0, bitDepth) = hevcasm_pred_uni_8tap_h<Sample>;
-				*hevcasmGetPredUni(table, 8, w, 0, 0, 1, bitDepth) = hevcasm_pred_uni_8tap_v<Sample>;
-				*hevcasmGetPredUni(table, 8, w, 0, 1, 1, bitDepth) = hevcasm_pred_uni_8tap_hv<Sample>;
-			}
+				if (w >= 4 && w != 6)
+				{
+					*hevcasmGetPredUni(table, 8, w, 0, 0, 0, bitDepth) = hevcasm_pred_uni_copy_block<Sample>;
+					*hevcasmGetPredUni(table, 8, w, 0, 1, 0, bitDepth) = hevcasm_pred_uni_8tap_h<Sample>;
+					*hevcasmGetPredUni(table, 8, w, 0, 0, 1, bitDepth) = hevcasm_pred_uni_8tap_v<Sample>;
+					*hevcasmGetPredUni(table, 8, w, 0, 1, 1, bitDepth) = hevcasm_pred_uni_8tap_hv<Sample>;
+				}
 
-			for (int w = 4; w <= 32; w += 4)
-			{
-				if (!legalWidth(w)) continue;
-
-				*hevcasmGetPredUni(table, 4, w, 0, 0, 0, bitDepth) = hevcasm_pred_uni_copy_block<Sample>;
-				*hevcasmGetPredUni(table, 4, w, 0, 1, 0, bitDepth) = hevcasm_pred_uni_4tap_h<Sample>;
-				*hevcasmGetPredUni(table, 4, w, 0, 0, 1, bitDepth) = hevcasm_pred_uni_4tap_v<Sample>;
-				*hevcasmGetPredUni(table, 4, w, 0, 1, 1, bitDepth) = hevcasm_pred_uni_4tap_hv<Sample>;
+				if (w >= 2 && w != 3)
+				{
+					*hevcasmGetPredUni(table, 4, w, 0, 0, 0, bitDepth) = hevcasm_pred_uni_copy_block<Sample>;
+					*hevcasmGetPredUni(table, 4, w, 0, 1, 0, bitDepth) = hevcasm_pred_uni_4tap_h<Sample>;
+					*hevcasmGetPredUni(table, 4, w, 0, 0, 1, bitDepth) = hevcasm_pred_uni_4tap_v<Sample>;
+					*hevcasmGetPredUni(table, 4, w, 0, 1, 1, bitDepth) = hevcasm_pred_uni_4tap_hv<Sample>;
+				}
 			}
 		}
 
@@ -951,19 +952,16 @@ void hevcasmPopulatePredUni(HevcasmTablePredUni<Sample> *table, hevcasm_code cod
 
 				*hevcasmGetPredUni(table, 8, w - 8, 0, 0, 0, bitDepth) = a;
 				*hevcasmGetPredUni(table, 8, w, 0, 0, 0, bitDepth) = a;
-				if (w <= 32)
-				{
-					*hevcasmGetPredUni(table, 4, w - 12, 0, 0, 0, bitDepth) = a;
-					*hevcasmGetPredUni(table, 4, w - 8, 0, 0, 0, bitDepth) = a;
-					*hevcasmGetPredUni(table, 4, w - 4, 0, 0, 0, bitDepth) = a;
-					*hevcasmGetPredUni(table, 4, w, 0, 0, 0, bitDepth) = a;
-				}
+				*hevcasmGetPredUni(table, 4, w - 12, 0, 0, 0, bitDepth) = a;
+				*hevcasmGetPredUni(table, 4, w - 8, 0, 0, 0, bitDepth) = a;
+				*hevcasmGetPredUni(table, 4, w - 4, 0, 0, 0, bitDepth) = a;
+				*hevcasmGetPredUni(table, 4, w, 0, 0, 0, bitDepth) = a;
 			}
 	}
 
 	if (buffer.isa & HEVCASM_SSE41)
 		for (int taps = 4; taps <= 8; taps += 4)
-			for (int w = 16; w <= taps * 8; w += 16)
+			for (int w = 16; w <= 64; w += 16)
 			{
 				if (!legalWidth(w)) continue;
 
@@ -979,15 +977,12 @@ void hevcasmPopulatePredUni(HevcasmTablePredUni<Sample> *table, hevcasm_code cod
 				*hevcasmGetPredUni(table, taps, w, 0, 1, 1, bitDepth) = aHV;
 				*hevcasmGetPredUni(table, taps, w - 8, 0, 1, 1, bitDepth) = aHV;
 
-				if (taps == 4)
-				{
-					*hevcasmGetPredUni(table, taps, w - 4, 0, 1, 0, bitDepth) = aH;
-					*hevcasmGetPredUni(table, taps, w - 4 - 8, 0, 1, 0, bitDepth) = aH;
-					*hevcasmGetPredUni(table, taps, w - 4, 0, 0, 1, bitDepth) = aV;
-					*hevcasmGetPredUni(table, taps, w - 4, 0, 1, 1, bitDepth) = aHV;
-					*hevcasmGetPredUni(table, taps, w - 4 - 8, 0, 1, 1, bitDepth) = aHV;
-				}
-
+				*hevcasmGetPredUni(table, taps, w - 4, 0, 1, 0, bitDepth) = aH;
+				*hevcasmGetPredUni(table, taps, w - 4 - 8, 0, 1, 0, bitDepth) = aH;
+				*hevcasmGetPredUni(table, taps, w - 4, 0, 0, 1, bitDepth) = aV;
+				*hevcasmGetPredUni(table, taps, w - 4, 0, 1, 1, bitDepth) = aHV;
+				*hevcasmGetPredUni(table, taps, w - 4 - 8, 0, 1, 1, bitDepth) = aHV;
+	
 				if (legalWidth(w - 8))
 				{
 					PredInter<Sample> aV2(&buffer, n, taps, w - 8, 0, 1, 8, 8);
@@ -1048,7 +1043,7 @@ static int get_pred_uni(void *p, hevcasm_code code)
 
 	if ((s->f8 || s->f16) && buffer.isa == HEVCASM_C_REF)
 	{
-		printf("\t%d-bit %dx%d %d-tap %s%s : ", s->bitDepth, s->w, s->h, s->taps, s->xFrac ? "H" : "", s->yFrac ? "V" : "");
+		printf("\t%d-bit %d-tap %dx%d %s%s : ", s->bitDepth, s->taps, s->w, s->h, s->xFrac ? "H" : "", s->yFrac ? "V" : "");
 	}
 
 	return s->f8 || s->f16;
@@ -1113,6 +1108,24 @@ static void test_partitions(int *error_count, bound_pred_uni *b, hevcasm_instruc
 		b[1] = b[0];
 
 		*error_count += hevcasm_test(&b[0], &b[1], get_pred_uni, invoke_pred_uni, mismatch_pred_uni, mask, 1000);
+	}
+	
+	if (b[0].taps == 4)
+	{
+		// additional tests for large chroma (used with 4:2:2 and 4:4:4)
+
+		for (int k = 17; k < 24; ++k)
+		{
+			const int nPbW = partitions[k][0];
+			const int nPbH = partitions[k][1];
+
+			b[0].w = nPbW;
+			b[0].h = nPbH;
+
+			b[1] = b[0];
+
+			*error_count += hevcasm_test(&b[0], &b[1], get_pred_uni, invoke_pred_uni, mismatch_pred_uni, mask, 1000);
+		}
 	}
 }
 
@@ -1815,14 +1828,14 @@ void hevcasmPopulatePredBi(HevcasmTablePredBi<Sample> *table, hevcasm_code code)
 
 	for (int bitDepth = 8; bitDepth <= 10; ++bitDepth)
 		for (int taps = 4; taps <= 8; taps += 4)
-			for (int w = 0; w <= 8 * taps; w += 2 * taps)
+			for (int w = 0; w <= 64; w += 2 * taps)
 				for (int frac = 0; frac < 2; ++frac)
 					*hevcasmGetPredBi<Sample>(table, taps, w, 0, frac, frac, frac, frac, bitDepth) = 0;
 
 	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
 		for (int bitDepth = 8; bitDepth <= 10; ++bitDepth)
 			for (int taps = 4; taps <= 8; taps += 4)
-				for (int w = 0; w <= 8 * taps; w += 2 * taps)
+				for (int w = 0; w <= 64; w += 2 * taps)
 					for (int frac = 0; frac < 2; ++frac)
 						if (taps == 4)
 							*hevcasmGetPredBi<Sample>(table, taps, w, 0, frac, frac, frac, frac, bitDepth) = hevcasmPredBi_c_ref<Sample, 4>;
@@ -1836,13 +1849,13 @@ void hevcasmPopulatePredBi(HevcasmTablePredBi<Sample> *table, hevcasm_code code)
 
 			PredBi<Sample> a(&buffer, width);
 			for (int taps = 4; taps <= 8; taps += 4)
-				for (int w = 0; w <= 8 * taps && w <= width; w += 2 * taps)
+				for (int w = 0; w <= 64 && w <= width; w += 2 * taps)
 					*hevcasmGetPredBi<Sample>(table, taps, w, 0, 0, 0, 0, 0, bitDepth) = a;
 
 			for (int taps = 4; taps <= 8; taps += 4)
 			{
 				PredBi<Sample> a(&buffer, width, taps);
-				for (int w = 0; w <= 8 * taps && w <= width; w += 2 * taps)
+				for (int w = 0; w <= 64 && w <= width; w += 2 * taps)
 					*hevcasmGetPredBi<Sample>(table, taps, w, 0, 1, 1, 1, 1, bitDepth) = a;
 			}
 		}
@@ -1900,7 +1913,7 @@ int init_pred_bi(void *p, hevcasm_code code)
 
 	if ((s->f8 || s->f16) && buffer.isa == HEVCASM_C_REF)
 	{
-		printf("\t%d-bit %dx%d %d-tap %s%s %s%s : ", s->bitDepth, s->w, s->h, s->taps, s->xFracA ? "H" : "", s->yFracA ? "V" : "", s->xFracB ? "H" : "", s->yFracB ? "V" : "");
+		printf("\t%d-bit  %d-tap %dx%d %s%s %s%s : ", s->bitDepth, s->taps, s->w, s->h, s->xFracA ? "H" : "", s->yFracA ? "V" : "", s->xFracB ? "H" : "", s->yFracB ? "V" : "");
 	}
 
 	return s->f8 || s->f16;
@@ -1946,7 +1959,7 @@ int mismatch_pred_bi(void *boundRef, void *boundTest)
 
 static void test_partitions_bi(int *error_count, bound_pred_bi *b, hevcasm_instruction_set mask)
 {
-	const int partitions[24][2] =
+	const int partitions[22][2] =
 	{
 		{ 8, 8 },
 		{ 16, 4 }, { 16, 8 }, { 16, 12 }, { 16, 16 }, { 12, 16 }, { 8, 16 }, { 4, 16 },
@@ -1959,13 +1972,27 @@ static void test_partitions_bi(int *error_count, bound_pred_bi *b, hevcasm_instr
 		const int nPbW = partitions[k][0];
 		const int nPbH = partitions[k][1];
 
-		b[0].w = nPbW * b[0].taps / 8;
-		b[0].h = nPbH * b[0].taps / 8;
+		b[0].w = nPbW;
+		b[0].h = nPbH;
 
 		b[1] = b[0];
 
 		*error_count += hevcasm_test(&b[0], &b[1], init_pred_bi, invoke_pred_bi, mismatch_pred_bi, mask, 1000);
 	}
+
+	if (b[0].taps == 4)
+		for (int k = 15; k < 22; ++k)
+		{
+			const int nPbW = partitions[k][0];
+			const int nPbH = partitions[k][1];
+
+			b[0].w = nPbW * b[0].taps / 8;
+			b[0].h = nPbH * b[0].taps / 8;
+
+			b[1] = b[0];
+
+			*error_count += hevcasm_test(&b[0], &b[1], init_pred_bi, invoke_pred_bi, mismatch_pred_bi, mask, 1000);
+		}
 }
 
 

@@ -156,7 +156,8 @@ int hevcasm_main(int argc, const char *argv[])
 	hevcasm_test_quantize_reconstruct(&error_count, mask);
 	hevcasm_test_pred_uni(&error_count, mask);
 	hevcasm_test_pred_bi(&error_count, mask);
-	hevcasm_test_inverse_transform_add8(&error_count, mask);
+	hevcasm_test_inverse_transform_add<uint8_t>(&error_count, mask);
+	hevcasm_test_inverse_transform_add<uint16_t>(&error_count, mask);
 	hevcasm_test_transform(&error_count, mask);
 
 	printf("\n");

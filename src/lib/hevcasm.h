@@ -8,7 +8,7 @@
 #define INCLUDED_hevcasm_h
 
 #include <stddef.h>
-#include <inttypes.h>
+#include <stdint.h>
 #include <stdio.h>
 
 
@@ -25,7 +25,7 @@
 
 
 /* compiler-specific inline timestamp function and alignment macro */
-#ifdef WIN32
+#ifdef _MSC_VER
 
 #include <intrin.h>
 

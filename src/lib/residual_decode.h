@@ -11,69 +11,96 @@
 #define INCLUDED_hevcasm_residual_decode_h
 
 #include "hevcasm.h"
+#include <cassert>
 
-#include "assert.h"
+
+using hevcasm_inverse_transform = void(int16_t dst[], int16_t const coeffs[], int bitDepth);
 
 
-#ifdef __cplusplus
-extern "C"
+struct hevcasm_table_inverse_transform
 {
-#endif
+	hevcasm_inverse_transform *sine;
+	hevcasm_inverse_transform *cosine[4];
+};
 
 
-
-typedef void hevcasm_inverse_transform_add8(uint8_t *dst, intptr_t stride_dst, const uint8_t *pred, intptr_t stride_pred, const int16_t *coeffs, int bitDepth);
-typedef void hevcasm_inverse_transform_add16(uint16_t *dst, intptr_t stride_dst, const uint16_t *pred, intptr_t stride_pred, const int16_t *coeffs, int bitDepth);
-
-typedef struct
-{
-	hevcasm_inverse_transform_add8 *dst;
-	hevcasm_inverse_transform_add8 *dct[4];
-}
-hevcasm_table_inverse_transform_add8;
-
-typedef struct
-{
-	hevcasm_inverse_transform_add16 *dst;
-	hevcasm_inverse_transform_add16 *dct[4];
-}
-hevcasm_table_inverse_transform_add16;
-
-static hevcasm_inverse_transform_add8** hevcasm_get_inverse_transform_add8(hevcasm_table_inverse_transform_add8 *table, int trType, int log2TrafoSize)
+static inline hevcasm_inverse_transform** hevcasm_get_inverse_transform(hevcasm_table_inverse_transform *table, int trType, int log2TrafoSize)
 {
 	if (trType)
 	{
 		assert(log2TrafoSize == 2);
-		return &table->dst;
+		return &table->sine;
 	}
 	else
 	{
-		return &table->dct[log2TrafoSize - 2];
+		return &table->cosine[log2TrafoSize - 2];
 	}
 }
 
-static hevcasm_inverse_transform_add16** hevcasm_get_inverse_transform_add16(hevcasm_table_inverse_transform_add16 *table, int trType, int log2TrafoSize)
+
+void hevcasm_populate_inverse_transform(hevcasm_table_inverse_transform *table, hevcasm_code code, int encoder);
+
+
+template <typename Sample>
+using hevcasm_inverse_transform_add = void(Sample *dst, intptr_t stride_dst, Sample const* pred, intptr_t stride_pred, int16_t const coeffs[], int bitDepth);
+
+
+template <typename Sample>
+struct hevcasm_table_inverse_transform_add
+{
+	hevcasm_inverse_transform_add<Sample> *sine;
+	hevcasm_inverse_transform_add<Sample> *cosine[4];
+};
+
+
+template <typename Sample>
+static inline hevcasm_inverse_transform_add<Sample>** hevcasm_get_inverse_transform_add(hevcasm_table_inverse_transform_add<Sample> *table, int trType, int log2TrafoSize)
 {
 	if (trType)
 	{
 		assert(log2TrafoSize == 2);
-		return &table->dst;
+		return &table->sine;
 	}
 	else
 	{
-		return &table->dct[log2TrafoSize - 2];
+		return &table->cosine[log2TrafoSize - 2];
 	}
 }
 
-void hevcasm_populate_inverse_transform_add8(hevcasm_table_inverse_transform_add8 *table, hevcasm_code code, int encoder);
-void hevcasm_populate_inverse_transform_add16(hevcasm_table_inverse_transform_add16 *table, hevcasm_code code, int encoder);
 
-void hevcasm_test_inverse_transform_add8(int *error_count, hevcasm_instruction_set mask);
-void hevcasm_test_inverse_transform_add16(int *error_count, hevcasm_instruction_set mask);
+template <typename Sample>
+void hevcasm_populate_inverse_transform_add(hevcasm_table_inverse_transform_add<Sample> *table, hevcasm_code code, int encoder);
+
+
+template <typename Sample>
+void hevcasm_test_inverse_transform_add(int *error_count, hevcasm_instruction_set mask);
+
+
+static int hevcasm_clip(int x, int bit_depth)
+{
+	if (x < 0) return 0;
+	int const max = (int)(1 << bit_depth) - 1;
+	if (x > max) return max;
+	return x;
+}
+
+
+template <typename Sample>
+void hevcasm_add_residual(int n, Sample* dst, intptr_t stride_dst, Sample const* pred, intptr_t stride_pred, int16_t *residual, int bitDepth)
+{
+	for (int y = 0; y < n; ++y)
+	{
+		for (int x = 0; x < n; ++x)
+		{
+			dst[x + y * stride_dst] = hevcasm_clip(pred[x + y * stride_pred] + residual[x + y * n], bitDepth);
+		}
+	}
+}
 
 
 // Review: this is an encode function in a file called "residual_decode.h"
 typedef void hevcasm_transform(int16_t *coeffs, const int16_t *src, intptr_t src_stride);
+
 
 typedef struct
 {
@@ -81,6 +108,7 @@ typedef struct
 	hevcasm_transform *dct[4];
 }
 hevcasm_table_transform;
+
 
 static hevcasm_transform** hevcasm_get_transform(hevcasm_table_transform *table, int trType, int log2TrafoSize)
 {
@@ -98,38 +126,5 @@ static hevcasm_transform** hevcasm_get_transform(hevcasm_table_transform *table,
 void hevcasm_populate_transform(hevcasm_table_transform *table, hevcasm_code code);
 
 void hevcasm_test_transform(int *error_count, hevcasm_instruction_set mask);
-
-
-
-#ifdef __cplusplus
-}
-
-template <typename Sample>
-struct HevcasmInverseTransformAdd;
-
-template <>
-struct HevcasmInverseTransformAdd<uint8_t>
-{
-	typedef hevcasm_inverse_transform_add8 Function;
-	typedef hevcasm_table_inverse_transform_add8 Table;
-	static Function** get(Table *table, int trType, int log2TrafoSize)
-	{
-		return hevcasm_get_inverse_transform_add8(table, trType, log2TrafoSize);
-	}
-};
-
-template <>
-struct HevcasmInverseTransformAdd<uint16_t>
-{
-	typedef hevcasm_inverse_transform_add16 Function;
-	typedef hevcasm_table_inverse_transform_add16 Table;
-	static Function** get(Table *table, int trType, int log2TrafoSize)
-	{
-		return hevcasm_get_inverse_transform_add16(table, trType, log2TrafoSize);
-	}
-};
-
-
-#endif
 
 #endif

@@ -50,7 +50,12 @@ static void hevcasm_inverse_partial_butterfly_4x4_dst_c_opt(int16_t dst[4 * 4], 
 }
 
 
-static void hevcasm_inverse_partial_butterfly_4x4_c_opt(int16_t dst[4 * 4], const int16_t src[4 * 4], int shift)
+template <int nTbS>
+static void hevcasm_inverse_partial_butterfly_c_opt(int16_t dst[], int16_t const src[], int shift);
+
+
+template <>
+static void hevcasm_inverse_partial_butterfly_c_opt<4>(int16_t dst[], const int16_t src[], int shift)
 {
 	const int add = 1 << (shift - 1);
 	const int src_stride = 4;
@@ -83,7 +88,8 @@ static void hevcasm_inverse_partial_butterfly_4x4_c_opt(int16_t dst[4 * 4], cons
 }
 
 
-static void hevcasm_inverse_partial_butterfly_8x8_c_opt(int16_t dst[8 * 8], const int16_t src[8 * 8], int shift)
+template <>
+static void hevcasm_inverse_partial_butterfly_c_opt<8>(int16_t dst[], const int16_t src[], int shift)
 {
 	const int add = 1 << (shift - 1);
 	const int src_stride = 8;
@@ -133,7 +139,8 @@ static void hevcasm_inverse_partial_butterfly_8x8_c_opt(int16_t dst[8 * 8], cons
 }
 
 
-static void hevcasm_inverse_partial_butterfly_16x16_c_opt(int16_t dst[16 * 16], const int16_t src[16 * 16], int shift)
+template <>
+static void hevcasm_inverse_partial_butterfly_c_opt<16>(int16_t dst[], const int16_t src[], int shift)
 {
 	const int add = 1 << (shift - 1);
 	const int src_stride = 16;
@@ -205,7 +212,8 @@ static void hevcasm_inverse_partial_butterfly_16x16_c_opt(int16_t dst[16 * 16], 
 }
 
 
-static void hevcasm_inverse_partial_butterfly_32x32_c_opt(int16_t dst[32 * 32], const int16_t src[32 * 32], int shift)
+template <>
+static void hevcasm_inverse_partial_butterfly_c_opt<32>(int16_t dst[], const int16_t src[], int shift) 
 {
 	const int add = 1 << (shift - 1);
 	const int src_stride = 32;
@@ -309,53 +317,40 @@ static void hevcasm_inverse_partial_butterfly_32x32_c_opt(int16_t dst[32 * 32], 
 }
 
 
-int hevcasm_clip(int x, int bit_depth)
+template <int nTbS>
+void hevcasm_idst_c_opt(int16_t dst[], int16_t const coeffs[], int bitDepth)
 {
-	if (x < 0) return 0;
-	int const max = (int)(1 << bit_depth) - 1;
-	if (x > max) return max;
-	return x;
+	static_assert(nTbS == 4, "");
+	int16_t temp[4 * 4];
+	hevcasm_inverse_partial_butterfly_4x4_dst_c_opt(temp, coeffs, 7);
+	hevcasm_inverse_partial_butterfly_4x4_dst_c_opt(dst, temp, 20 - bitDepth);
 }
 
 
-void hevcasm_add8_residual(int n, uint8_t *dst, intptr_t stride_dst, const uint8_t *pred, intptr_t stride_pred, int16_t *residual)
+template <int nTbS>
+void hevcasm_idct_c_opt(int16_t dst[], int16_t const coeffs[], int bitDepth)
 {
-	for (int y = 0; y < n; ++y)
-	{
-		for (int x = 0; x < n; ++x)
-		{
-			dst[x + y * stride_dst] = hevcasm_clip(pred[x + y * stride_pred] + residual[x + y * n], 8);
-		}
-	}
-}
-
-void hevcasm_add16_residual(int n, uint16_t *dst, intptr_t stride_dst, const uint16_t *pred, intptr_t stride_pred, int16_t *residual, int bitDepth)
-{
-	for (int y = 0; y < n; ++y)
-	{
-		for (int x = 0; x < n; ++x)
-		{
-			dst[x + y * stride_dst] = hevcasm_clip(pred[x + y * stride_pred] + residual[x + y * n], bitDepth);
-		}
-	}
+	int16_t temp[nTbS * nTbS];
+	hevcasm_inverse_partial_butterfly_c_opt<nTbS>(temp, coeffs, 7);
+	hevcasm_inverse_partial_butterfly_c_opt<nTbS>(dst, temp, 20 - bitDepth);
 }
 
 
 void hevcasm_idct_4x4_c_opt(uint8_t *dst, intptr_t stride_dst, const uint8_t *pred, intptr_t stride_pred, const int16_t coeffs[4 * 4], int bitDepth)
 {
 	int16_t temp[2][4 * 4];
-	hevcasm_inverse_partial_butterfly_4x4_c_opt(temp[0], coeffs, 7);
-	hevcasm_inverse_partial_butterfly_4x4_c_opt(temp[1], temp[0], 20 - bitDepth);
-	hevcasm_add8_residual(4, dst, stride_dst, pred, stride_pred, temp[1]);
+	hevcasm_inverse_partial_butterfly_c_opt<4>(temp[0], coeffs, 7);
+	hevcasm_inverse_partial_butterfly_c_opt<4>(temp[1], temp[0], 20 - bitDepth);
+	hevcasm_add_residual(4, dst, stride_dst, pred, stride_pred, temp[1], 8);
 }
 
 
 void hevcasm_idct_4x4_16_c_opt(uint16_t *dst, intptr_t stride_dst, const uint16_t *pred, intptr_t stride_pred, const int16_t coeffs[4 * 4], int bitDepth)
 {
 	int16_t temp[2][4 * 4];
-	hevcasm_inverse_partial_butterfly_4x4_c_opt(temp[0], coeffs, 7);
-	hevcasm_inverse_partial_butterfly_4x4_c_opt(temp[1], temp[0], 20 - bitDepth);
-	hevcasm_add16_residual(4, dst, stride_dst, pred, stride_pred, temp[1], bitDepth);
+	hevcasm_inverse_partial_butterfly_c_opt<4>(temp[0], coeffs, 7);
+	hevcasm_inverse_partial_butterfly_c_opt<4>(temp[1], temp[0], 20 - bitDepth);
+	hevcasm_add_residual(4, dst, stride_dst, pred, stride_pred, temp[1], bitDepth);
 }
 
 
@@ -364,7 +359,7 @@ void hevcasm_idst_4x4_c_opt(uint8_t *dst, intptr_t stride_dst, const uint8_t *pr
 	int16_t temp[2][4 * 4];
 	hevcasm_inverse_partial_butterfly_4x4_dst_c_opt(temp[0], coeffs, 7);
 	hevcasm_inverse_partial_butterfly_4x4_dst_c_opt(temp[1], temp[0], 20 - bitDepth);
-	hevcasm_add8_residual(4, dst, stride_dst, pred, stride_pred, temp[1]);
+	hevcasm_add_residual(4, dst, stride_dst, pred, stride_pred, temp[1], 8);
 }
 
 
@@ -373,61 +368,17 @@ void hevcasm_idst_4x4_16_c_opt(uint16_t *dst, intptr_t stride_dst, const uint16_
 	int16_t temp[2][4 * 4];
 	hevcasm_inverse_partial_butterfly_4x4_dst_c_opt(temp[0], coeffs, 7);
 	hevcasm_inverse_partial_butterfly_4x4_dst_c_opt(temp[1], temp[0], 20 - bitDepth);
-	hevcasm_add16_residual(4, dst, stride_dst, pred, stride_pred, temp[1], bitDepth);
+	hevcasm_add_residual(4, dst, stride_dst, pred, stride_pred, temp[1], bitDepth);
 }
 
 
-void hevcasm_idct_8x8_c_opt(uint8_t *dst, intptr_t stride_dst, const uint8_t *pred, intptr_t stride_pred, const int16_t coeffs[8 * 8], int bitDepth)
+template <int nTbS, typename Sample>
+void hevcasm_idct_add_c_opt(Sample *dst, intptr_t stride_dst, Sample const* pred, intptr_t stride_pred, int16_t const coeffs[8 * 8], int bitDepth)
 {
-	int16_t temp[2][8 * 8];
-	hevcasm_inverse_partial_butterfly_8x8_c_opt(temp[0], coeffs, 7);
-	hevcasm_inverse_partial_butterfly_8x8_c_opt(temp[1], temp[0], 20 - bitDepth);
-	hevcasm_add8_residual(8, dst, stride_dst, pred, stride_pred, temp[1]);
-}
-
-
-void hevcasm_idct_8x8_16_c_opt(uint16_t *dst, intptr_t stride_dst, const uint16_t *pred, intptr_t stride_pred, const int16_t coeffs[8 * 8], int bitDepth)
-{
-	int16_t temp[2][8 * 8];
-	hevcasm_inverse_partial_butterfly_8x8_c_opt(temp[0], coeffs, 7);
-	hevcasm_inverse_partial_butterfly_8x8_c_opt(temp[1], temp[0], 20 - bitDepth);
-	hevcasm_add16_residual(8, dst, stride_dst, pred, stride_pred, temp[1], bitDepth);
-}
-
-
-void hevcasm_idct_16x16_c_opt(uint8_t *dst, intptr_t stride_dst, const uint8_t *pred, intptr_t stride_pred, const int16_t coeffs[8 * 8], int bitDepth)
-{
-	int16_t temp[2][16 * 16];
-	hevcasm_inverse_partial_butterfly_16x16_c_opt(temp[0], coeffs, 7);
-	hevcasm_inverse_partial_butterfly_16x16_c_opt(temp[1], temp[0], 20 - bitDepth);
-	hevcasm_add8_residual(16, dst, stride_dst, pred, stride_pred, temp[1]);
-}
-
-
-void hevcasm_idct_16x16_16_c_opt(uint16_t *dst, intptr_t stride_dst, const uint16_t *pred, intptr_t stride_pred, const int16_t coeffs[8 * 8], int bitDepth)
-{
-	int16_t temp[2][16 * 16];
-	hevcasm_inverse_partial_butterfly_16x16_c_opt(temp[0], coeffs, 7);
-	hevcasm_inverse_partial_butterfly_16x16_c_opt(temp[1], temp[0], 20 - bitDepth);
-	hevcasm_add16_residual(16, dst, stride_dst, pred, stride_pred, temp[1], bitDepth);
-}
-
-
-void hevcasm_idct_32x32_c_opt(uint8_t *dst, intptr_t stride_dst, const uint8_t *pred, intptr_t stride_pred, const int16_t coeffs[32 * 32], int bitDepth)
-{
-	int16_t temp[2][32 * 32];
-	hevcasm_inverse_partial_butterfly_32x32_c_opt(temp[0], coeffs, 7);
-	hevcasm_inverse_partial_butterfly_32x32_c_opt(temp[1], temp[0], 20 - bitDepth);
-	hevcasm_add8_residual(32, dst, stride_dst, pred, stride_pred, temp[1]);
-}
-
-
-void hevcasm_idct_32x32_16_c_opt(uint16_t *dst, intptr_t stride_dst, const uint16_t *pred, intptr_t stride_pred, const int16_t coeffs[32 * 32], int bitDepth)
-{
-	int16_t temp[2][32 * 32];
-	hevcasm_inverse_partial_butterfly_32x32_c_opt(temp[0], coeffs, 7);
-	hevcasm_inverse_partial_butterfly_32x32_c_opt(temp[1], temp[0], 20 - bitDepth);
-	hevcasm_add16_residual(32, dst, stride_dst, pred, stride_pred, temp[1], bitDepth);
+	int16_t temp[2][nTbS * nTbS];
+	hevcasm_inverse_partial_butterfly_c_opt<nTbS>(temp[0], coeffs, 7);
+	hevcasm_inverse_partial_butterfly_c_opt<nTbS>(temp[1], temp[0], 20 - bitDepth);
+	hevcasm_add_residual(nTbS, dst, stride_dst, pred, stride_pred, temp[1], bitDepth);
 }
 
 
@@ -437,7 +388,7 @@ struct InverseTransformAdd
 {
 	InverseTransformAdd(Jit::Buffer *buffer, int trType, int log2TrafoSize)
 		:
-		Jit::Function(buffer, Jit::CountArguments<hevcasm_inverse_transform_add8>::value),
+		Jit::Function(buffer, Jit::CountArguments<hevcasm_inverse_transform_add<uint8_t>>::value),
 		trType(trType),
 		log2TrafoSize(log2TrafoSize)
 	{
@@ -2866,20 +2817,58 @@ struct InverseTransformAdd
 	int log2TrafoSize;
 };
 
-static hevcasm_inverse_transform_add8* get_inverse_transform_add8(int trType, int log2TrafoSize, hevcasm_code code, int encoder)
+
+
+static hevcasm_inverse_transform* get_inverse_transform(int trType, int log2TrafoSize, hevcasm_code code, int encoder)
+{
+	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+	auto mask = buffer.isa;
+
+	const int nCbS = 1 << log2TrafoSize;
+
+	hevcasm_inverse_transform *f = 0;
+
+	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
+	{
+		if (nCbS == 4) f = trType ? hevcasm_idst_c_opt<4> : hevcasm_idct_c_opt<4>;
+		if (nCbS == 8) f = hevcasm_idct_c_opt<8>;
+		if (nCbS == 16) f = hevcasm_idct_c_opt<16>;
+		if (nCbS == 32) f = hevcasm_idct_c_opt<32>;
+	}
+
+	return f;
+}
+
+
+void hevcasm_populate_inverse_transform(hevcasm_table_inverse_transform* table, hevcasm_code code, int encoder)
+{
+	*hevcasm_get_inverse_transform(table, 1, 2) = get_inverse_transform(1, 2, code, encoder);
+	for (int log2TrafoSize = 2; log2TrafoSize <= 5; ++log2TrafoSize)
+	{
+		*hevcasm_get_inverse_transform(table, 0, log2TrafoSize) = get_inverse_transform(0, log2TrafoSize, code, encoder);
+	}
+}
+
+
+template <typename Sample>
+static hevcasm_inverse_transform_add<Sample>* get_inverse_transform_add(int trType, int log2TrafoSize, hevcasm_code code, int encoder);
+
+
+template<>
+static hevcasm_inverse_transform_add<uint8_t>* get_inverse_transform_add<uint8_t>(int trType, int log2TrafoSize, hevcasm_code code, int encoder)
 {
 	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
 	auto mask = buffer.isa;
 	const int nCbS = 1 << log2TrafoSize;
 
-	hevcasm_inverse_transform_add8 *f = 0;
+	hevcasm_inverse_transform_add<uint8_t> *f = 0;
 
 	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
 		if (nCbS == 4) f = trType ? hevcasm_idst_4x4_c_opt : hevcasm_idct_4x4_c_opt;
-		if (nCbS == 8) f = hevcasm_idct_8x8_c_opt;
-		if (nCbS == 16) f = hevcasm_idct_16x16_c_opt;
-		if (nCbS == 32) f = hevcasm_idct_32x32_c_opt;
+		if (nCbS == 8) f = hevcasm_idct_add_c_opt<8, uint8_t>;
+		if (nCbS == 16) f = hevcasm_idct_add_c_opt<16, uint8_t>;
+		if (nCbS == 32) f = hevcasm_idct_add_c_opt<32, uint8_t>;
 	}
 
 	if (mask & HEVCASM_SSSE3)
@@ -2932,70 +2921,64 @@ static hevcasm_inverse_transform_add8* get_inverse_transform_add8(int trType, in
 	return f;
 }
 
-static hevcasm_inverse_transform_add16* get_inverse_transform_add16(int trType, int log2TrafoSize, hevcasm_code code, int encoder)
+
+template<>
+static hevcasm_inverse_transform_add<uint16_t>* get_inverse_transform_add(int trType, int log2TrafoSize, hevcasm_code code, int encoder)
 {
 	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
 	auto mask = buffer.isa;
 
 	const int nCbS = 1 << log2TrafoSize;
 
-	hevcasm_inverse_transform_add16 *f = 0;
+	hevcasm_inverse_transform_add<uint16_t> *f = 0;
 
 	if (mask & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
 		if (nCbS == 4) f = trType ? hevcasm_idst_4x4_16_c_opt : hevcasm_idct_4x4_16_c_opt;
-		if (nCbS == 8) f = hevcasm_idct_8x8_16_c_opt;
-		if (nCbS == 16) f = hevcasm_idct_16x16_16_c_opt;
-		if (nCbS == 32) f = hevcasm_idct_32x32_16_c_opt;
+		if (nCbS == 8) f = hevcasm_idct_add_c_opt<8, uint16_t>;
+		if (nCbS == 16) f = hevcasm_idct_add_c_opt<16, uint16_t>;
+		if (nCbS == 32) f = hevcasm_idct_add_c_opt<32, uint16_t>;
 	}
 
 	return f;
 }
 
 
-void hevcasm_populate_inverse_transform_add8(hevcasm_table_inverse_transform_add8 *table, hevcasm_code code, int encoder)
+template <typename Sample>
+void hevcasm_populate_inverse_transform_add(hevcasm_table_inverse_transform_add<Sample> *table, hevcasm_code code, int encoder)
 {
-	*hevcasm_get_inverse_transform_add8(table, 1, 2) = get_inverse_transform_add8(1, 2, code, encoder);
+	*hevcasm_get_inverse_transform_add(table, 1, 2) = get_inverse_transform_add<Sample>(1, 2, code, encoder);
 	for (int log2TrafoSize = 2; log2TrafoSize <= 5; ++log2TrafoSize)
 	{
-		*hevcasm_get_inverse_transform_add8(table, 0, log2TrafoSize) = get_inverse_transform_add8(0, log2TrafoSize, code, encoder);
+		*hevcasm_get_inverse_transform_add(table, 0, log2TrafoSize) = get_inverse_transform_add<Sample>(0, log2TrafoSize, code, encoder);
 	}
 }
 
 
-void hevcasm_populate_inverse_transform_add16(hevcasm_table_inverse_transform_add16 *table, hevcasm_code code, int encoder)
-{
-	*hevcasm_get_inverse_transform_add16(table, 1, 2) = get_inverse_transform_add16(1, 2, code, encoder);
-	for (int log2TrafoSize = 2; log2TrafoSize <= 5; ++log2TrafoSize)
-	{
-		*hevcasm_get_inverse_transform_add16(table, 0, log2TrafoSize) = get_inverse_transform_add16(0, log2TrafoSize, code, encoder);
-	}
-}
-
-
-typedef struct
+template <typename Sample>
+struct bind_inverse_transform_add
 {
 	const int16_t *coefficients;
-	const uint8_t *predicted;
-	hevcasm_inverse_transform_add8 *f;
+	const Sample *predicted;
+	hevcasm_inverse_transform_add<Sample> *f;
 	int log2TrafoSize;
 	int trType;
-	uint8_t dst[32 * 32];
-} 
-bind_inverse_transform_add8;
+	Sample dst[32 * 32];
+} ;
 
 
-int init_inverse_transform_add8(void *p, hevcasm_code code)
+template <typename Sample>
+int init_inverse_transform_add(void *p, hevcasm_code code)
 {
 	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
 
-	bind_inverse_transform_add8 *s = (bind_inverse_transform_add8 *)p;
+	bind_inverse_transform_add<Sample> *s = (bind_inverse_transform_add<Sample> *)p;
 
-	hevcasm_table_inverse_transform_add8 table;
+	hevcasm_table_inverse_transform_add<Sample> table;
 
-	hevcasm_populate_inverse_transform_add8(&table, code, 1);
+	hevcasm_populate_inverse_transform_add<Sample>(&table, code, 1);
 
-	s->f = *hevcasm_get_inverse_transform_add8(&table, s->trType, s->log2TrafoSize);
+	s->f = *hevcasm_get_inverse_transform_add<Sample>(&table, s->trType, s->log2TrafoSize);
 
 	if (s->f) for (int i = 0; i < 32 * 32; ++i) s->dst[i] = 0xaa;
 
@@ -3009,9 +2992,10 @@ int init_inverse_transform_add8(void *p, hevcasm_code code)
 }
 
 
-void invoke_inverse_transform_add8(void *p, int n)
+template <typename Sample>
+void invoke_inverse_transform_add(void *p, int n)
 {
-	bind_inverse_transform_add8 *s = (bind_inverse_transform_add8 *)p;
+	auto *s = (bind_inverse_transform_add<Sample> *)p;
 
 	while (n--)
 	{
@@ -3020,28 +3004,30 @@ void invoke_inverse_transform_add8(void *p, int n)
 }
 
 
-int mismatch_transform_add8(void *boundRef, void *boundTest)
+template <typename Sample>
+int mismatch_transform_add(void *boundRef, void *boundTest)
 {
-	bind_inverse_transform_add8 *ref = (bind_inverse_transform_add8 *)boundRef;
-	bind_inverse_transform_add8 *test = (bind_inverse_transform_add8 *)boundTest;
+	bind_inverse_transform_add<Sample> *ref = (bind_inverse_transform_add<Sample> *)boundRef;
+	bind_inverse_transform_add<Sample> *test = (bind_inverse_transform_add<Sample> *)boundTest;
 
 	const int nCbS = 1 << ref->log2TrafoSize;
 
-	return memcmp(ref->dst, test->dst, nCbS * nCbS * sizeof(int8_t));
+	return memcmp(ref->dst, test->dst, nCbS * nCbS * sizeof(Sample));
 }
 
 
-void hevcasm_test_inverse_transform_add8(int *error_count, hevcasm_instruction_set mask)
+template <typename Sample>
+void hevcasm_test_inverse_transform_add(int *error_count, hevcasm_instruction_set mask)
 {
-	printf("\ninverse_transform_add8 - Inverse Transform, then add to predicted\n");
+	printf("\ninverse_transform_add<uint%d_t> - Inverse Transform, then add to predicted\n", int(8 * sizeof(Sample)));
 
 	HEVCASM_ALIGN(32, int16_t, coefficients[32 * 32]);
-	HEVCASM_ALIGN(32, uint8_t, predicted[32 * 32]);
+	HEVCASM_ALIGN(32, Sample, predicted[32 * 32]);
 
 	for (int x = 0; x < 32 * 32; x++) coefficients[x] = (((rand() << 1) ^ rand()) & 0xff) - 128;
 	for (int x = 0; x < 32 * 32; x++) predicted[x] = rand() & 0xff;
 
-	bind_inverse_transform_add8 b[2];
+	bind_inverse_transform_add<Sample> b[2];
 	b[0].coefficients = coefficients;
 	b[0].predicted = predicted;
 
@@ -3051,9 +3037,13 @@ void hevcasm_test_inverse_transform_add8(int *error_count, hevcasm_instruction_s
 		b[0].log2TrafoSize = (j == 1) ? 2 : j;
 		b[1] = b[0];
 
-		*error_count += hevcasm_test(&b[0], &b[1], init_inverse_transform_add8, invoke_inverse_transform_add8, mismatch_transform_add8, mask, 100000);
+		*error_count += hevcasm_test(&b[0], &b[1], init_inverse_transform_add<Sample>, invoke_inverse_transform_add<Sample>, mismatch_transform_add<Sample>, mask, 100000);
 	}
 }
+
+
+template void hevcasm_test_inverse_transform_add<uint8_t>(int *error_count, hevcasm_instruction_set mask);
+template void hevcasm_test_inverse_transform_add<uint16_t>(int *error_count, hevcasm_instruction_set mask);
 
 
 template <class Dst, class Src>

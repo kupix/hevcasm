@@ -24,7 +24,7 @@ typedef HevcasmPredUni<uint16_t> hevcasm_pred_uni_16to16;
 template <typename Sample>
 struct HevcasmTablePredUni
 {
-	HevcasmPredUni<Sample>* p[3][2][9][2][2];
+	HevcasmPredUni<Sample>* p[3][2][17][2][2];
 };
 
 
@@ -50,7 +50,7 @@ using HevcasmPredBi = void(Sample *dst0, intptr_t stride_dst, const Sample *ref0
 template <typename Sample>
 struct HevcasmTablePredBi
 {
-	HevcasmPredBi<Sample> * p[3][2][5][2];
+	HevcasmPredBi<Sample> * p[3][2][9][2];
 };
 
 template <typename Sample>
