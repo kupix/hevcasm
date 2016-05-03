@@ -51,11 +51,11 @@ static void hevcasm_inverse_partial_butterfly_4x4_dst_c_opt(int16_t dst[4 * 4], 
 
 
 template <int nTbS>
-static void hevcasm_inverse_partial_butterfly_c_opt(int16_t dst[], int16_t const src[], int shift);
+void hevcasm_inverse_partial_butterfly_c_opt(int16_t dst[], int16_t const src[], int shift);
 
 
 template <>
-static void hevcasm_inverse_partial_butterfly_c_opt<4>(int16_t dst[], const int16_t src[], int shift)
+void hevcasm_inverse_partial_butterfly_c_opt<4>(int16_t dst[], const int16_t src[], int shift)
 {
 	const int add = 1 << (shift - 1);
 	const int src_stride = 4;
@@ -89,7 +89,7 @@ static void hevcasm_inverse_partial_butterfly_c_opt<4>(int16_t dst[], const int1
 
 
 template <>
-static void hevcasm_inverse_partial_butterfly_c_opt<8>(int16_t dst[], const int16_t src[], int shift)
+void hevcasm_inverse_partial_butterfly_c_opt<8>(int16_t dst[], const int16_t src[], int shift)
 {
 	const int add = 1 << (shift - 1);
 	const int src_stride = 8;
@@ -140,7 +140,7 @@ static void hevcasm_inverse_partial_butterfly_c_opt<8>(int16_t dst[], const int1
 
 
 template <>
-static void hevcasm_inverse_partial_butterfly_c_opt<16>(int16_t dst[], const int16_t src[], int shift)
+void hevcasm_inverse_partial_butterfly_c_opt<16>(int16_t dst[], const int16_t src[], int shift)
 {
 	const int add = 1 << (shift - 1);
 	const int src_stride = 16;
@@ -213,7 +213,7 @@ static void hevcasm_inverse_partial_butterfly_c_opt<16>(int16_t dst[], const int
 
 
 template <>
-static void hevcasm_inverse_partial_butterfly_c_opt<32>(int16_t dst[], const int16_t src[], int shift) 
+void hevcasm_inverse_partial_butterfly_c_opt<32>(int16_t dst[], const int16_t src[], int shift) 
 {
 	const int add = 1 << (shift - 1);
 	const int src_stride = 32;
@@ -3049,11 +3049,15 @@ template void hevcasm_test_inverse_transform_add<uint16_t>(int *error_count, hev
 template <class Dst, class Src>
 Dst shiftRight(Src src, int shift)
 {
+#if 1
+	short temp = (src >> shift);
+	src = temp;
+#else
 	src >>= shift;
+#endif
 	if (src > std::numeric_limits<Dst>::max()) return std::numeric_limits<Dst>::max();
 	if (src < std::numeric_limits<Dst>::min()) return std::numeric_limits<Dst>::min();
 	Dst dst = static_cast<Dst>(src);
-	//assert(static_cast<Src>(dst) == src || !"arithmetic overflow");
 	return dst;
 }
 
@@ -3326,46 +3330,52 @@ void hevcasm_partial_butterfly_32x32_c_opt(Dst *dst, const Src *src, intptr_t sr
 }
 
 
+template <int bitDepth>
 void hevcasm_dst_4x4_c_opt(int16_t coeffs[4 * 4], const int16_t *src, intptr_t src_stride)
 {
 	int16_t temp[4 * 4];
-	hevcasm_partial_butterfly_4x4_dst_c_opt(temp, src, src_stride,1 );
+	hevcasm_partial_butterfly_4x4_dst_c_opt(temp, src, src_stride,1 + bitDepth - 8);
 	hevcasm_partial_butterfly_4x4_dst_c_opt(coeffs, temp, 4, 8);
 }
 
 
+template <int bitDepth>
 void hevcasm_dct_4x4_c_opt(int16_t coeffs[4 * 4], const int16_t *src, intptr_t src_stride)
 {
 	int16_t temp[4 * 4];
-	hevcasm_partial_butterfly_4x4_c_opt(temp, src, src_stride, 1);
+	hevcasm_partial_butterfly_4x4_c_opt(temp, src, src_stride, 1 + bitDepth - 8);
 	hevcasm_partial_butterfly_4x4_c_opt(coeffs, temp, 4, 8);
 }
 
 
+template <int bitDepth>
 void hevcasm_dct_8x8_c_opt(int16_t coeffs[8 * 8], const int16_t *src, intptr_t src_stride)
 {
 	int16_t temp[8 * 8];
-	hevcasm_partial_butterfly_8x8_c_opt(temp, src, src_stride, 2);
+	hevcasm_partial_butterfly_8x8_c_opt(temp, src, src_stride, 2 + bitDepth - 8);
 	hevcasm_partial_butterfly_8x8_c_opt(coeffs, temp, 8, 9);
 }
 
 
+template <int bitDepth>
 void hevcasm_dct_16x16_c_opt(int16_t coeffs[16 * 16], const int16_t *src, intptr_t src_stride)
 {
 	int16_t temp[16 * 16];
-	hevcasm_partial_butterfly_16x16_c_opt(temp, src, src_stride, 3);
+	hevcasm_partial_butterfly_16x16_c_opt(temp, src, src_stride, 3 + bitDepth - 8);
 	hevcasm_partial_butterfly_16x16_c_opt(coeffs, temp, 16, 10);
 }
 
 
+template <int bitDepth>
 void hevcasm_dct_32x32_c_opt(int16_t coeffs[32 * 32], const int16_t *src, intptr_t src_stride)
 {
 	int16_t temp[32 * 32];
-	hevcasm_partial_butterfly_32x32_c_opt(temp, src, src_stride, 4);
+	hevcasm_partial_butterfly_32x32_c_opt(temp, src, src_stride, 4 + bitDepth - 8);
 	hevcasm_partial_butterfly_32x32_c_opt(coeffs, temp, 32, 11);
 }
 
 
+template <int bitDepth>
 struct ForwardDct16x16
 	:
 	Jit::Function
@@ -3378,7 +3388,7 @@ struct ForwardDct16x16
 	}
 
 	Xbyak::Label shuffle_efcdab8967452301;
-	Xbyak::Label const_00000004000000040000000400000004;
+	Xbyak::Label dd_times_4_add;
 	Xbyak::Label cosine_8_h;
 	Xbyak::Label cosine_4_h;
 	Xbyak::Label cosine_1_h;
@@ -3395,8 +3405,8 @@ struct ForwardDct16x16
 		L(shuffle_efcdab8967452301);
 		db({ 14, 15, 12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1 });
 
-		L(const_00000004000000040000000400000004);
-		dd({ 4 }, 4);
+		L(dd_times_4_add);
+		dd({ 4 << (bitDepth - 8) }, 4);
 
 		L(cosine_8_h);
 		dw({ 90, 87, 80, 70, 57, 43, 25, 9, 87, 57, 9, -43, -80, -90, -70, -25 });
@@ -3478,7 +3488,7 @@ struct ForwardDct16x16
 		// INIT_XMM ssse3
 		// cglobal partial_butterfly_16h, 4, 7, 16
 		movdqa(m3, ptr[rip + shuffle_efcdab8967452301]);
-		movdqa(m4, ptr[rip + const_00000004000000040000000400000004]);
+		movdqa(m4, ptr[rip + dd_times_4_add]);
 		mov(r4d, 16);
 
 		L("loop");
@@ -3511,9 +3521,9 @@ struct ForwardDct16x16
 			phaddd(m12, m14);
 
 			paddd(m8, m4);
-			psrad(m8, 3);
+			psrad(m8, 3 + bitDepth - 8);
 			paddd(m12, m4);
-			psrad(m12, 3);
+			psrad(m12, 3 + bitDepth - 8);
 
 			packssdw(m8, m12);
 			// m8 = dstptr[15,13,11, 9, 7, 5, 3, 1]);
@@ -3528,7 +3538,7 @@ struct ForwardDct16x16
 			pmaddwd(m7, ptr[rip + cosine_4_h + 16]);
 			phaddd(m6, m7);
 			paddd(m6, m4);
-			psrad(m6, 3);
+			psrad(m6, 3 + bitDepth - 8);
 			// dstptr[14, 10, 6, 2]);
 
 			pslld(m6, 16);
@@ -3552,7 +3562,7 @@ struct ForwardDct16x16
 			pmaddwd(m10, ptr[rip + cosine_1_h]);
 
 			paddd(m10, m4);
-			pslld(m10, 16 - 3);
+			pslld(m10, 16 - (3 + bitDepth - 8));
 			// m10 = dstptr[12, 8, 4, 0] << 16);
 			// m10 = dstptr[12], 0, dstptr[8], 0, dstptr[4], 0, dstptr[0], 0);
 			psrld(m10, 16);
@@ -3776,6 +3786,7 @@ struct ForwardDct16x16
 };
 
 
+template <int bitDepth>
 hevcasm_transform* get_transform(int trType, int log2TrafoSize, hevcasm_code code)
 {
 	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
@@ -3785,17 +3796,17 @@ hevcasm_transform* get_transform(int trType, int log2TrafoSize, hevcasm_code cod
 
 	if (buffer.isa & (HEVCASM_C_REF | HEVCASM_C_OPT))
 	{
-		if (nCbS == 4) f = trType ? hevcasm_dst_4x4_c_opt : hevcasm_dct_4x4_c_opt;
-		if (nCbS == 8) f = hevcasm_dct_8x8_c_opt;
-		if (nCbS == 16) f = hevcasm_dct_16x16_c_opt;
-		if (nCbS == 32) f = hevcasm_dct_32x32_c_opt;
+		if (nCbS == 4) f = trType ? hevcasm_dst_4x4_c_opt<bitDepth> : hevcasm_dct_4x4_c_opt<bitDepth>;
+		if (nCbS == 8) f = hevcasm_dct_8x8_c_opt<bitDepth>;
+		if (nCbS == 16) f = hevcasm_dct_16x16_c_opt<bitDepth>;
+		if (nCbS == 32) f = hevcasm_dct_32x32_c_opt<bitDepth>;
 	}
 
 	if (buffer.isa & HEVCASM_SSSE3)
 	{
 		if (nCbS == 16)
 		{
-			ForwardDct16x16 a(&buffer);
+			ForwardDct16x16<bitDepth> a(&buffer);
 			f = a;
 		}
 	}
@@ -3804,12 +3815,13 @@ hevcasm_transform* get_transform(int trType, int log2TrafoSize, hevcasm_code cod
 }
 
 
-void hevcasm_populate_transform(hevcasm_table_transform *table, hevcasm_code code)
+template <int bitDepth>
+void hevcasm_populate_transform(hevcasm_table_transform<bitDepth> *table, hevcasm_code code)
 {
-	*hevcasm_get_transform(table, 1, 2) = get_transform(1, 2, code);
+	*hevcasm_get_transform(table, 1, 2) = get_transform<bitDepth>(1, 2, code);
 	for (int log2TrafoSize = 2; log2TrafoSize <= 5; ++log2TrafoSize)
 	{
-		*hevcasm_get_transform(table, 0, log2TrafoSize) = get_transform(0, log2TrafoSize, code);
+		*hevcasm_get_transform(table, 0, log2TrafoSize) = get_transform<bitDepth>(0, log2TrafoSize, code);
 	}
 }
 
@@ -3822,6 +3834,7 @@ typedef struct
 	intptr_t src_stride;
 	int trType;
 	int log2TrafoSize;
+	int bitDepth;
 }
 bound_transform;
 
@@ -3832,15 +3845,24 @@ int init_transform(void *p, hevcasm_code code)
 
 	bound_transform *s = (bound_transform *)p;
 
-	hevcasm_table_transform table;
-	hevcasm_populate_transform(&table, code);
-
-	s->f = *hevcasm_get_transform(&table, s->trType, s->log2TrafoSize);
+	if (s->bitDepth == 8)
+	{
+		hevcasm_table_transform<8> table;
+		hevcasm_populate_transform(&table, code);
+		s->f = *hevcasm_get_transform(&table, s->trType, s->log2TrafoSize);
+	}
+	else
+	{
+		assert(s->bitDepth == 10);
+		hevcasm_table_transform<10> table;
+		hevcasm_populate_transform(&table, code);
+		s->f = *hevcasm_get_transform(&table, s->trType, s->log2TrafoSize);
+	}
 
 	if (s->f && buffer.isa == HEVCASM_C_REF)
 	{
 		const int nCbS = 1 << s->log2TrafoSize;
-		printf("\t%s %dx%d : ", s->trType ? "sine" : "cosine", nCbS, nCbS);
+		printf("\t%d-bit %s %dx%d : ", s->bitDepth, s->trType ? "sine" : "cosine", nCbS, nCbS);
 	}
 
 	for (int x = 0; x < 32 * 32; x++) s->dst[x] = 0xab;
@@ -3882,13 +3904,16 @@ void hevcasm_test_transform(int *error_count, hevcasm_instruction_set mask)
 	b[0].src = src;
 	b[0].src_stride = 32;
 
-	for (int j = 2; j < 6; ++j)
+	for (b[0].bitDepth = 8; b[0].bitDepth <= 10; b[0].bitDepth += 2)
 	{
-		b[0].trType = (j == 1) ? 1 : 0;
-		b[0].log2TrafoSize = (j == 1) ? 2 : j;
-		
-		b[1] = b[0];
+		for (int j = 2; j < 6; ++j)
+		{
+			b[0].trType = (j == 1) ? 1 : 0;
+			b[0].log2TrafoSize = (j == 1) ? 2 : j;
 
-		*error_count += hevcasm_test(&b[0], &b[1], init_transform, invoke_transform, mismatch_transform, mask, 100000);
+			b[1] = b[0];
+
+			*error_count += hevcasm_test(&b[0], &b[1], init_transform, invoke_transform, mismatch_transform, mask, 100000);
+		}
 	}
 }
