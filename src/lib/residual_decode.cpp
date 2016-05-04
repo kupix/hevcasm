@@ -2851,11 +2851,11 @@ void hevcasm_populate_inverse_transform(hevcasm_table_inverse_transform* table, 
 
 
 template <typename Sample>
-static hevcasm_inverse_transform_add<Sample>* get_inverse_transform_add(int trType, int log2TrafoSize, hevcasm_code code, int encoder);
+hevcasm_inverse_transform_add<Sample>* get_inverse_transform_add(int trType, int log2TrafoSize, hevcasm_code code, int encoder);
 
 
 template<>
-static hevcasm_inverse_transform_add<uint8_t>* get_inverse_transform_add<uint8_t>(int trType, int log2TrafoSize, hevcasm_code code, int encoder)
+hevcasm_inverse_transform_add<uint8_t>* get_inverse_transform_add<uint8_t>(int trType, int log2TrafoSize, hevcasm_code code, int encoder)
 {
 	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
 	auto mask = buffer.isa;
@@ -2923,7 +2923,7 @@ static hevcasm_inverse_transform_add<uint8_t>* get_inverse_transform_add<uint8_t
 
 
 template<>
-static hevcasm_inverse_transform_add<uint16_t>* get_inverse_transform_add(int trType, int log2TrafoSize, hevcasm_code code, int encoder)
+hevcasm_inverse_transform_add<uint16_t>* get_inverse_transform_add(int trType, int log2TrafoSize, hevcasm_code code, int encoder)
 {
 	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
 	auto mask = buffer.isa;

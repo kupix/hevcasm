@@ -102,15 +102,16 @@ void hevcasm_add_residual(int n, Sample* dst, intptr_t stride_dst, Sample const*
 typedef void hevcasm_transform(int16_t *coeffs, const int16_t *src, intptr_t src_stride);
 
 
-typedef struct
+template <int bitDepth>
+struct hevcasm_table_transform
 {
 	hevcasm_transform *dst;
 	hevcasm_transform *dct[4];
-}
-hevcasm_table_transform;
+};
 
 
-static hevcasm_transform** hevcasm_get_transform(hevcasm_table_transform *table, int trType, int log2TrafoSize)
+template <int bitDepth>
+static hevcasm_transform** hevcasm_get_transform(hevcasm_table_transform<bitDepth> *table, int trType, int log2TrafoSize)
 {
 	if (trType)
 	{
@@ -123,8 +124,11 @@ static hevcasm_transform** hevcasm_get_transform(hevcasm_table_transform *table,
 	}
 }
 
-void hevcasm_populate_transform(hevcasm_table_transform *table, hevcasm_code code);
+template <int bitDepth>
+void hevcasm_populate_transform(hevcasm_table_transform<bitDepth> *table, hevcasm_code code);
+
 
 void hevcasm_test_transform(int *error_count, hevcasm_instruction_set mask);
+
 
 #endif
