@@ -509,22 +509,26 @@ struct PredInter
 						packusdw(m3, m5);
 						psrlw(m3, 6);
 					}
-				}
-				else if (inputBitDepth == 16)
-				{
-					psrad(m3, 12);
-					psrad(m5, 12);
-					packssdw(m3, m5);
-					packuswb(m3, m3);
+					movdqu(ptr[r0], m3);
 				}
 				else
 				{
-					psraw(m3, 6);
-					packuswb(m3, m3);
+					if (inputBitDepth == 16)
+					{
+						psrad(m3, 12);
+						psrad(m5, 12);
+						packssdw(m3, m5);
+						packuswb(m3, m3);
+					}
+					else
+					{
+						psraw(m3, 6);
+						packuswb(m3, m3);
+					}
+					movq(ptr[r0], m3);
 				}
 
-				movdqu(ptr[r0], m3);
-
+				// review: these unnecessary in final loop iteration
 				lea(r2, ptr[r2 + inputBits]);
 				lea(r0, ptr[r0 + 8 * sizeof(Sample)]);
 			}
@@ -894,12 +898,14 @@ bool legalWidth(int width)
 template <typename Sample>
 void hevcasmPopulatePredUni(HevcasmTablePredUni<Sample> *table, hevcasm_code code)
 {
+	int const maxBitDepth = 6 + 2 * sizeof(Sample);
+
 	for (int taps = 4; taps <= 8; taps += 4)
 		for (int w = taps; w <= 64; w += taps)
 		{
 			for (int xFrac = 0; xFrac < 2; ++xFrac)
 				for (int yFrac = 0; yFrac < 2; ++yFrac)
-					for (int bitDepth = 8; bitDepth <= 10; ++bitDepth)
+					for (int bitDepth = 8; bitDepth <= maxBitDepth; ++bitDepth)
 						*hevcasmGetPredUni<Sample>(table, taps, w, 0, xFrac, yFrac, bitDepth) = 0;
 		}
 
@@ -911,12 +917,12 @@ void hevcasmPopulatePredUni(HevcasmTablePredUni<Sample> *table, hevcasm_code cod
 			for (int w = 0; w <= 64; w += taps)
 				for (int xFrac = 0; xFrac < 2; ++xFrac)
 					for (int yFrac = 0; yFrac < 2; ++yFrac)
-						for (int bitDepth = 8; bitDepth <= 10; ++bitDepth)
+						for (int bitDepth = 8; bitDepth <= maxBitDepth; ++bitDepth)
 							*hevcasmGetPredUni<Sample>(table, taps, w, 0, xFrac, yFrac, bitDepth)
 								= taps == 8 ? hevcasm_pred_uni_8tap_hv<Sample> : hevcasm_pred_uni_4tap_hv<Sample>;
 
 	if (buffer.isa & HEVCASM_C_OPT)
-		for (int bitDepth = 8; bitDepth <= 10; ++bitDepth)
+		for (int bitDepth = 8; bitDepth <= maxBitDepth; ++bitDepth)
 		{
 			for (int w = 1; w <= 64; ++w)
 			{
