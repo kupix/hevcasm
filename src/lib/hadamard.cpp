@@ -79,7 +79,10 @@ static int compute_satd(const Sample *pA, intptr_t strideA, const Sample *pB, in
 			sad += abs(transformed[y]);
 		}
 	}
-	return sad / (n / 2);
+	sad /= n / 2;
+	if (sizeof(Sample) == 2)
+		sad >>= 2;
+	return sad;
 }
 
 
@@ -208,7 +211,7 @@ struct Satd4
 		movd(eax, m0);
 		and(eax, 0xffff);
 		add(eax, 1);
-		shr(eax, 1);
+		shr(eax, 1 + (sizeof(Sample)==2?2:0));
 	}
 };
 
@@ -466,7 +469,7 @@ struct Satd8
 		paddd(xmm0, xmm1);
 		movd(eax, xmm0);
 		add(eax, 2);
-		shr(eax, 2);
+		shr(eax, 2 + (sizeof(Sample)==2 ? 2 : 0));
 	}
 };
 

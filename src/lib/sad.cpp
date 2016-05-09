@@ -205,6 +205,9 @@ struct SadSse2
 		movhlps(xmm1, xmm0);
 		paddd(xmm0, xmm1);
 		movd(eax, xmm0);
+
+		if (sizeof(Sample) == 2)
+			shr(eax, 2); // 10-bit - divide SAD by 4
 	}
 };
 
@@ -224,6 +227,8 @@ static int hevcasm_sad_c_ref(const Sample *src, intptr_t stride_src, const Sampl
 			sad += abs((int)src[x + y * stride_src] - (int)ref[x + y * stride_ref]);
 		}
 	}
+	if (sizeof(Sample) == 2) 
+		sad >>= 2;
 	return sad;
 }
 
@@ -292,6 +297,14 @@ static void hevcasm_sad_multiref_4_c_ref(const Sample *src, intptr_t stride_src,
 				sad[way] += abs((int)src[x + y * stride_src] - (int)ref[way][x + y * stride_ref]);
 			}
 		}
+	}
+
+	if (sizeof(Sample) == 2)
+	{
+		sad[0] >>= 2;
+		sad[1] >>= 2;
+		sad[2] >>= 2;
+		sad[3] >>= 2;
 	}
 }
 
@@ -467,6 +480,8 @@ struct Sad4Avx2
 			vpunpcklqdq(xmm0, xmm2);
 			vpunpckhqdq(xmm1, xmm3);
 			vpaddd(xmm0, xmm1);
+			if (sizeof(Sample) == 2)
+				vpsrld(xmm0, 2);
 			vmovdqu(ptr[sads], xmm0);
 		}
 		else if (widthBytes == 4)
@@ -530,6 +545,8 @@ struct Sad4Avx2
 			vpunpcklqdq(xmm0, xmm2);
 			vpunpckhqdq(xmm1, xmm3);
 			vpaddd(xmm0, xmm1);
+			if (sizeof(Sample) == 2)
+				vpsrld(xmm0, 2);
 			vmovdqu(ptr[sads], xmm0);
 		}
 		else/* if (widthBytes == 32 || widthBytes == 48 || widthBytes == 64)*/
@@ -707,6 +724,8 @@ struct Sad4Avx2
 				vpunpcklqdq(xmm5, xmm7);
 				vpunpckhqdq(xmm6, xmm8);
 				vpaddd(xmm5, xmm6);
+				if (sizeof(Sample) == 2)
+					vpsrld(xmm5, 2);
 				vmovdqu(ptr[r8], xmm5);
 			}
 		}

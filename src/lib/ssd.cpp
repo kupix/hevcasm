@@ -23,6 +23,8 @@ static uint32_t hevcasm_ssd_c_ref(const Sample *pA, intptr_t strideA, const Samp
 			ssd += diff * diff;
 		}
 	}
+	if (sizeof(Sample) == 2)
+		ssd >>= 4;
 	return ssd;
 }
 
@@ -107,6 +109,8 @@ struct Ssd
 			vpshufd(m1, m0, ORDER(3, 2, 0, 1));
 			vpaddd(m0, m1);
 			vmovd(eax, m0);
+			if (sizeof(Sample) == 2)
+				shr(eax, 4);
 		}
 	}
 };
