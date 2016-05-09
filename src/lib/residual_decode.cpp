@@ -2955,6 +2955,10 @@ void hevcasm_populate_inverse_transform_add(hevcasm_table_inverse_transform_add<
 }
 
 
+template void hevcasm_populate_inverse_transform_add<uint8_t>(hevcasm_table_inverse_transform_add<uint8_t> *table, hevcasm_code code, int encoder);
+template void hevcasm_populate_inverse_transform_add<uint16_t>(hevcasm_table_inverse_transform_add<uint16_t> *table, hevcasm_code code, int encoder);
+
+
 template <typename Sample>
 struct bind_inverse_transform_add
 {
@@ -3824,6 +3828,10 @@ void hevcasm_populate_transform(hevcasm_table_transform<bitDepth> *table, hevcas
 		*hevcasm_get_transform(table, 0, log2TrafoSize) = get_transform<bitDepth>(0, log2TrafoSize, code);
 	}
 }
+
+
+template void hevcasm_populate_transform<8>(hevcasm_table_transform<8> *table, hevcasm_code code);
+template void hevcasm_populate_transform<10>(hevcasm_table_transform<10> *table, hevcasm_code code);
 
 
 typedef struct
