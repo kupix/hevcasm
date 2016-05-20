@@ -39,7 +39,7 @@ add_library (libhevcasm
 	pred_intra.cpp 
 	quantize.cpp 
 	residual_decode.cpp 
-	sad.cpp 
+	sad2.cpp 
 	ssd.cpp
 )
 

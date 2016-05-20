@@ -10,11 +10,34 @@
 #include <stdlib.h>
 #include <assert.h>
 
+template <typename Sample>
+static uint32_t hevcasm_ssd_c_ref4(const Sample *pA, intptr_t strideA, const Sample *pB, intptr_t strideB, int w, int h)
+{
+  uint32_t ssd = 0;
+  int diff;
+  for (int y = 0; y < h; ++y)
+  {
+    diff = pA[0] - pB[0];  ssd += diff * diff;
+    diff = pA[1] - pB[1];  ssd += diff * diff;
+    diff = pA[2] - pB[2];  ssd += diff * diff;
+    diff = pA[3] - pB[3];  ssd += diff * diff;
+    pA += strideA;
+    pB += strideB;
+  }
+  if (sizeof(Sample) == 2)
+    ssd >>= 4;
+  return ssd;
+}
+
 
 template <typename Sample>
 static uint32_t hevcasm_ssd_c_ref(const Sample *pA, intptr_t strideA, const Sample *pB, intptr_t strideB, int w, int h)
 {
 	uint32_t ssd = 0;
+
+  if(w == 4)
+    return hevcasm_ssd_c_ref4(pA, strideA, pB,strideB, w,h);
+
 	for (int y = 0; y < h; ++y)
 	{
 		for (int x = 0; x < w; ++x)
