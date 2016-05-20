@@ -34,7 +34,7 @@ add_library (libhevcasm
 	hevcasm.cpp
 	hevcasm_test.c 
 	diff.cpp 
-	hadamard.cpp 
+	hadamard2.cpp 
 	pred_inter.cpp 
 	pred_intra.cpp 
 	quantize.cpp 
