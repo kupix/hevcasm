@@ -91,7 +91,7 @@ struct SadSse2
 
 		pxor(xmm0, xmm0);
 		pxor(xmm5, xmm5);
-		
+
 		L("loop");
 		{
 			if (widthBytes == 8)
@@ -211,7 +211,209 @@ struct SadSse2
 	}
 };
 
+template <typename Sample>
+static int hevcasm_sad_c_opt_4(const Sample *src, intptr_t stride_src, const Sample *ref, intptr_t stride_ref, uint32_t rect)
+{
+	const int width = rect >> 8;
+	const int height = rect & 0xff;
+	int sad = 0;
+	for (int y = 0; y < height; ++y)
+	{
+		sad += abs((int)src[0] - (int)ref[0]);
+		sad += abs((int)src[1] - (int)ref[1]);
+		sad += abs((int)src[2] - (int)ref[2]);
+		sad += abs((int)src[3] - (int)ref[3]);
+		src += stride_src;
+		ref += stride_ref;
+	}
+	if (sizeof(Sample) == 2)
+		sad >>= 2;
+	return sad;
+}
 
+template <typename Sample>
+static int hevcasm_sad_c_opt_8(const Sample *src, intptr_t stride_src, const Sample *ref, intptr_t stride_ref, uint32_t rect)
+{
+	const int width = rect >> 8;
+	const int height = rect & 0xff;
+	int sad = 0;
+	for (int y = 0; y < height; ++y)
+	{
+		sad += abs((int)src[0] - (int)ref[0]);
+		sad += abs((int)src[1] - (int)ref[1]);
+		sad += abs((int)src[2] - (int)ref[2]);
+		sad += abs((int)src[3] - (int)ref[3]);
+		sad += abs((int)src[4] - (int)ref[4]);
+		sad += abs((int)src[5] - (int)ref[5]);
+		sad += abs((int)src[6] - (int)ref[6]);
+		sad += abs((int)src[7] - (int)ref[7]);
+		src += stride_src;
+		ref += stride_ref;
+	}
+	if (sizeof(Sample) == 2)
+		sad >>= 2;
+	return sad;
+}
+
+template <typename Sample>
+static int hevcasm_sad_c_opt_16(const Sample *src, intptr_t stride_src, const Sample *ref, intptr_t stride_ref, uint32_t rect)
+{
+	const int width = rect >> 8;
+	const int height = rect & 0xff;
+	int sad = 0;
+	for (int y = 0; y < height; ++y)
+	{
+		sad += abs((int)src[0] - (int)ref[0]);
+		sad += abs((int)src[1] - (int)ref[1]);
+		sad += abs((int)src[2] - (int)ref[2]);
+		sad += abs((int)src[3] - (int)ref[3]);
+		sad += abs((int)src[4] - (int)ref[4]);
+		sad += abs((int)src[5] - (int)ref[5]);
+		sad += abs((int)src[6] - (int)ref[6]);
+		sad += abs((int)src[7] - (int)ref[7]);
+		sad += abs((int)src[8] - (int)ref[8]);
+		sad += abs((int)src[9] - (int)ref[9]);
+		sad += abs((int)src[10] - (int)ref[10]);
+		sad += abs((int)src[11] - (int)ref[11]);
+		sad += abs((int)src[12] - (int)ref[12]);
+		sad += abs((int)src[13] - (int)ref[13]);
+		sad += abs((int)src[14] - (int)ref[14]);
+		sad += abs((int)src[15] - (int)ref[15]);
+		src += stride_src;
+		ref += stride_ref;
+	}
+	if (sizeof(Sample) == 2)
+		sad >>= 2;
+	return sad;
+}
+
+template <typename Sample>
+static int hevcasm_sad_c_opt_32(const Sample *src, intptr_t stride_src, const Sample *ref, intptr_t stride_ref, uint32_t rect)
+{
+	const int width = rect >> 8;
+	const int height = rect & 0xff;
+	int sad = 0;
+	for (int y = 0; y < height; ++y)
+	{
+		sad += abs((int)src[0] - (int)ref[0]);
+		sad += abs((int)src[1] - (int)ref[1]);
+		sad += abs((int)src[2] - (int)ref[2]);
+		sad += abs((int)src[3] - (int)ref[3]);
+		sad += abs((int)src[4] - (int)ref[4]);
+		sad += abs((int)src[5] - (int)ref[5]);
+		sad += abs((int)src[6] - (int)ref[6]);
+		sad += abs((int)src[7] - (int)ref[7]);
+		sad += abs((int)src[8] - (int)ref[8]);
+		sad += abs((int)src[9] - (int)ref[9]);
+		sad += abs((int)src[10] - (int)ref[10]);
+		sad += abs((int)src[11] - (int)ref[11]);
+		sad += abs((int)src[12] - (int)ref[12]);
+		sad += abs((int)src[13] - (int)ref[13]);
+		sad += abs((int)src[14] - (int)ref[14]);
+		sad += abs((int)src[15] - (int)ref[15]);
+		sad += abs((int)src[16] - (int)ref[16]);
+		sad += abs((int)src[17] - (int)ref[17]);
+		sad += abs((int)src[18] - (int)ref[18]);
+		sad += abs((int)src[19] - (int)ref[19]);
+		sad += abs((int)src[20] - (int)ref[20]);
+		sad += abs((int)src[21] - (int)ref[21]);
+		sad += abs((int)src[22] - (int)ref[22]);
+		sad += abs((int)src[23] - (int)ref[23]);
+		sad += abs((int)src[24] - (int)ref[24]);
+		sad += abs((int)src[25] - (int)ref[25]);
+		sad += abs((int)src[26] - (int)ref[26]);
+		sad += abs((int)src[27] - (int)ref[27]);
+		sad += abs((int)src[28] - (int)ref[28]);
+		sad += abs((int)src[29] - (int)ref[29]);
+		sad += abs((int)src[30] - (int)ref[30]);
+		sad += abs((int)src[31] - (int)ref[31]);
+		src += stride_src;
+		ref += stride_ref;
+	}
+	if (sizeof(Sample) == 2)
+		sad >>= 2;
+	return sad;
+}
+
+template <typename Sample>
+static int hevcasm_sad_c_opt_64(const Sample *src, intptr_t stride_src, const Sample *ref, intptr_t stride_ref, uint32_t rect)
+{
+	const int width = rect >> 8;
+	const int height = rect & 0xff;
+	int sad = 0;
+	for (int y = 0; y < height; ++y)
+	{
+		sad += abs((int)src[0] - (int)ref[0]);
+		sad += abs((int)src[1] - (int)ref[1]);
+		sad += abs((int)src[2] - (int)ref[2]);
+		sad += abs((int)src[3] - (int)ref[3]);
+		sad += abs((int)src[4] - (int)ref[4]);
+		sad += abs((int)src[5] - (int)ref[5]);
+		sad += abs((int)src[6] - (int)ref[6]);
+		sad += abs((int)src[7] - (int)ref[7]);
+		sad += abs((int)src[8] - (int)ref[8]);
+		sad += abs((int)src[9] - (int)ref[9]);
+		sad += abs((int)src[10] - (int)ref[10]);
+		sad += abs((int)src[11] - (int)ref[11]);
+		sad += abs((int)src[12] - (int)ref[12]);
+		sad += abs((int)src[13] - (int)ref[13]);
+		sad += abs((int)src[14] - (int)ref[14]);
+		sad += abs((int)src[15] - (int)ref[15]);
+		sad += abs((int)src[16] - (int)ref[16]);
+		sad += abs((int)src[17] - (int)ref[17]);
+		sad += abs((int)src[18] - (int)ref[18]);
+		sad += abs((int)src[19] - (int)ref[19]);
+		sad += abs((int)src[20] - (int)ref[20]);
+		sad += abs((int)src[21] - (int)ref[21]);
+		sad += abs((int)src[22] - (int)ref[22]);
+		sad += abs((int)src[23] - (int)ref[23]);
+		sad += abs((int)src[24] - (int)ref[24]);
+		sad += abs((int)src[25] - (int)ref[25]);
+		sad += abs((int)src[26] - (int)ref[26]);
+		sad += abs((int)src[27] - (int)ref[27]);
+		sad += abs((int)src[28] - (int)ref[28]);
+		sad += abs((int)src[29] - (int)ref[29]);
+		sad += abs((int)src[30] - (int)ref[30]);
+		sad += abs((int)src[31] - (int)ref[31]);
+		sad += abs((int)src[32] - (int)ref[32]);
+		sad += abs((int)src[33] - (int)ref[33]);
+		sad += abs((int)src[34] - (int)ref[34]);
+		sad += abs((int)src[35] - (int)ref[35]);
+		sad += abs((int)src[36] - (int)ref[36]);
+		sad += abs((int)src[37] - (int)ref[37]);
+		sad += abs((int)src[38] - (int)ref[38]);
+		sad += abs((int)src[39] - (int)ref[39]);
+		sad += abs((int)src[40] - (int)ref[40]);
+		sad += abs((int)src[41] - (int)ref[41]);
+		sad += abs((int)src[42] - (int)ref[42]);
+		sad += abs((int)src[43] - (int)ref[43]);
+		sad += abs((int)src[44] - (int)ref[44]);
+		sad += abs((int)src[45] - (int)ref[45]);
+		sad += abs((int)src[46] - (int)ref[46]);
+		sad += abs((int)src[47] - (int)ref[47]);
+		sad += abs((int)src[48] - (int)ref[48]);
+		sad += abs((int)src[49] - (int)ref[49]);
+		sad += abs((int)src[50] - (int)ref[50]);
+		sad += abs((int)src[51] - (int)ref[51]);
+		sad += abs((int)src[52] - (int)ref[52]);
+		sad += abs((int)src[53] - (int)ref[53]);
+		sad += abs((int)src[54] - (int)ref[54]);
+		sad += abs((int)src[55] - (int)ref[55]);
+		sad += abs((int)src[56] - (int)ref[56]);
+		sad += abs((int)src[57] - (int)ref[57]);
+		sad += abs((int)src[58] - (int)ref[58]);
+		sad += abs((int)src[59] - (int)ref[59]);
+		sad += abs((int)src[60] - (int)ref[60]);
+		sad += abs((int)src[61] - (int)ref[61]);
+		sad += abs((int)src[62] - (int)ref[62]);
+		sad += abs((int)src[63] - (int)ref[63]);
+		src += stride_src;
+		ref += stride_ref;
+	}
+	if (sizeof(Sample) == 2)
+		sad >>= 2;
+	return sad;
+}
 
 
 template <typename Sample>
@@ -219,6 +421,7 @@ static int hevcasm_sad_c_ref(const Sample *src, intptr_t stride_src, const Sampl
 {
 	const int width = rect >> 8;
 	const int height = rect & 0xff;
+
 	int sad = 0;
 	for (int y = 0; y < height; ++y)
 	{
@@ -227,15 +430,17 @@ static int hevcasm_sad_c_ref(const Sample *src, intptr_t stride_src, const Sampl
 			sad += abs((int)src[x + y * stride_src] - (int)ref[x + y * stride_ref]);
 		}
 	}
-	if (sizeof(Sample) == 2) 
+	if (sizeof(Sample) == 2)
 		sad >>= 2;
 	return sad;
 }
+
 
 template <typename Sample>
 hevcasm_sad<Sample>* get_sad(int width, int height, hevcasm_code code)
 {
 	auto &buffer = *reinterpret_cast<Jit::Buffer *>(code.implementation);
+
 	if ((sizeof(Sample) == 1 && buffer.isa & HEVCASM_SSE2) ||
 		(sizeof(Sample) == 2 && buffer.isa & HEVCASM_SSSE3))
 	{
@@ -258,8 +463,20 @@ hevcasm_sad<Sample>* get_sad(int width, int height, hevcasm_code code)
 		return (hevcasm_sad<Sample>*)&hevcasm_sad_c_ref<Sample>;
 	}
 
+#if USE_HM_DERIVED
+	if (buffer.isa & HEVCASM_C_REF)
+	{
+		if (width == 4) return (hevcasm_sad<Sample>*)&hevcasm_sad_c_opt_4;
+		if (width == 8) return (hevcasm_sad<Sample>*)&hevcasm_sad_c_opt_8;
+		if (width == 16) return (hevcasm_sad<Sample>*)&hevcasm_sad_c_opt_16;
+		if (width == 32) return (hevcasm_sad<Sample>*)&hevcasm_sad_c_opt_32;
+		if (width == 64) return (hevcasm_sad<Sample>*)&hevcasm_sad_c_opt_64;
+	}
+#endif
+
 	return 0;
 }
+
 
 template <typename Sample>
 void hevcasm_populate_sad(hevcasm_table_sad<Sample> *table, hevcasm_code code)
@@ -273,7 +490,10 @@ void hevcasm_populate_sad(hevcasm_table_sad<Sample> *table, hevcasm_code code)
 	}
 }
 
+
 template void hevcasm_populate_sad<uint8_t>(hevcasm_table_sad<uint8_t> *table, hevcasm_code code);
+
+
 template void hevcasm_populate_sad<uint16_t>(hevcasm_table_sad<uint16_t> *table, hevcasm_code code);
 
 
@@ -310,6 +530,7 @@ static void hevcasm_sad_multiref_4_c_ref(const Sample *src, intptr_t stride_src,
 
 
 #if USE_WEBM_DERIVED
+
 template <typename Sample>
 struct Sad4Avx2
 	:
@@ -332,8 +553,8 @@ struct Sad4Avx2
 	void data() override
 	{
 		align();
-		
-		int widthBytes = width *  sizeof(Sample);
+
+		int widthBytes = width * sizeof(Sample);
 
 		if (widthBytes == 24)
 		{
@@ -346,12 +567,12 @@ struct Sad4Avx2
 		{
 			L(mask_12_16);
 			db({ 0xff }, 12);
-			db({ 0 }, 4);			
+			db({ 0 }, 4);
 			db({ 0xff }, 12);
 			db({ 0 }, 4);
 		}
 	}
-		
+
 	template <class A, class B>
 	void sad(A const &a, B const &b)
 	{
@@ -394,7 +615,7 @@ struct Sad4Avx2
 		auto &xmm8 = regXmm(8);
 		auto *xmm9 = sizeof(Sample) == 2 ? &regXmm(9) : (Xbyak::Xmm const *)0;
 
-		int widthBytes = width *  sizeof(Sample);
+		int widthBytes = width * sizeof(Sample);
 
 		if (widthBytes == 8)
 		{
@@ -408,7 +629,7 @@ struct Sad4Avx2
 			mov(ref2, ptr[ref + 0x10]);
 			mov(ref3, ptr[ref + 0x18]);
 
-			and(rect, 0xff);
+			and (rect, 0xff);
 			auto &n = rect;
 			shr(n, 1);
 
@@ -574,7 +795,7 @@ struct Sad4Avx2
 			}
 
 			mov(r8, r4); // sad[]
-			
+
 			mov(r1, ptr[ref + 0 * 8]);
 			mov(r3, ptr[ref + 2 * 8]);
 			mov(r4, ptr[ref + 3 * 8]);
@@ -601,7 +822,7 @@ struct Sad4Avx2
 					vinserti128(ymm2, ymm2, ptr[r2 + r7], 1);
 					vinserti128(ymm3, ymm3, ptr[r3 + r7], 1);
 					vinserti128(ymm4, ymm4, ptr[r4 + r7], 1);
-					
+
 					if (widthBytes == 12)
 					{
 						vpand(ymm0, ptr[rip + mask_12_16]);
@@ -691,12 +912,12 @@ struct Sad4Avx2
 			vextracti128(xmm1, ymm6, 1);
 			vextracti128(xmm2, ymm7, 1);
 			vextracti128(xmm3, ymm8, 1);
-			
+
 			vpaddd(xmm5, xmm0);
 			vpaddd(xmm6, xmm1);
 			vpaddd(xmm7, xmm2);
 			vpaddd(xmm8, xmm3);
-			
+
 			//; two different ways of achieving the same thing - both seem to take similar number of cycles
 			if (0)
 			{
@@ -747,14 +968,14 @@ hevcasm_sad_multiref<Sample>* get_sad_multiref(int ways, int width, int height, 
 	if (buffer.isa & HEVCASM_AVX2)
 	{
 #define X(w, h) \
-		{ \
-			Sad4Avx2<Sample> sad4Avx2(&buffer, w, h); \
-			if (w==width && h==height) \
-			{ \
-				hevcasm_sad_multiref<Sample> *f = sad4Avx2; \
-				if (f) return f; \
-			} \
-		}
+{ \
+Sad4Avx2<Sample> sad4Avx2(&buffer, w, h); \
+if (w==width && h==height) \
+{ \
+hevcasm_sad_multiref<Sample> *f = sad4Avx2; \
+if (f) return f; \
+} \
+}
 
 		X_HEVC_PU_SIZES;
 #undef X
@@ -868,11 +1089,11 @@ int mismatch_sad(void *boundRef, void *boundTest)
 static const int partitions[][2] = {
 	{ 64, 64 },{ 64, 48 },{ 64, 32 },{ 64, 16 },
 	{ 48, 64 },
-	{ 32, 64 },{ 32, 32 },{ 32, 24 },{ 32, 16 }, {32, 8},
+	{ 32, 64 },{ 32, 32 },{ 32, 24 },{ 32, 16 },{ 32, 8 },
 	{ 24, 32 },
-	{ 16, 64 },{ 16, 32 },{ 16, 16 },{ 16, 12 },{ 16, 8 },{16, 4},
+	{ 16, 64 },{ 16, 32 },{ 16, 16 },{ 16, 12 },{ 16, 8 },{ 16, 4 },
 	{ 12, 16 },
-	{ 8, 32 },{ 8, 16 },{ 8, 8 }, { 8, 4 },
+	{ 8, 32 },{ 8, 16 },{ 8, 8 },{ 8, 4 },
 	{ 4, 8 },
 	{ 0, 0 } };
 
@@ -899,7 +1120,7 @@ void hevcasm_test_sad(int *error_count, hevcasm_instruction_set mask)
 {
 	printf("\nhevcasm_sad - Sum of Absolute Differences\n");
 
-//	testSad<uint8_t>(error_count, mask);
+	//	testSad<uint8_t>(error_count, mask);
 	testSad<uint16_t>(error_count, mask);
 }
 
@@ -927,7 +1148,7 @@ struct BoundSadMultiref
 
 	int init(hevcasm_code code) override
 	{
-		this->bits = sizeof(Sample) ==2 ? 10 : 8;
+		this->bits = sizeof(Sample) == 2 ? 10 : 8;
 
 		auto s = this;
 

@@ -22,6 +22,11 @@
 #define USE_WEBM_DERIVED 1
 #endif
 
+/* macro used to ringfence code derived from the HM codec */
+#ifndef USE_HM_DERIVED
+#define USE_HM_DERIVED 1
+#endif
+
 
 
 /* compiler-specific inline timestamp function and alignment macro */

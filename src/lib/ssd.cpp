@@ -29,6 +29,31 @@ static uint32_t hevcasm_ssd_c_ref(const Sample *pA, intptr_t strideA, const Samp
 }
 
 
+#if USE_HM_DERIVED
+
+template <typename Sample>
+static uint32_t hevcasm_ssd_c_opt_4x4(const Sample *pA, intptr_t strideA, const Sample *pB, intptr_t strideB, int w, int h)
+{
+	uint32_t ssd = 0;
+	for (int y = 0; y < h; ++y)
+	{
+		int diff;
+		diff = pA[0] - pB[0];  ssd += diff * diff;
+		diff = pA[1] - pB[1];  ssd += diff * diff;
+		diff = pA[2] - pB[2];  ssd += diff * diff;
+		diff = pA[3] - pB[3];  ssd += diff * diff;
+		pA += strideA;
+		pB += strideB;
+	}
+
+	if (sizeof(Sample) == 2)
+		ssd >>= 4;
+	
+	return ssd;
+}
+
+#endif
+
 
 #define ORDER(a, b, c, d) ((a << 6) | (b << 4) | (c << 2) | d)
 
@@ -135,6 +160,13 @@ void hevcasm_populate_ssd(hevcasm_table_ssd<Sample> *table, hevcasm_code code)
 		*hevcasm_get_ssd(table, 5) = hevcasm_ssd_c_ref<Sample>;
 		*hevcasm_get_ssd(table, 6) = hevcasm_ssd_c_ref<Sample>;
 	}
+
+#if USE_HM_DERIVED
+	if (buffer.isa & HEVCASM_C_OPT)
+	{
+		*hevcasm_get_ssd(table, 2) = hevcasm_ssd_c_opt_4x4<Sample>;
+	}
+#endif
 
 	if (buffer.isa & HEVCASM_AVX)
 	{
